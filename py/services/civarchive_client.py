@@ -281,7 +281,15 @@ class CivArchiveClient:
             version_copy["stats"] = stats
 
         version_copy["files"] = self._transform_files(version_copy.get("files"), fallback_files)
-        version_copy["images"] = self._ensure_list(version_copy.get("images"))
+        images = self._ensure_list(version_copy.get("images"))
+        for img in images:
+            if "id" not in img:
+                link = img.get("link")
+                try:
+                    img["id"] = int(link.split('/')[-1])
+                except (ValueError, TypeError):
+                    pass
+        version_copy["images"] = images
 
         version_copy["model"] = self._build_model_info(context)
         version_copy["creator"] = self._build_creator_info(context)
