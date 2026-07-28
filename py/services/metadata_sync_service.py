@@ -152,9 +152,9 @@ class MetadataSyncService:
             civitai_metadata.get("baseModel")
         )
 
-        await self._preview_service.ensure_preview_for_metadata(
-            metadata_path, local_metadata, civitai_metadata.get("images", [])
-        )
+        # await self._preview_service.ensure_preview_for_metadata(
+        #     metadata_path, local_metadata, civitai_metadata.get("images", [])
+        # )
 
         await self._metadata_manager.save_metadata(metadata_path, local_metadata)
         return local_metadata
