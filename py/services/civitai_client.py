@@ -288,7 +288,7 @@ class CivitaiClient:
                 raise ResourceNotFoundError(f"Resource not found for model {model_id}")
             if is_expected_offline_error(message):
                 logger.info("Civitai request skipped: %s", OFFLINE_FRIENDLY_MESSAGE)
-                return None
+                raise RuntimeError(OFFLINE_FRIENDLY_MESSAGE)
             if message:
                 if self._is_transient_server_error(message):
                     logger.info(
@@ -379,11 +379,11 @@ class CivitaiClient:
             logger.error("Either model_id or version_id must be provided")
             return None
 
-        except RateLimitError:
+        except (RateLimitError, ResourceNotFoundError):
             raise
         except Exception as e:
             logger.error(f"Error fetching model version: {e}")
-            return None
+            raise
 
     async def _get_version_by_id_only(self, version_id: int) -> Optional[Dict]:
         version = await self._fetch_version_by_id(version_id)
@@ -433,16 +433,22 @@ class CivitaiClient:
             return None
 
         target_version_id = target_version.get("id")
-        version = (
-            await self._fetch_version_by_id(target_version_id)
-            if target_version_id
-            else None
-        )
+        try:
+            version = (
+                await self._fetch_version_by_id(target_version_id)
+                if target_version_id
+                else None
+            )
+        except Exception:
+            version = None
 
         if version is None:
             model_hash = self._extract_primary_model_hash(target_version)
             if model_hash:
-                version = await self._fetch_version_by_hash(model_hash)
+                try:
+                    version = await self._fetch_version_by_hash(model_hash)
+                except Exception:
+                    version = None
             else:
                 logger.warning(
                     f"No primary model hash found for model {model_id} version {target_version_id}"
@@ -457,18 +463,23 @@ class CivitaiClient:
         self._remove_comfy_metadata(version)
         return version
 
-    async def _fetch_model_data(self, model_id: int) -> Optional[Dict]:
+    async def _fetch_model_data(self, model_id: int) -> Dict:
         success, data = await self._make_request(
             "GET",
             f"{self.base_url}/models/{model_id}",
             use_auth=True,
         )
         if success:
-            return data
-        if is_expected_offline_error(data):
-            return None
-        logger.warning(f"Failed to fetch model data for model {model_id}")
-        return None
+            if isinstance(data, dict):
+                return data
+            raise RuntimeError("Invalid response format")
+        
+        message = self._extract_error_message(data)
+        if message and "not found" in message.lower():
+            raise ResourceNotFoundError(f"Model {model_id} not found on Civitai")
+        if is_expected_offline_error(message):
+            raise RuntimeError(OFFLINE_FRIENDLY_MESSAGE)
+        raise RuntimeError(message or f"Failed to fetch model data for model {model_id}")
 
     async def _fetch_version_by_id(self, version_id: Optional[int]) -> Optional[Dict]:
         if version_id is None:
@@ -480,12 +491,16 @@ class CivitaiClient:
             use_auth=True,
         )
         if success:
-            return version
-        if is_expected_offline_error(version):
-            return None
-
-        logger.warning(f"Failed to fetch version by id {version_id}")
-        return None
+            if isinstance(version, dict):
+                return version
+            raise RuntimeError("Invalid response format")
+        
+        message = self._extract_error_message(version)
+        if message and "not found" in message.lower():
+            raise ResourceNotFoundError(f"Model version {version_id} not found on Civitai")
+        if is_expected_offline_error(message):
+            raise RuntimeError(OFFLINE_FRIENDLY_MESSAGE)
+        raise RuntimeError(message or f"Failed to fetch version by id {version_id}")
 
     async def _fetch_version_by_hash(self, model_hash: Optional[str]) -> Optional[Dict]:
         if not model_hash:
@@ -497,12 +512,16 @@ class CivitaiClient:
             use_auth=True,
         )
         if success:
-            return version
-        if is_expected_offline_error(version):
-            return None
-
-        logger.warning(f"Failed to fetch version by hash {model_hash}")
-        return None
+            if isinstance(version, dict):
+                return version
+            raise RuntimeError("Invalid response format")
+        
+        message = self._extract_error_message(version)
+        if message and "not found" in message.lower():
+            raise ResourceNotFoundError(f"Model version for hash {model_hash} not found on Civitai")
+        if is_expected_offline_error(message):
+            raise RuntimeError(OFFLINE_FRIENDLY_MESSAGE)
+        raise RuntimeError(message or f"Failed to fetch version by hash {model_hash}")
 
     def _select_target_version(
         self, model_data: Dict, model_id: int, version_id: Optional[int]

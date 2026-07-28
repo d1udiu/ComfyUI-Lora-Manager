@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from py.services import model_metadata_provider as provider_module
-from py.services.errors import RateLimitError
+from py.services.errors import RateLimitError, ResourceNotFoundError
 from py.services.model_metadata_provider import (
     FallbackMetadataProvider,
     RateLimitRetryingProvider,
@@ -118,6 +118,92 @@ async def test_rate_limit_retrying_provider_respects_limit(monkeypatch):
     assert exc_info.value.provider == "inner"
     assert inner.calls == 2
     sleep_mock.assert_awaited_once()
+
+
+class ResourceNotFoundProvider:
+    async def get_model_by_hash(self, model_hash: str):
+        raise ResourceNotFoundError("not found")
+    async def get_model_versions(self, model_id: str):
+        raise ResourceNotFoundError("not found")
+    async def get_model_version(self, model_id: int = None, version_id: int = None):
+        raise ResourceNotFoundError("not found")
+
+
+class RuntimeErrorProvider:
+    async def get_model_by_hash(self, model_hash: str):
+        raise RuntimeError("network error")
+    async def get_model_versions(self, model_id: str):
+        raise RuntimeError("network error")
+    async def get_model_version(self, model_id: int = None, version_id: int = None):
+        raise RuntimeError("network error")
+
+
+class ErrorMessageProvider:
+    def __init__(self, error_msg: str):
+        self.error_msg = error_msg
+    async def get_model_by_hash(self, model_hash: str):
+        return None, self.error_msg
+
+
+@pytest.mark.asyncio
+async def test_fallback_on_resource_not_found():
+    from py.services.errors import ResourceNotFoundError
+    primary = ResourceNotFoundProvider()
+    secondary = TrackingProvider()
+    fallback = FallbackMetadataProvider([("primary", primary), ("secondary", secondary)])
+
+    result, error = await fallback.get_model_by_hash("abc")
+    assert result == {"id": "secondary"}
+    assert secondary.calls == 1
+
+    # Also test get_model_versions fallback
+    secondary.calls = 0
+    secondary.get_model_versions = AsyncMock(return_value={"id": "secondary_versions"})
+    versions = await fallback.get_model_versions("123")
+    assert versions == {"id": "secondary_versions"}
+
+
+@pytest.mark.asyncio
+async def test_no_fallback_on_network_error():
+    primary = RuntimeErrorProvider()
+    secondary = TrackingProvider()
+    fallback = FallbackMetadataProvider([("primary", primary), ("secondary", secondary)])
+
+    with pytest.raises(RuntimeError) as exc_info:
+        await fallback.get_model_by_hash("abc")
+    assert "network error" in str(exc_info.value)
+    assert secondary.calls == 0
+
+    # Also test get_model_versions no fallback
+    secondary.get_model_versions = AsyncMock()
+    with pytest.raises(RuntimeError) as exc_info:
+        await fallback.get_model_versions("123")
+    assert "network error" in str(exc_info.value)
+    secondary.get_model_versions.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fallback_on_error_message_containing_not_found():
+    primary = ErrorMessageProvider("Model not found")
+    secondary = TrackingProvider()
+    fallback = FallbackMetadataProvider([("primary", primary), ("secondary", secondary)])
+
+    result, error = await fallback.get_model_by_hash("abc")
+    assert result == {"id": "secondary"}
+    assert secondary.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_no_fallback_on_other_error_message():
+    primary = ErrorMessageProvider("Connection timeout")
+    secondary = TrackingProvider()
+    fallback = FallbackMetadataProvider([("primary", primary), ("secondary", secondary)])
+
+    result, error = await fallback.get_model_by_hash("abc")
+    assert result is None
+    assert error == "Connection timeout"
+    assert secondary.calls == 0
+
 
 
 @pytest.mark.asyncio

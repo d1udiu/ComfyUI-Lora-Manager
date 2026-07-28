@@ -484,16 +484,18 @@ class FallbackMetadataProvider(ModelMetadataProvider):
                 )
                 if result:
                     return result, error
+                if error:
+                    if "not found" in error.lower():
+                        continue
+                    else:
+                        return None, error
             except RateLimitError as exc:
-                logger.warning(
-                    "Provider %s is rate-limited (retry_after=%.0fs); skipping to next provider",
-                    label,
-                    exc.retry_after or 0,
-                )
+                exc.provider = exc.provider or label
+                raise exc
+            except ResourceNotFoundError:
                 continue
             except Exception as e:
-                logger.debug("Provider %s failed for get_model_by_hash: %s", label, e)
-                continue
+                raise e
         return None, "Model not found"
 
     async def get_model_versions(self, model_id: str) -> Optional[Dict]:
@@ -525,6 +527,8 @@ class FallbackMetadataProvider(ModelMetadataProvider):
             except Exception as e:
                 logger.debug("Provider %s failed for get_model_versions: %s", label, e)
                 continue
+            except Exception as e:
+                raise e
         return None
 
     async def get_model_version(self, model_id: int = None, version_id: int = None) -> Optional[Dict]:
@@ -539,15 +543,12 @@ class FallbackMetadataProvider(ModelMetadataProvider):
                 if result:
                     return result
             except RateLimitError as exc:
-                logger.warning(
-                    "Provider %s is rate-limited (retry_after=%.0fs); skipping to next provider",
-                    label,
-                    exc.retry_after or 0,
-                )
+                exc.provider = exc.provider or label
+                raise exc
+            except ResourceNotFoundError:
                 continue
             except Exception as e:
-                logger.debug("Provider %s failed for get_model_version: %s", label, e)
-                continue
+                raise e
         return None
 
     async def get_model_version_info(self, version_id: str) -> Tuple[Optional[Dict], Optional[str]]:
@@ -560,16 +561,18 @@ class FallbackMetadataProvider(ModelMetadataProvider):
                 )
                 if result:
                     return result, error
+                if error:
+                    if "not found" in error.lower():
+                        continue
+                    else:
+                        return None, error
             except RateLimitError as exc:
-                logger.warning(
-                    "Provider %s is rate-limited (retry_after=%.0fs); skipping to next provider",
-                    label,
-                    exc.retry_after or 0,
-                )
+                exc.provider = exc.provider or label
+                raise exc
+            except ResourceNotFoundError:
                 continue
             except Exception as e:
-                logger.debug("Provider %s failed for get_model_version_info: %s", label, e)
-                continue
+                raise e
         return None, "No provider could retrieve the data"
 
     async def get_model_versions_by_hashes(
@@ -587,19 +590,12 @@ class FallbackMetadataProvider(ModelMetadataProvider):
             except NotImplementedError:
                 continue
             except RateLimitError as exc:
-                logger.warning(
-                    "Provider %s is rate-limited (retry_after=%.0fs); skipping to next provider",
-                    label,
-                    exc.retry_after or 0,
-                )
+                exc.provider = exc.provider or label
+                raise exc
+            except ResourceNotFoundError:
                 continue
             except Exception as e:
-                logger.debug(
-                    "Provider %s failed for get_model_versions_by_hashes: %s",
-                    label,
-                    e,
-                )
-                continue
+                raise e
         return None
 
     async def get_user_models(self, username: str) -> Optional[List[Dict]]:
@@ -613,15 +609,12 @@ class FallbackMetadataProvider(ModelMetadataProvider):
                 if result is not None:
                     return result
             except RateLimitError as exc:
-                logger.warning(
-                    "Provider %s is rate-limited (retry_after=%.0fs); skipping to next provider",
-                    label,
-                    exc.retry_after or 0,
-                )
+                exc.provider = exc.provider or label
+                raise exc
+            except ResourceNotFoundError:
                 continue
             except Exception as e:
-                logger.debug("Provider %s failed for get_user_models: %s", label, e)
-                continue
+                raise e
         return None
 
     def _iter_providers(self):
