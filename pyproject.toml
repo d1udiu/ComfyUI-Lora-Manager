@@ -11,9 +11,11 @@ dependencies = [
     "Pillow",
     "olefile", # for getting rid of warning message
     "toml",
+    "numpy",
     "natsort",
     "GitPython",
     "aiosqlite",
+    "beautifulsoup4",
     "platformdirs",
     "pyyaml"
 ]

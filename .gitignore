@@ -15,6 +15,7 @@ node_modules/
 coverage/
 .coverage
 model_cache/
+uv.lock
 
 # agent / dev tooling
 .opencode/
@@ -33,6 +34,9 @@ vue-widgets/dist/
 
 # Hypothesis test cache
 .hypothesis/
+
+logs/
+stats/
 
 # Working/research notes (not committed)
 .docs/
