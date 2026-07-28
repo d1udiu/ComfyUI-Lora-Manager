@@ -562,6 +562,48 @@ class CivitaiClient:
         for field, value in license_payload.items():
             model_info[field] = value
 
+        version_id = version.get("id")
+        target_model_version = None
+        for mv in model_data.get("modelVersions", []):
+            if mv.get("id") == version_id:
+                target_model_version = mv
+                break
+
+        if target_model_version:
+            hash_images = version.get("images", [])
+
+            model_images = target_model_version.get("images", [])
+
+            final_images = []
+            seen_ids = set()
+
+            def process_image(img_obj):
+                url = img_obj.get("url")
+                
+                filename = url.split("?")[0].split("/")[-1]
+                img_id_str = os.path.splitext(filename)[0]
+                
+                try:
+                    img_id = int(img_id_str)
+                except ValueError:
+                    img_id = img_id_str
+                    
+                img_obj["id"] = img_id
+                return img_id
+
+            for img in hash_images:
+                img_id = process_image(img)
+                seen_ids.add(img_id)
+                final_images.append(img)
+
+            for img in model_images:
+                img_id = process_image(img)
+                if img_id not in seen_ids:
+                    seen_ids.add(img_id)
+                    final_images.append(img)
+
+            version["images"] = final_images
+
     async def get_model_version_info(
         self, version_id: str
     ) -> Tuple[Optional[Dict], Optional[str]]:
