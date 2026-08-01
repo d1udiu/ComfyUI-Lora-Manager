@@ -1,11 +1,12 @@
 import { modalManager } from './ModalManager.js';
-import { 
-    getStorageItem, 
-    setStorageItem, 
-    getStoredVersionInfo, 
+import {
+    getStorageItem,
+    setStorageItem,
+    getStoredVersionInfo,
     setStoredVersionInfo,
     isVersionMatch
 } from '../utils/storageHelpers.js';
+import { state } from '../state/index.js';
 import { bannerService } from './BannerService.js';
 import { translate } from '../utils/i18nHelpers.js';
 
@@ -26,6 +27,8 @@ export class UpdateService {
         this.isUpdating = false;
         this.channelMode = null;
         this.hasGit = false;
+        this.nightlyNotifyDate = getStorageItem('nightly_notify_date', '');
+        this.nightlyBadgeShown = false;
         this.progressKeepVisible = false;
         this.currentVersionInfo = null;
         this.versionMismatch = false;
@@ -59,9 +62,6 @@ export class UpdateService {
         
         // Perform update check if needed
         this.checkVersionInfo().then(() => {
-            if (this.channelMode === null) {
-                this.channelMode = this.hasGit ? 'nightly' : 'release';
-            }
             this.checkForUpdates().then(() => {
                 this.updateBadgeVisibility();
             });
@@ -118,6 +118,14 @@ export class UpdateService {
 
             if (data.success) {
                 this.channelMode = channel;
+                // Persist channel preference to settings.json
+                fetch('/api/lm/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ update_channel: channel })
+                }).then(r => {
+                    if (!r.ok) console.warn('Failed to persist update channel:', r.status);
+                }).catch(e => console.warn('Failed to persist update channel:', e));
                 await this.checkForUpdates({ force: true });
                 this.updateModalContent();
                 this.updateChannelUI();
@@ -152,6 +160,20 @@ export class UpdateService {
         if (nightlyBtn) {
             nightlyBtn.classList.toggle('active', this.channelMode === 'nightly');
         }
+    }
+
+    _resolveChannelFromSettings() {
+        const stored = state?.global?.settings?.update_channel;
+        if (stored === 'nightly' || stored === 'release') {
+            return stored;
+        }
+        if (!this.hasGit) {
+            return 'release';
+        }
+        if (this.gitInfo?.branch === 'detached') {
+            return 'release';
+        }
+        return 'nightly';
     }
 
     async _confirmChannelSwitch(titleKey, messageKey) {
@@ -475,6 +497,18 @@ export class UpdateService {
     }
     
     async checkForUpdates({ force = false } = {}) {
+        let needsMigration = false;
+        if (this.channelMode === null) {
+            const stored = state?.global?.settings?.update_channel;
+            if (stored === 'nightly' || stored === 'release') {
+                this.channelMode = stored;
+            } else if (!this.hasGit) {
+                this.channelMode = 'release';
+                needsMigration = true;
+            }
+            // hasGit=true with no stored value: wait for gitInfo.branch
+        }
+
         if (!force && !this.updateNotificationsEnabled) {
             return;
         }
@@ -493,7 +527,7 @@ export class UpdateService {
 
         try {
             // Call backend API to check for updates with nightly flag
-            const nightly = this.channelMode === 'nightly';
+            const nightly = (this.channelMode ?? (this.hasGit ? 'nightly' : 'release')) === 'nightly';
             const response = await fetch(`/api/lm/check-updates?nightly=${nightly}`);
             const data = await response.json();
             
@@ -503,11 +537,27 @@ export class UpdateService {
                 this.updateInfo = data;
                 this.gitInfo = data.git_info || this.gitInfo;
                 this.hasGit = data.has_git || false;
-                if (this.channelMode === null) {
-                    this.channelMode = this.hasGit ? 'nightly' : 'release';
+
+                if (needsMigration || this.channelMode === null) {
+                    this.channelMode = this._resolveChannelFromSettings();
+                    if (state?.global?.settings) {
+                        state.global.settings.update_channel = this.channelMode;
+                    }
+                    fetch('/api/lm/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ update_channel: this.channelMode })
+                    }).then(r => {
+                        if (!r.ok) console.warn('Failed to persist update channel:', r.status);
+                    }).catch(e => console.warn('Failed to persist update channel:', e));
                 }
 
                 this.updateAvailable = data.update_available;
+
+                // Nightly channel: surface the update badge at most once per calendar day.
+                if (this.updateAvailable && this.channelMode === 'nightly' && this.nightlyNotifyDate !== this._getTodayKey()) {
+                    this._markNightlyNotified();
+                }
 
                 this.lastCheckTime = now;
                 setStorageItem('last_update_check', now.toString());
@@ -558,6 +608,28 @@ export class UpdateService {
         
         return false;
     }
+
+    _getTodayKey() {
+        const now = new Date();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${now.getFullYear()}-${month}-${day}`;
+    }
+
+    _isNightlyBadgeAllowed() {
+        if (this.channelMode !== 'nightly') {
+            return true;
+        }
+        // Keep the badge visible for the rest of the session once shown, but do
+        // not show it again on later sessions within the same calendar day.
+        return this.nightlyNotifyDate !== this._getTodayKey() || this.nightlyBadgeShown;
+    }
+
+    _markNightlyNotified() {
+        this.nightlyNotifyDate = this._getTodayKey();
+        this.nightlyBadgeShown = true;
+        setStorageItem('nightly_notify_date', this.nightlyNotifyDate);
+    }
     
     updateBadgeVisibility() {
         const updateToggle = document.querySelector('.update-toggle');
@@ -566,9 +638,12 @@ export class UpdateService {
             ? bannerService.getUnreadBannerCount()
             : 0;
 
+        // Force updating badges visibility based on current state
+        const shouldShowUpdate = this.updateNotificationsEnabled && this.updateAvailable && this._isNightlyBadgeAllowed();
+
         if (updateToggle) {
             let tooltipKey = 'header.actions.notifications';
-            if (this.updateNotificationsEnabled && this.updateAvailable) {
+            if (shouldShowUpdate) {
                 tooltipKey = 'update.updateAvailable';
             } else if (unreadBanners > 0) {
                 tooltipKey = 'update.tabs.messages';
@@ -576,8 +651,6 @@ export class UpdateService {
             updateToggle.title = translate(tooltipKey);
         }
 
-        // Force updating badges visibility based on current state
-        const shouldShowUpdate = this.updateNotificationsEnabled && this.updateAvailable;
         const shouldShow = shouldShowUpdate || unreadBanners > 0;
 
         if (updateBadge) {
