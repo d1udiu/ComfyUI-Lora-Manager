@@ -137,11 +137,10 @@ export class BulkContextMenu extends BaseContextMenu {
             downloadMissingLorasItem.style.display = currentModelType === 'recipes' ? 'flex' : 'none';
         }
 
-        const downloadExampleImagesItem = this.menu.querySelector('[data-action="download-example-images"]');
-        if (downloadExampleImagesItem) {
+        const downloadExampleImagesSubmenu = this.menu.querySelector('[data-has-submenu="download-example-images"]');
+        if (downloadExampleImagesSubmenu) {
             // Show on model pages (loras, checkpoints, embeddings), hide on recipes
-            const modelPages = ['loras', 'checkpoints', 'embeddings'];
-            downloadExampleImagesItem.style.display = modelPages.includes(currentModelType) ? 'flex' : 'none';
+            downloadExampleImagesSubmenu.style.display = ['loras', 'checkpoints', 'embeddings'].includes(currentModelType) ? 'flex' : 'none';
         }
 
         const skipMetadataRefreshItem = this.menu.querySelector('[data-action="skip-metadata-refresh"]');
@@ -294,8 +293,11 @@ export class BulkContextMenu extends BaseContextMenu {
             case 'download-missing-loras':
                 this.handleDownloadMissingLoras();
                 break;
+            case 'download-missing-example-images':
+                this.handleDownloadExampleImages({ force: false });
+                break;
             case 'download-example-images':
-                this.handleDownloadExampleImages();
+                this.handleDownloadExampleImages({ force: true });
                 break;
             case 'clear':
                 bulkManager.clearSelection();
@@ -340,7 +342,7 @@ export class BulkContextMenu extends BaseContextMenu {
         await bulkMissingLoraDownloadManager.downloadMissingLoras(selectedRecipes);
     }
 
-    async handleDownloadExampleImages() {
+    async handleDownloadExampleImages({ force = true } = {}) {
         if (state.selectedModels.size === 0) {
             return;
         }
@@ -361,7 +363,7 @@ export class BulkContextMenu extends BaseContextMenu {
 
         try {
             const apiClient = getModelApiClient();
-            await apiClient.downloadExampleImages([...hashes]);
+            await apiClient.downloadExampleImages([...hashes], null, { force });
         } catch (error) {
             console.error('Bulk download example images failed:', error);
         }

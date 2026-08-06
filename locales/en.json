@@ -714,7 +714,9 @@
         "versionsCount": "Local Versions",
         "versionsCountDesc": "Most versions first",
         "versionsCountAsc": "Fewest versions first",
-        "versionIdDesc": "Newest version first"
+        "versionIdDesc": "Newest version first",
+        "random": "Random",
+        "randomAction": "Randomize (shuffle)"
       },
       "refresh": {
         "title": "Refresh model list",
@@ -771,6 +773,8 @@
       "deleteAll": "Delete Selected",
       "downloadMissingLoras": "Download Missing LoRAs",
       "downloadExamples": "Download Example Images",
+      "downloadMissingExamples": "Download Missing",
+      "reprocessExamples": "Re-process All",
       "clear": "Clear Selection",
       "skipMetadataRefreshCount": "Skip ({count} models)",
       "resumeMetadataRefreshCount": "Resume ({count} models)",
@@ -806,6 +810,8 @@
       "sendToWorkflowReplace": "Send to Workflow (Replace)",
       "openExamples": "Open Examples Folder",
       "downloadExamples": "Download Example Images",
+      "downloadMissingExamples": "Download Missing",
+      "reprocessExamples": "Re-process All",
       "replacePreview": "Replace Preview",
       "setContentRating": "Set Content Rating",
       "moveToFolder": "Move to Folder",
