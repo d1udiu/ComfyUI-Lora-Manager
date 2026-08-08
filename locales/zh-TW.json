@@ -449,6 +449,12 @@
                 "compact": "7（1080p）、8（2K）、10（4K）"
             },
             "displayDensityWarning": "警告：較高密度可能導致資源有限的系統效能下降。",
+            "recipesLayout": "配方版面",
+            "recipesLayoutHelp": "選擇配方卡片的排列方式：統一網格，或保留每張圖片原始寬高比的瀑布流（Pinterest 風格）版面。",
+            "recipesLayoutOptions": {
+                "grid": "網格",
+                "masonry": "瀑布流"
+            },
             "showFolderSidebar": "顯示資料夾側邊欄",
             "showFolderSidebarHelp": "在模型頁面啟用或停用資料夾導覽側邊欄。停用後，側邊欄與滑鼠懸停區域將保持隱藏。",
             "cardInfoDisplay": "卡片資訊顯示",
@@ -678,6 +684,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "自訂（OpenAI 相容）"
             },
@@ -686,7 +693,7 @@
             "apiBasePlaceholder": "https://api.openai.com/v1",
             "apiKey": "API 金鑰",
             "apiKeyHelp": "LLM 提供者的 API 金鑰。儲存在本地，除您選擇的 LLM 提供者外不會傳送到任何伺服器。",
-            "apiKeyPlaceholder": "[TODO: Translate] sk-...",
+            "apiKeyPlaceholder": "sk-...",
             "apiKeyNotSet": "未設定",
             "apiKeyConfigured": "已設定",
             "apiKeySet": "設定",
@@ -1581,6 +1588,21 @@
             "downloadCsv": "下載 CSV",
             "columnModelName": "模型名稱",
             "columnError": "錯誤"
+        },
+        "downloadBatchSummary": {
+            "title": "批次下載摘要",
+            "statSuccess": "成功",
+            "statFailed": "失敗",
+            "statTotal": "總數",
+            "successMessage": "全部 {count} 個模型下載成功",
+            "completedWithErrors": "已完成，但有錯誤",
+            "failed": "下載失敗",
+            "failedItems": "失敗項目（{count}）",
+            "columnName": "模型名稱",
+            "columnError": "錯誤",
+            "close": "關閉",
+            "copyReport": "複製報告",
+            "retryFailed": "重試失敗項目（{count}）"
         }
     },
     "modelTags": {
@@ -2037,7 +2059,6 @@
             "presetNameTooLong": "預設名稱不能超過 {max} 個字元",
             "presetNameInvalidChars": "預設名稱包含無效字元",
             "presetNameExists": "已存在同名預設",
-            "maxPresetsReached": "最多允許 {max} 個預設。刪除一個以新增更多。",
             "presetNotFound": "預設未找到",
             "invalidPreset": "無效的預設資料",
             "deletePresetFailed": "刪除預設失敗",

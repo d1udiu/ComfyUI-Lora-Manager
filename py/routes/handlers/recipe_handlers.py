@@ -10,7 +10,7 @@ import asyncio
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Tuple
 
 from aiohttp import web
 
@@ -43,6 +43,22 @@ Logger = logging.Logger
 EnsureDependenciesCallable = Callable[[], Awaitable[None]]
 RecipeScannerGetter = Callable[[], Any]
 CivitaiClientGetter = Callable[[], Any]
+
+# Cap concurrent preview-dimension reads across requests. With a cold LRU
+# cache one page can touch up to page_size image files; 16 balances SSD and
+# HDD throughput without starving the event loop.
+_DIMS_READ_SEMAPHORE = asyncio.Semaphore(16)
+
+
+async def _read_preview_dims(path: str) -> Optional[Tuple[int, int]]:
+    """Read preview dimensions off the event loop under the concurrency cap.
+
+    PIL I/O runs in a worker thread so it never blocks the event loop, and the
+    semaphore bounds how many files are opened at once even when many list
+    requests land together.
+    """
+    async with _DIMS_READ_SEMAPHORE:
+        return await asyncio.to_thread(ExifUtils.get_image_dimensions, path)
 
 
 @dataclass(frozen=True)
@@ -246,7 +262,8 @@ class RecipeListingHandler:
                 recursive=recursive,
             )
 
-            for item in result.get("items", []):
+            items = result.get("items", [])
+            for item in items:
                 file_path = item.get("file_path")
                 if file_path:
                     item["file_url"] = self.format_recipe_file_url(file_path)
@@ -254,6 +271,26 @@ class RecipeListingHandler:
                     item.setdefault("file_url", "/loras_static/images/no-preview.png")
                 item.setdefault("loras", [])
                 item.setdefault("base_model", "")
+
+            # Batch preview dimension reads with asyncio.gather. The previous
+            # loop awaited asyncio.to_thread once per item, so a page_size=100
+            # request submitted 100 sequential thread calls (50-300ms cold-page
+            # latency). gather runs them concurrently while the semaphore caps
+            # disk opens; dimensions stay omitted (not null) when a preview has
+            # no readable size (video, missing file).
+            to_read = [
+                (i, item.get("file_path"))
+                for i, item in enumerate(items)
+                if item.get("file_path")
+            ]
+            if to_read:
+                dims_list = await asyncio.gather(
+                    *(_read_preview_dims(path) for _, path in to_read)
+                )
+                for (idx, _), dims in zip(to_read, dims_list):
+                    if dims:
+                        item = items[idx]
+                        item["width"], item["height"] = dims
 
             return web.json_response(result)
         except Exception as exc:
@@ -1045,10 +1082,10 @@ class RecipeManagementHandler:
         *,
         image_url: str,
         name: str,
-        lora_entries: list,
-        checkpoint_entry: dict,
-        gen_params_request: dict,
-        tags: list,
+        lora_entries: list[Any],
+        checkpoint_entry: Dict[str, Any] | None,
+        gen_params_request: Dict[str, Any] | None,
+        tags: list[Any],
         base_model: str,
         source_path: str,
     ) -> web.Response:
@@ -1081,6 +1118,12 @@ class RecipeManagementHandler:
             _original_image_url,
         ) = await self._download_remote_media(image_url)
 
+        # Build a version-cached map of local model hashes to cache items so
+        # CivitaiApiMetadataParser can skip CivitAI API calls for models that
+        # exist on disk. Built once and shared by every parse pass below.
+        local_cache = await recipe_scanner.build_local_hash_cache()
+        from ...recipes.parsers.civitai_image import CivitaiApiMetadataParser
+
         # Extract embedded EXIF metadata (offloaded to thread pool in this call)
         embedded_gen_params = {}
         parsed_embedded = None
@@ -1102,9 +1145,16 @@ class RecipeManagementHandler:
                         )
                     )
                     if parser:
-                        parsed_embedded = await parser.parse_metadata(
-                            raw_embedded, recipe_scanner=recipe_scanner
-                        )
+                        if isinstance(parser, CivitaiApiMetadataParser):
+                            parsed_embedded = await parser.parse_metadata(
+                                raw_embedded,
+                                recipe_scanner=recipe_scanner,
+                                local_cache=local_cache,
+                            )
+                        else:
+                            parsed_embedded = await parser.parse_metadata(
+                                raw_embedded, recipe_scanner=recipe_scanner
+                            )
                         if parsed_embedded and "gen_params" in parsed_embedded:
                             embedded_gen_params = parsed_embedded["gen_params"]
                     else:
@@ -1135,9 +1185,16 @@ class RecipeManagementHandler:
                     civitai_inner_meta
                 )
                 if parser:
-                    civitai_parsed = await parser.parse_metadata(
-                        civitai_inner_meta, recipe_scanner=recipe_scanner
-                    )
+                    if isinstance(parser, CivitaiApiMetadataParser):
+                        civitai_parsed = await parser.parse_metadata(
+                            civitai_inner_meta,
+                            recipe_scanner=recipe_scanner,
+                            local_cache=local_cache,
+                        )
+                    else:
+                        civitai_parsed = await parser.parse_metadata(
+                            civitai_inner_meta, recipe_scanner=recipe_scanner
+                        )
                     if civitai_parsed and "gen_params" in civitai_parsed:
                         # Merge: API gen_params override EXIF at field level,
                         # EXIF fills in fields the API doesn't have.
@@ -1641,7 +1698,7 @@ class RecipeManagementHandler:
             if not provider:
                 return ""
 
-            version_info = await provider.get_model_version_info(version_id)
+            version_info = await provider.get_model_version_info(str(version_id))
             if isinstance(version_info, tuple):
                 version_info = version_info[0]
 
@@ -1761,6 +1818,12 @@ class RecipeManagementHandler:
             await self._download_remote_media(image_url)
         )
 
+        # Build a version-cached map of local model hashes to cache items so
+        # CivitaiApiMetadataParser can skip CivitAI API calls for models that
+        # exist on disk. Built once and shared by every parse pass below.
+        local_cache = await recipe_scanner.build_local_hash_cache()
+        from ...recipes.parsers.civitai_image import CivitaiApiMetadataParser
+
         # Extract embedded EXIF metadata
         embedded_gen_params = {}
         parsed_embedded = None
@@ -1782,9 +1845,16 @@ class RecipeManagementHandler:
                         )
                     )
                     if parser:
-                        parsed_embedded = await parser.parse_metadata(
-                            raw_embedded, recipe_scanner=recipe_scanner
-                        )
+                        if isinstance(parser, CivitaiApiMetadataParser):
+                            parsed_embedded = await parser.parse_metadata(
+                                raw_embedded,
+                                recipe_scanner=recipe_scanner,
+                                local_cache=local_cache,
+                            )
+                        else:
+                            parsed_embedded = await parser.parse_metadata(
+                                raw_embedded, recipe_scanner=recipe_scanner
+                            )
                         if parsed_embedded and "gen_params" in parsed_embedded:
                             embedded_gen_params = parsed_embedded["gen_params"]
             finally:
@@ -1822,9 +1892,16 @@ class RecipeManagementHandler:
                                 )
                             )
                             if parser:
-                                parsed_embedded = await parser.parse_metadata(
-                                    raw_orig, recipe_scanner=recipe_scanner
-                                )
+                                if isinstance(parser, CivitaiApiMetadataParser):
+                                    parsed_embedded = await parser.parse_metadata(
+                                        raw_orig,
+                                        recipe_scanner=recipe_scanner,
+                                        local_cache=local_cache,
+                                    )
+                                else:
+                                    parsed_embedded = await parser.parse_metadata(
+                                        raw_orig, recipe_scanner=recipe_scanner
+                                    )
                                 if (
                                     parsed_embedded
                                     and "gen_params" in parsed_embedded
@@ -1858,9 +1935,16 @@ class RecipeManagementHandler:
                     civitai_inner_meta
                 )
                 if parser:
-                    civitai_parsed = await parser.parse_metadata(
-                        civitai_inner_meta, recipe_scanner=recipe_scanner
-                    )
+                    if isinstance(parser, CivitaiApiMetadataParser):
+                        civitai_parsed = await parser.parse_metadata(
+                            civitai_inner_meta,
+                            recipe_scanner=recipe_scanner,
+                            local_cache=local_cache,
+                        )
+                    else:
+                        civitai_parsed = await parser.parse_metadata(
+                            civitai_inner_meta, recipe_scanner=recipe_scanner
+                        )
                     if civitai_parsed and "gen_params" in civitai_parsed:
                         # Merge: API gen_params override EXIF at field level,
                         # EXIF fills in fields the API doesn't have.
@@ -2072,33 +2156,44 @@ class RecipeManagementHandler:
             parsed_input = {**image_data, **inner_meta}
             parsed_input.pop("meta", None)
 
-            # Build a local cache of {hash → cache_item} so the parser can
-            # skip CivitAI API calls for models that exist on disk.
-            local_cache: Dict[str, Dict[str, Any]] = {}
-            lora_scanner = getattr(recipe_scanner, "_lora_scanner", None)
-            if lora_scanner and model_hash:
-                try:
-                    parent_cache_data = await lora_scanner.get_cached_data()
-                    for item in getattr(parent_cache_data, "raw_data", []):
-                        if item.get("sha256", "").lower() == model_hash.lower():
-                            local_cache[model_hash.lower()] = item
-                            # Compute AutoV3 so the parser can also match on
-                            # that hash type (CivitAI metadata resources use
-                            # AutoV3).
-                            file_path = item.get("file_path")
-                            if file_path and os.path.exists(file_path):
-                                try:
-                                    from ...utils.file_utils import (
-                                        calculate_autov3,
-                                    )
-                                    autov3 = calculate_autov3(file_path)
-                                    if autov3:
-                                        local_cache[autov3.lower()] = item
-                                except Exception:
-                                    pass
-                            break
-                except Exception:
-                    pass
+            # Build the shared local hash cache so the parser can skip CivitAI
+            # API calls for models that exist on disk.
+            local_cache: Dict[str, Dict[str, Any]] = (
+                await recipe_scanner.build_local_hash_cache()
+            )
+
+            # Bounded supplement for un-backfilled parents. The shared builder
+            # never computes autov3; when the parent model exists on disk but
+            # its cached entry has no stored AutoV3, compute it for that single
+            # file and register the AutoV3 key so the parser can also match on
+            # that hash type (CivitAI metadata resources use AutoV3). This runs
+            # whenever the parent is found with an empty autov3, independent of
+            # whether the sha256 key is already present in the shared cache.
+            if model_hash:
+                lora_scanner = getattr(recipe_scanner, "_lora_scanner", None)
+                if lora_scanner:
+                    try:
+                        parent_cache_data = await lora_scanner.get_cached_data()
+                        for item in getattr(parent_cache_data, "raw_data", []):
+                            if item.get("sha256", "").lower() == model_hash.lower():
+                                autov3 = (item.get("autov3") or "").lower()
+                                if not autov3:
+                                    file_path = item.get("file_path")
+                                    if file_path and os.path.exists(file_path):
+                                        try:
+                                            from ...utils.file_utils import (
+                                                calculate_autov3,
+                                            )
+                                            autov3 = (
+                                                calculate_autov3(file_path) or ""
+                                            ).lower()
+                                        except Exception:
+                                            pass
+                                if autov3:
+                                    local_cache[autov3] = item
+                                break
+                    except Exception:
+                        pass
 
             parser = self._analysis_service._recipe_parser_factory.create_parser(
                 parsed_input
@@ -2130,10 +2225,10 @@ class RecipeManagementHandler:
             parent_model_id: int | None = None
             parent_version_name: str | None = None
             parent_model_name: str | None = None
-            # Prefer sha256 key; fall back to any cached entry.
+            # Resolve the parent strictly by its sha256 key. There is no
+            # arbitrary fallback: with a full-library cache, picking any entry
+            # would corrupt the isDeleted reconciliation below.
             parent_item = local_cache.get(model_hash.lower()) if model_hash else None
-            if parent_item is None and local_cache:
-                parent_item = next(iter(local_cache.values()))
             if parent_item:
                 civ = parent_item.get("civitai") or {}
                 if isinstance(civ, dict):
@@ -2349,7 +2444,7 @@ class RecipeAnalysisHandler:
             content_type = request.headers.get("Content-Type", "")
             if "multipart/form-data" in content_type:
                 reader = await request.multipart()
-                field = await reader.next()
+                field: Any = await reader.next()
                 if field is None or field.name != "image":
                     raise RecipeValidationError("No image field found")
                 image_chunks = bytearray()

@@ -3,12 +3,18 @@ import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, Dict
 
 import pytest
 
 from py.config import config
+from py.services import model_scanner as model_scanner_module
+from py.services.model_cache import ModelCache
+from py.services.model_hash_index import ModelHashIndex
+from py.services.model_scanner import CacheBuildResult, ModelScanner
 from py.services.recipe_scanner import RecipeScanner
 from py.services import settings_manager as settings_manager_module
+from py.utils.models import BaseModelMetadata
 from py.utils.utils import calculate_recipe_fingerprint
 
 
@@ -24,7 +30,7 @@ class StubLoraScanner:
     def __init__(self) -> None:
         self._hash_index = StubHashIndex()
         self._hash_meta: dict[str, dict[str, str]] = {}
-        self._models_by_name: dict[str, dict] = {}
+        self._models_by_name: dict[str, Dict[str, Any]] = {}
         self._cache = SimpleNamespace(raw_data=[], version_index={})
 
     async def get_cached_data(self):
@@ -44,7 +50,7 @@ class StubLoraScanner:
     async def get_model_info_by_name(self, name: str):
         return self._models_by_name.get(name)
 
-    def register_model(self, name: str, info: dict) -> None:
+    def register_model(self, name: str, info: Dict[str, Any]) -> None:
         self._models_by_name[name] = info
         hash_value = (info.get("sha256") or "").lower()
         version_id = info.get("civitai", {}).get("id")
@@ -76,7 +82,7 @@ def recipe_scanner(tmp_path: Path, monkeypatch):
     settings_manager_module.reset_settings_manager()
     monkeypatch.setattr(config, "loras_roots", [str(tmp_path)])
     stub = StubLoraScanner()
-    scanner = RecipeScanner(lora_scanner=stub)
+    scanner = RecipeScanner(lora_scanner=stub)  # pyright: ignore[reportArgumentType]
 
     async def _init():
         await scanner.refresh_cache(force=True)
@@ -107,7 +113,7 @@ def test_recipes_dir_uses_custom_settings_path(tmp_path: Path, monkeypatch):
     manager = settings_manager_module.get_settings_manager()
     manager.set("recipes_path", str(custom_recipes))
 
-    scanner = RecipeScanner(lora_scanner=StubLoraScanner())
+    scanner = RecipeScanner(lora_scanner=StubLoraScanner())  # pyright: ignore[reportArgumentType]
     resolved = scanner.recipes_dir
 
     assert resolved == str((tmp_path / "custom_recipes").resolve())
@@ -123,7 +129,7 @@ def test_recipes_dir_falls_back_to_first_lora_root(tmp_path: Path, monkeypatch):
 
     monkeypatch.setattr(config, "loras_roots", [str(tmp_path / "alpha")])
 
-    scanner = RecipeScanner(lora_scanner=StubLoraScanner())
+    scanner = RecipeScanner(lora_scanner=StubLoraScanner())  # pyright: ignore[reportArgumentType]
     resolved = scanner.recipes_dir
 
     assert resolved == str(tmp_path / "alpha" / "recipes")
@@ -719,7 +725,7 @@ async def test_initialize_waits_for_lora_scanner(monkeypatch):
             ready_flag.set()
 
     lora_scanner = StubLoraScanner()
-    scanner = RecipeScanner(lora_scanner=lora_scanner)
+    scanner = RecipeScanner(lora_scanner=lora_scanner)  # pyright: ignore[reportArgumentType]
 
     await scanner.initialize_in_background()
 
@@ -736,7 +742,7 @@ async def test_invalid_model_version_marked_deleted_and_not_retried(
     recipes_dir = Path(config.loras_roots[0]) / "recipes"
     recipes_dir.mkdir(parents=True, exist_ok=True)
 
-    recipe = {
+    recipe: Dict[str, Any] = {
         "id": "invalid-version",
         "file_path": str(recipes_dir / "invalid-version.webp"),
         "title": "Invalid",
@@ -1105,3 +1111,586 @@ async def test_remove_recipe_clears_image_id_map(recipe_scanner):
 
     assert "111" not in cache.image_id_map
     assert cache.image_id_map["222"] == "recipe-b"
+
+
+# ---------------------------------------------------------------------------
+# cache_version — ModelScanner write-path bump coverage (plan todo 1)
+# ---------------------------------------------------------------------------
+
+
+class DummyScanner(ModelScanner):
+    """Minimal ModelScanner subclass exercising the base-class write paths."""
+
+    def __init__(self, root: str):
+        self._root = root
+        super().__init__(
+            model_type="dummy",
+            model_class=BaseModelMetadata,
+            file_extensions={".txt"},
+            hash_index=ModelHashIndex(),
+        )
+
+    def get_model_roots(self) -> list[str]:
+        return [self._root]
+
+    async def _process_model_file(
+        self,
+        file_path: str,
+        root_path: str,
+        *,
+        hash_index: ModelHashIndex | None = None,
+        excluded_models: list[str] | None = None,
+    ) -> Dict[str, Any] | None:
+        hash_index = hash_index or self._hash_index
+        excluded_models = excluded_models if excluded_models is not None else self._excluded_models
+        name = os.path.splitext(os.path.basename(file_path))[0]
+        if name.startswith("skip"):
+            excluded_models.append(file_path.replace(os.sep, "/"))
+            return None
+        return {
+            "file_path": file_path.replace(os.sep, "/"),
+            "folder": os.path.dirname(os.path.relpath(file_path, root_path)).replace(os.path.sep, "/"),
+            "sha256": f"hash-{name}",
+            "tags": [],
+            "model_name": name,
+            "file_name": name,
+            "size": 1,
+            "modified": 1.0,
+        }
+
+
+class DummyScannerB(DummyScanner):
+    """A second ModelScanner subclass so per-class versions are independent."""
+
+
+class DummyScannerC(DummyScanner):
+    """A third ModelScanner subclass (embedding stand-in for the misc route test)."""
+
+
+async def _empty_metadata_loader(path: str) -> Dict[str, Any]:
+    return {}
+
+
+class DummyMetadataManagerForLifecycle:
+    async def load_metadata_payload(self, file_path: str) -> Dict[str, Any]:
+        return {}
+
+    async def save_metadata(self, file_path: str, metadata: Dict[str, Any]) -> None:
+        return None
+
+
+def _make_scanner(raw_data: list[Dict[str, Any]], root: str) -> DummyScanner:
+    scanner = DummyScanner(root)
+    scanner._cache = ModelCache(raw_data=[dict(item) for item in raw_data], folders=[])
+    return scanner
+
+
+def _normalize(root_path: str) -> str:
+    return root_path.replace(os.sep, "/")
+
+
+async def test_cache_version_starts_at_zero(tmp_path: Path):
+    scanner = DummyScanner(str(tmp_path))
+    assert scanner.cache_version == 0
+
+
+async def test_scan_apply_bumps_cache_version(tmp_path: Path):
+    scanner = _make_scanner([], str(tmp_path))
+    result = CacheBuildResult(
+        raw_data=[{"file_path": "a.txt", "folder": "", "sha256": "abc", "tags": []}],
+        hash_index=ModelHashIndex(),
+        tags_count={},
+        excluded_models=[],
+    )
+    assert scanner.cache_version == 0
+    await scanner._apply_scan_result(result)
+    assert scanner.cache_version == 1
+    assert scanner._cache.raw_data == result.raw_data
+
+
+async def test_add_model_to_cache_bumps_cache_version(tmp_path: Path):
+    scanner = _make_scanner([], str(tmp_path))
+    assert scanner.cache_version == 0
+    ok = await scanner.add_model_to_cache(
+        {"file_path": "x.txt", "folder": "", "sha256": "abc", "tags": []}
+    )
+    assert ok is True
+    assert scanner.cache_version == 1
+    assert len(scanner._cache.raw_data) == 1
+
+
+async def test_update_single_model_cache_bumps_cache_version(tmp_path: Path):
+    scanner = _make_scanner(
+        [{"file_path": "old.txt", "folder": "", "sha256": "abc", "tags": [], "model_name": "m", "file_name": "old"}],
+        str(tmp_path),
+    )
+    await scanner._cache.resort()
+    assert scanner.cache_version == 0
+    result = await scanner.update_single_model_cache(
+        "old.txt",
+        "new.txt",
+        {"sha256": "def", "tags": [], "model_name": "new", "file_name": "new"},
+    )
+    assert result is not None
+    assert scanner.cache_version == 1
+    assert [item["file_path"] for item in scanner._cache.raw_data] == ["new.txt"]
+
+
+async def test_sync_cache_from_metadata_sha256_change_bumps_cache_version(tmp_path: Path):
+    scanner = _make_scanner(
+        [{"file_path": "m.txt", "folder": "", "sha256": "oldsha", "tags": [], "model_name": "m", "file_name": "m"}],
+        str(tmp_path),
+    )
+    await scanner._cache.resort()
+    assert scanner.cache_version == 0
+    changed = await scanner._sync_cache_from_metadata_impl(
+        "m.txt",
+        {"sha256": "newsha", "tags": [], "model_name": "m", "file_name": "m", "size": 1, "modified": 1.0},
+    )
+    assert changed is True
+    assert scanner.cache_version == 1
+    assert scanner._cache.raw_data[0]["sha256"] == "newsha"
+
+
+async def test_update_autov3_for_model_bumps_cache_version(tmp_path: Path):
+    scanner = _make_scanner(
+        [{"file_path": "m.txt", "folder": "", "sha256": "abc", "tags": [], "model_name": "m", "file_name": "m", "autov3": ""}],
+        str(tmp_path),
+    )
+    assert scanner.cache_version == 0
+    ok = await scanner.update_autov3_for_model("dummy", "m.txt", "AAA12BBB34CD")
+    assert ok is True
+    assert scanner.cache_version == 1
+    assert scanner._cache.raw_data[0]["autov3"] == "aaa12bbb34cd"
+
+
+async def test_batch_remove_bumps_cache_version(tmp_path: Path):
+    scanner = _make_scanner(
+        [{"file_path": "gone.txt", "folder": "", "sha256": "abc", "tags": [], "model_name": "gone", "file_name": "gone"}],
+        str(tmp_path),
+    )
+    assert scanner.cache_version == 0
+    updated = await scanner._batch_update_cache_for_deleted_models(["gone.txt"])
+    assert updated is True
+    assert scanner.cache_version == 1
+    assert scanner._cache.raw_data == []
+
+
+async def test_reconcile_cache_append_only_bumps_cache_version(tmp_path: Path):
+    root = tmp_path / "models"
+    root.mkdir()
+    (root / "new.txt").write_text("data", encoding="utf-8")
+    scanner = _make_scanner([], str(root))
+    assert scanner.cache_version == 0
+    await scanner._reconcile_cache()
+    assert scanner.cache_version == 1
+    assert len(scanner._cache.raw_data) == 1
+
+
+async def test_reconcile_cache_bumps_unconditionally(tmp_path: Path):
+    root = tmp_path / "models"
+    root.mkdir()
+    scanner = _make_scanner([], str(root))
+    assert scanner.cache_version == 0
+    await scanner._reconcile_cache()
+    assert scanner.cache_version == 1
+
+
+async def test_get_cached_data_read_does_not_bump_cache_version(tmp_path: Path):
+    scanner = _make_scanner([], str(tmp_path))
+    assert scanner.cache_version == 0
+    cache = await scanner.get_cached_data()
+    assert cache is scanner._cache
+    assert scanner.cache_version == 0
+    _ = scanner.cache_version
+    assert scanner.cache_version == 0
+
+
+async def test_scanner_versions_are_independent(tmp_path: Path):
+    root = tmp_path / "models"
+    root.mkdir()
+    lora = DummyScanner(str(root))
+    checkpoint = DummyScannerB(str(root))
+    assert lora.cache_version == 0
+    assert checkpoint.cache_version == 0
+    lora.bump_cache_version()
+    assert lora.cache_version == 1
+    assert checkpoint.cache_version == 0
+
+
+async def test_on_library_changed_bumps_cache_version(tmp_path: Path, monkeypatch):
+    scanner = DummyScanner(str(tmp_path))
+    assert scanner.cache_version == 0
+
+    async def _noop_initialize() -> None:
+        pass
+
+    monkeypatch.setattr(scanner, "initialize_in_background", _noop_initialize)
+    scanner.on_library_changed()
+    assert scanner.cache_version == 1
+
+
+async def test_checkpoint_lazy_hash_bumps_cache_version(tmp_path: Path, monkeypatch):
+    from py.services.checkpoint_scanner import CheckpointScanner
+
+    checkpoints_root = tmp_path / "checkpoints"
+    checkpoints_root.mkdir()
+    checkpoint_file = checkpoints_root / "test_model.safetensors"
+    checkpoint_file.write_text("fake content", encoding="utf-8")
+
+    normalized_root = _normalize(str(checkpoints_root))
+    normalized_file = _normalize(str(checkpoint_file))
+
+    monkeypatch.setattr(
+        model_scanner_module.config, "base_models_roots", [normalized_root], raising=False
+    )
+    monkeypatch.setattr(
+        model_scanner_module.config, "checkpoints_roots", [normalized_root], raising=False
+    )
+
+    scanner = CheckpointScanner()
+    scanner._cache = ModelCache(
+        raw_data=[
+            {
+                "file_path": normalized_file,
+                "folder": "",
+                "sha256": "",
+                "hash_status": "pending",
+                "tags": [],
+                "model_name": "test_model",
+                "file_name": "test_model",
+            }
+        ],
+        folders=[],
+    )
+    assert scanner.cache_version == 0
+    hash_result = await scanner.calculate_hash_for_model(normalized_file)
+    assert hash_result is not None
+    assert scanner.cache_version == 1
+    assert scanner._cache.raw_data[0]["sha256"] == hash_result.lower()
+
+
+async def test_lifecycle_delete_model_bumps_cache_version(tmp_path: Path):
+    from py.services.model_lifecycle_service import ModelLifecycleService
+
+    root = tmp_path / "loras"
+    root.mkdir()
+    model = root / "model.safetensors"
+    model.write_bytes(b"data")
+
+    scanner = _make_scanner(
+        [{"file_path": str(model), "folder": "", "sha256": "abc", "tags": [], "model_name": "m", "file_name": "m"}],
+        str(root),
+    )
+    service = ModelLifecycleService(
+        scanner=scanner,
+        metadata_manager=DummyMetadataManagerForLifecycle(),
+        metadata_loader=_empty_metadata_loader,
+    )
+    assert scanner.cache_version == 0
+    result = await service.delete_model(str(model))
+    assert result["success"] is True
+    assert scanner.cache_version == 1
+    assert scanner._cache.raw_data == []
+
+
+async def test_lifecycle_exclude_model_bumps_cache_version(tmp_path: Path):
+    from py.services.model_lifecycle_service import ModelLifecycleService
+
+    root = tmp_path / "loras"
+    root.mkdir()
+    model = root / "model.safetensors"
+    model.write_bytes(b"data")
+
+    scanner = _make_scanner(
+        [{"file_path": str(model), "folder": "", "sha256": "abc", "tags": [], "model_name": "m", "file_name": "m"}],
+        str(root),
+    )
+    service = ModelLifecycleService(
+        scanner=scanner,
+        metadata_manager=DummyMetadataManagerForLifecycle(),
+        metadata_loader=_empty_metadata_loader,
+    )
+    assert scanner.cache_version == 0
+    result = await service.exclude_model(str(model))
+    assert result["success"] is True
+    assert scanner.cache_version == 1
+    assert scanner._cache.raw_data == []
+
+
+async def test_misc_delete_model_version_bumps_cache_version(tmp_path: Path):
+    from aiohttp.test_utils import make_mocked_request
+
+    from py.routes.handlers.misc_handlers import ModelLibraryHandler, ServiceRegistryAdapter
+
+    root = tmp_path / "loras"
+    root.mkdir()
+    model = root / "model.safetensors"
+    model.write_bytes(b"data")
+
+    lora_scanner = _make_scanner(
+        [
+            {
+                "file_path": str(model),
+                "folder": "",
+                "sha256": "abc",
+                "tags": [],
+                "model_name": "m",
+                "file_name": "m",
+                "civitai": {"id": 42, "modelId": 7, "name": "m"},
+            }
+        ],
+        str(root),
+    )
+    lora_scanner._cache.rebuild_version_index()
+    # Use distinct scanner classes: ModelScanner is a per-class singleton, so
+    # re-instantiating DummyScanner would return the same instance and clobber
+    # the lora cache set above.
+    checkpoint_scanner = DummyScannerB(str(root))
+    checkpoint_scanner._cache = ModelCache(raw_data=[], folders=[])
+    embedding_scanner = DummyScannerC(str(root))
+    embedding_scanner._cache = ModelCache(raw_data=[], folders=[])
+
+    deleted: list[tuple[str, int]] = []
+
+    async def history_factory():
+        class FakeHistory:
+            async def mark_as_deleted(self, model_type: str, model_version_id: int) -> None:
+                deleted.append((model_type, model_version_id))
+
+        return FakeHistory()
+
+    async def lora_factory():
+        return lora_scanner
+
+    async def checkpoint_factory():
+        return checkpoint_scanner
+
+    async def embedding_factory():
+        return embedding_scanner
+
+    async def _noop_metadata_provider() -> Any:
+        return None
+
+    handler = ModelLibraryHandler(
+        ServiceRegistryAdapter(
+            get_lora_scanner=lora_factory,
+            get_checkpoint_scanner=checkpoint_factory,
+            get_embedding_scanner=embedding_factory,
+            get_downloaded_version_history_service=history_factory,
+        ),
+        metadata_provider_factory=_noop_metadata_provider,
+    )
+
+    request = make_mocked_request("GET", "/api/models/versions/delete?modelVersionId=42")
+    assert lora_scanner.cache_version == 0
+    response = await handler.delete_model_version(request)
+    assert response.status == 200
+    assert lora_scanner.cache_version == 1
+    assert checkpoint_scanner.cache_version == 0
+    assert embedding_scanner.cache_version == 0
+    assert deleted == [("lora", 42)]
+
+
+# ---------------------------------------------------------------------------
+# build_local_hash_cache — version-cached local hash map (plan todo 2)
+# ---------------------------------------------------------------------------
+
+
+def _lora_item(sha256: str = "", autov3: str = "", **extra: Any) -> Dict[str, Any]:
+    item: Dict[str, Any] = {
+        "sha256": sha256,
+        "autov3": autov3,
+        "file_path": f"/models/{sha256 or 'x'}.safetensors",
+        "file_name": "m",
+        "model_name": "m",
+    }
+    item.update(extra)
+    return item
+
+
+def _make_recipe_scanner(
+    lora: DummyScanner, checkpoint: DummyScannerB
+) -> RecipeScanner:
+    RecipeScanner._instance = None
+    return RecipeScanner(
+        lora_scanner=lora, checkpoint_scanner=checkpoint  # pyright: ignore[reportArgumentType]
+    )
+
+
+async def test_build_local_hash_cache_has_sha256_autov2_autov3_keys(tmp_path: Path):
+    sha256 = "A" * 64
+    autov3 = "AAA12BBB34CD"
+    lora = _make_scanner([_lora_item(sha256=sha256, autov3=autov3)], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(raw_data=[], folders=[])
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    result = await scanner.build_local_hash_cache()
+
+    assert set(result) == {sha256.lower(), sha256.lower()[:10], autov3.lower()}
+    assert result[sha256.lower()] is lora._cache.raw_data[0]
+
+
+async def test_build_local_hash_cache_skips_items_without_sha256(tmp_path: Path):
+    lora = _make_scanner(
+        [
+            _lora_item(sha256=""),
+            {"file_path": "/models/none.safetensors", "file_name": "n", "model_name": "n"},
+            _lora_item(sha256="B" * 64),
+        ],
+        str(tmp_path),
+    )
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(raw_data=[], folders=[])
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    result = await scanner.build_local_hash_cache()
+
+    assert set(result) == {("B" * 64).lower(), ("B" * 64).lower()[:10]}
+
+
+async def test_build_local_hash_cache_skips_empty_autov3_keys(tmp_path: Path):
+    sha256 = "C" * 64
+    lora = _make_scanner([_lora_item(sha256=sha256, autov3="")], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(raw_data=[], folders=[])
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    result = await scanner.build_local_hash_cache()
+
+    assert "" not in result
+    assert set(result) == {sha256.lower(), sha256.lower()[:10]}
+
+
+async def test_build_local_hash_cache_never_calls_calculate_autov3(
+    tmp_path: Path, monkeypatch
+):
+    from py.utils import file_utils
+
+    called: list[str] = []
+
+    def fake_calculate_autov3(file_path: str) -> str:
+        called.append(file_path)
+        return "AAABBBCCCDDD"
+
+    monkeypatch.setattr(file_utils, "calculate_autov3", fake_calculate_autov3)
+
+    autov3 = "E" * 12
+    lora = _make_scanner([_lora_item(sha256="D" * 64, autov3=autov3)], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(raw_data=[], folders=[])
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    result = await scanner.build_local_hash_cache()
+
+    assert called == []
+    assert autov3.lower() in result
+
+
+async def test_build_local_hash_cache_reuses_same_object_while_versions_unchanged(
+    tmp_path: Path,
+):
+    lora = _make_scanner([_lora_item(sha256="F" * 64)], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(raw_data=[], folders=[])
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    first = await scanner.build_local_hash_cache()
+    second = await scanner.build_local_hash_cache()
+
+    assert first is second
+    assert scanner._local_hash_cache_versions == (
+        lora.cache_version,
+        checkpoint.cache_version,
+    )
+
+
+async def test_build_local_hash_cache_rebuilds_after_lora_version_change(
+    tmp_path: Path,
+):
+    lora = _make_scanner([_lora_item(sha256="G" * 64)], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(raw_data=[], folders=[])
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    first = await scanner.build_local_hash_cache()
+    lora.bump_cache_version()
+    second = await scanner.build_local_hash_cache()
+
+    assert first is not second
+    assert first["g" * 64] is second["g" * 64]
+
+
+async def test_build_local_hash_cache_rebuilds_after_checkpoint_version_change(
+    tmp_path: Path,
+):
+    lora = _make_scanner([], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(
+        raw_data=[_lora_item(sha256="H" * 64)], folders=[]
+    )
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    first = await scanner.build_local_hash_cache()
+    checkpoint.bump_cache_version()
+    second = await scanner.build_local_hash_cache()
+
+    assert first is not second
+
+
+async def test_build_local_hash_cache_includes_lora_and_checkpoint_items(
+    tmp_path: Path,
+):
+    lora = _make_scanner([_lora_item(sha256="I" * 64, autov3="I1" * 6)], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(
+        raw_data=[_lora_item(sha256="J" * 64, autov3="J1" * 6)], folders=[]
+    )
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    result = await scanner.build_local_hash_cache()
+
+    assert ("I" * 64).lower() in result
+    assert ("J" * 64).lower() in result
+    assert result[("J" * 64).lower()] is checkpoint._cache.raw_data[0]
+
+
+async def test_build_local_hash_cache_returns_empty_dict_when_no_data(tmp_path: Path):
+    lora = _make_scanner([], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(raw_data=[], folders=[])
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    result = await scanner.build_local_hash_cache()
+
+    assert result == {}
+
+
+async def test_build_local_hash_cache_single_flight_concurrent_calls(tmp_path: Path):
+    lora = _make_scanner([_lora_item(sha256="K" * 64, autov3="K1" * 6)], str(tmp_path))
+    checkpoint = DummyScannerB(str(tmp_path))
+    checkpoint._cache = ModelCache(
+        raw_data=[_lora_item(sha256="L" * 64)], folders=[]
+    )
+    scanner = _make_recipe_scanner(lora, checkpoint)
+
+    first, second = await asyncio.gather(
+        scanner.build_local_hash_cache(),
+        scanner.build_local_hash_cache(),
+    )
+
+    assert first is second
+    assert ("K" * 64).lower() in first
+    assert ("L" * 64).lower() in first
+
+
+async def test_build_local_hash_cache_handles_missing_scanner(tmp_path: Path):
+    lora = _make_scanner([_lora_item(sha256="M" * 64)], str(tmp_path))
+    RecipeScanner._instance = None
+    scanner = RecipeScanner(lora_scanner=lora)  # pyright: ignore[reportArgumentType]
+
+    result = await scanner.build_local_hash_cache()
+
+    assert ("M" * 64).lower() in result
+    assert len(result) == 2

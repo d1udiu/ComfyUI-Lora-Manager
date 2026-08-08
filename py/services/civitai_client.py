@@ -1,10 +1,14 @@
+# pyright: reportImportCycles=false
+# Lazy (function-local) imports still count as static edges in basedpyright's
+# reportImportCycles, so the ServiceRegistry singleton pattern necessarily forms
+# import cycles. Breaking them would require an architectural refactor.
 import asyncio
 import copy
 import logging
 import os
 import time
 from collections import OrderedDict
-from typing import Any, Optional, Dict, Tuple, List, Sequence
+from typing import Any, Optional, Dict, Tuple, List, Sequence, cast
 from .connectivity_guard import (
     OFFLINE_FRIENDLY_MESSAGE,
     is_expected_offline_error,
@@ -58,7 +62,7 @@ class CivitaiClient:
         # Uses OrderedDict with LRU eviction at MAX_CACHE_ENTRIES to prevent
         # unbounded growth in long-running server processes.
         self._version_info_cache: OrderedDict[
-            str, Tuple[Optional[Dict], Optional[str]]
+            str, Tuple[Optional[Dict[str, Any]], Optional[str]]
         ] = OrderedDict()
         self._MAX_CACHE_ENTRIES = 500
 
@@ -72,7 +76,7 @@ class CivitaiClient:
         *,
         use_auth: bool = False,
         **kwargs,
-    ) -> Tuple[bool, Dict | str]:
+    ) -> Tuple[bool, Dict[str, Any] | str]:
         """Wrapper around downloader.make_request that surfaces rate limits,
         with retry for transient server errors (5xx, Cloudflare 524, network flakiness)."""
 
@@ -86,7 +90,8 @@ class CivitaiClient:
                 **kwargs,
             )
             if success:
-                return True, result
+                # RateLimitError is raised below; a successful result is dict or str.
+                return True, cast(Dict[str, Any] | str, result)
 
             if isinstance(result, RateLimitError):
                 if result.provider is None:
@@ -126,7 +131,7 @@ class CivitaiClient:
         return False, "Unexpected error in _make_request"
 
     @staticmethod
-    def _remove_comfy_metadata(model_version: Optional[Dict]) -> None:
+    def _remove_comfy_metadata(model_version: Optional[Dict[str, Any]]) -> None:
         """Remove Comfy-specific metadata from model version images."""
         if not isinstance(model_version, dict):
             return
@@ -173,7 +178,7 @@ class CivitaiClient:
 
     async def get_model_by_hash(
         self, model_hash: str
-    ) -> Tuple[Optional[Dict], Optional[str]]:
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         try:
             success, version = await self._make_request(
                 "GET",
@@ -220,7 +225,7 @@ class CivitaiClient:
                 # Ensure directory exists
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
                 with open(save_path, "wb") as f:
-                    f.write(content)
+                    f.write(content if isinstance(content, bytes) else content.encode("utf-8"))
                 return True
             return False
         except Exception as e:
@@ -275,7 +280,7 @@ class CivitaiClient:
             return True
         return False
 
-    async def get_model_versions(self, model_id: str) -> Optional[Dict]:
+    async def get_model_versions(self, model_id: str) -> Optional[Dict[str, Any]]:
         """Get all versions of a model with local availability info"""
         try:
             success, result = await self._make_request(
@@ -283,7 +288,7 @@ class CivitaiClient:
                 f"{self.base_url}/models/{model_id}",
                 use_auth=True,
             )
-            if success:
+            if success and isinstance(result, dict):
                 # Also return model type along with versions
                 return {
                     "modelVersions": result.get("modelVersions", []),
@@ -317,7 +322,7 @@ class CivitaiClient:
 
     async def get_model_versions_bulk(
         self, model_ids: Sequence[int]
-    ) -> Optional[Dict[int, Dict]]:
+    ) -> Optional[Dict[int, Dict[str, Any]]]:
         """Fetch model metadata for multiple ids using the batch API."""
 
         deduped: Dict[int, None] = {}
@@ -347,13 +352,13 @@ class CivitaiClient:
             if not isinstance(items, list):
                 return {}
 
-            payload: Dict[int, Dict] = {}
+            payload: Dict[int, Dict[str, Any]] = {}
             for item in items:
                 if not isinstance(item, dict):
                     continue
                 model_id = item.get("id")
                 try:
-                    normalized_id = int(model_id)
+                    normalized_id = int(cast(Any, model_id))
                 except (TypeError, ValueError):
                     continue
                 payload[normalized_id] = {
@@ -373,8 +378,8 @@ class CivitaiClient:
             return None
 
     async def get_model_version(
-        self, model_id: int = None, version_id: int = None
-    ) -> Optional[Dict]:
+        self, model_id: int | None = None, version_id: int | None = None
+    ) -> Optional[Dict[str, Any]]:
         """Get specific model version with additional metadata."""
         try:
             if model_id is None and version_id is not None:
@@ -392,7 +397,7 @@ class CivitaiClient:
             logger.error(f"Error fetching model version: {e}")
             raise
 
-    async def _get_version_by_id_only(self, version_id: int) -> Optional[Dict]:
+    async def _get_version_by_id_only(self, version_id: int) -> Optional[Dict[str, Any]]:
         version = await self._fetch_version_by_id(version_id)
         if version is None:
             return None
@@ -411,7 +416,7 @@ class CivitaiClient:
 
     async def _get_version_with_model_id(
         self, model_id: int, version_id: Optional[int]
-    ) -> Optional[Dict]:
+    ) -> Optional[Dict[str, Any]]:
         model_data = await self._fetch_model_data(model_id)
         if not model_data:
             return None
@@ -470,7 +475,7 @@ class CivitaiClient:
         self._remove_comfy_metadata(version)
         return version
 
-    async def _fetch_model_data(self, model_id: int) -> Dict:
+    async def _fetch_model_data(self, model_id: int) -> Optional[Dict[str, Any]]:
         success, data = await self._make_request(
             "GET",
             f"{self.base_url}/models/{model_id}",
@@ -488,7 +493,7 @@ class CivitaiClient:
             raise RuntimeError(OFFLINE_FRIENDLY_MESSAGE)
         raise RuntimeError(message or f"Failed to fetch model data for model {model_id}")
 
-    async def _fetch_version_by_id(self, version_id: Optional[int]) -> Optional[Dict]:
+    async def _fetch_version_by_id(self, version_id: Optional[int]) -> Optional[Dict[str, Any]]:
         if version_id is None:
             return None
 
@@ -509,7 +514,7 @@ class CivitaiClient:
             raise RuntimeError(OFFLINE_FRIENDLY_MESSAGE)
         raise RuntimeError(message or f"Failed to fetch version by id {version_id}")
 
-    async def _fetch_version_by_hash(self, model_hash: Optional[str]) -> Optional[Dict]:
+    async def _fetch_version_by_hash(self, model_hash: Optional[str]) -> Optional[Dict[str, Any]]:
         if not model_hash:
             return None
 
@@ -531,8 +536,8 @@ class CivitaiClient:
         raise RuntimeError(message or f"Failed to fetch version by hash {model_hash}")
 
     def _select_target_version(
-        self, model_data: Dict, model_id: int, version_id: Optional[int]
-    ) -> Optional[Dict]:
+        self, model_data: Dict[str, Any], model_id: int, version_id: Optional[int]
+    ) -> Optional[Dict[str, Any]]:
         model_versions = model_data.get("modelVersions", [])
         if not model_versions:
             logger.warning(f"No model versions found for model {model_id}")
@@ -551,7 +556,7 @@ class CivitaiClient:
 
         return model_versions[0]
 
-    def _extract_primary_model_hash(self, version_entry: Dict) -> Optional[str]:
+    def _extract_primary_model_hash(self, version_entry: Dict[str, Any]) -> Optional[str]:
         for file_info in version_entry.get("files", []):
             if file_info.get("type") == "Model" and file_info.get("primary"):
                 hashes = file_info.get("hashes", {})
@@ -561,8 +566,8 @@ class CivitaiClient:
         return None
 
     def _build_version_from_model_data(
-        self, version_entry: Dict, model_id: int, model_data: Dict
-    ) -> Dict:
+        self, version_entry: Dict[str, Any], model_id: int, model_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         version = copy.deepcopy(version_entry)
         version.pop("index", None)
         version["modelId"] = model_id
@@ -574,7 +579,7 @@ class CivitaiClient:
         }
         return version
 
-    def _enrich_version_with_model_data(self, version: Dict, model_data: Dict) -> None:
+    def _enrich_version_with_model_data(self, version: Dict[str, Any], model_data: Dict[str, Any]) -> None:
         model_info = version.get("model")
         if not isinstance(model_info, dict):
             model_info = {}
@@ -632,7 +637,7 @@ class CivitaiClient:
 
     async def get_model_version_info(
         self, version_id: str
-    ) -> Tuple[Optional[Dict], Optional[str]]:
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """Fetch model version metadata from Civitai
 
         Args:
@@ -657,7 +662,7 @@ class CivitaiClient:
             logger.debug("Resolving Civitai model version info: %s", url)
             success, result = await self._make_request("GET", url, use_auth=True)
 
-            if success:
+            if success and isinstance(result, dict):
                 logger.debug("Successfully fetched model version info for: %s", version_id)
                 self._remove_comfy_metadata(result)
                 self._version_info_cache[version_id] = (result, None)
@@ -687,7 +692,7 @@ class CivitaiClient:
 
     async def get_image_info(
         self, image_id: str, source_url: str | None = None
-    ) -> Optional[Dict]:
+    ) -> Optional[Dict[str, Any]]:
         """Fetch image information from Civitai API
 
         Args:
@@ -720,7 +725,7 @@ class CivitaiClient:
                 )
                 return None
 
-            if result and "items" in result and isinstance(result["items"], list):
+            if isinstance(result, dict) and "items" in result and isinstance(result["items"], list):
                 items = result["items"]
 
                 for item in items:
@@ -760,7 +765,7 @@ class CivitaiClient:
 
     async def get_model_versions_by_hashes(
         self, hashes: List[str]
-    ) -> Optional[List[Dict]]:
+    ) -> Optional[List[Dict[str, Any]]]:
         """Fetch full version details for up to 100 SHA256 hashes via the batch endpoint.
 
         Uses POST /api/v1/model-versions/by-hash which returns full version
@@ -777,7 +782,7 @@ class CivitaiClient:
             return []
 
         BATCH_SIZE = 100
-        all_versions: List[Dict] = []
+        all_versions: List[Dict[str, Any]] = []
 
         for start in range(0, len(hashes), BATCH_SIZE):
             batch = hashes[start : start + BATCH_SIZE]
@@ -797,7 +802,7 @@ class CivitaiClient:
                     continue
 
                 if isinstance(result, list):
-                    all_versions.extend(result)
+                    all_versions.extend(cast(Any, result))
                 else:
                     logger.debug(
                         "Unexpected by-hash response type: %s", type(result)

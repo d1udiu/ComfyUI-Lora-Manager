@@ -449,6 +449,12 @@
                 "compact": "7 (1080p), 8 (2K), 10 (4K)"
             },
             "displayDensityWarning": "Warnung: Höhere Dichten können bei Systemen mit begrenzten Ressourcen zu Performance-Problemen führen.",
+            "recipesLayout": "Rezepte-Layout",
+            "recipesLayoutHelp": "Wählen Sie, wie Rezeptkarten angeordnet werden: ein einheitliches Raster oder ein Masonry-Layout (Pinterest-Stil), das das Seitenverhältnis jedes Bildes beibehält.",
+            "recipesLayoutOptions": {
+                "grid": "Raster",
+                "masonry": "Masonry"
+            },
             "showFolderSidebar": "Ordner-Seitenleiste anzeigen",
             "showFolderSidebarHelp": "Blenden Sie die Ordner-Navigationsleiste auf den Modellseiten ein oder aus. Wenn deaktiviert, bleiben Seitenleiste und Hoverbereich verborgen.",
             "cardInfoDisplay": "Karten-Info-Anzeige",
@@ -678,6 +684,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "Benutzerdefiniert (OpenAI-kompatibel)"
             },
@@ -1581,6 +1588,21 @@
             "downloadCsv": "CSV herunterladen",
             "columnModelName": "Modellname",
             "columnError": "Fehler"
+        },
+        "downloadBatchSummary": {
+            "title": "Zusammenfassung des Batch-Downloads",
+            "statSuccess": "Erfolgreich",
+            "statFailed": "Fehlgeschlagen",
+            "statTotal": "Gesamt",
+            "successMessage": "Alle {count} Modelle erfolgreich heruntergeladen",
+            "completedWithErrors": "Abgeschlossen, aber mit Fehlern",
+            "failed": "Download fehlgeschlagen",
+            "failedItems": "Fehlgeschlagene Elemente ({count})",
+            "columnName": "Modellname",
+            "columnError": "Fehler",
+            "close": "Schließen",
+            "copyReport": "Bericht kopieren",
+            "retryFailed": "Fehlgeschlagene erneut versuchen ({count})"
         }
     },
     "modelTags": {
@@ -2037,7 +2059,6 @@
             "presetNameTooLong": "Voreinstellungsname darf maximal {max} Zeichen haben",
             "presetNameInvalidChars": "Voreinstellungsname enthält ungültige Zeichen",
             "presetNameExists": "Eine Voreinstellung mit diesem Namen existiert bereits",
-            "maxPresetsReached": "Maximal {max} Voreinstellungen erlaubt. Löschen Sie eine, um weitere hinzuzufügen.",
             "presetNotFound": "Voreinstellung nicht gefunden",
             "invalidPreset": "Ungültige Voreinstellungsdaten",
             "deletePresetFailed": "Fehler beim Löschen der Voreinstellung",

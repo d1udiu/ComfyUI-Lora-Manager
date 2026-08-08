@@ -449,6 +449,12 @@
                 "compact": "7 (1080p), 8 (2K), 10 (4K)"
             },
             "displayDensityWarning": "Предупреждение: Высокая плотность может вызвать проблемы с производительностью на системах с ограниченными ресурсами.",
+            "recipesLayout": "Макет рецептов",
+            "recipesLayoutHelp": "Выберите, как располагаются карточки рецептов: единая сетка или masonry-макет (в стиле Pinterest), сохраняющий пропорции каждого изображения.",
+            "recipesLayoutOptions": {
+                "grid": "Сетка",
+                "masonry": "Masonry"
+            },
             "showFolderSidebar": "Показывать боковую панель папок",
             "showFolderSidebarHelp": "Включает или выключает боковую панель навигации по папкам на страницах моделей. При отключении панель и область наведения скрыты.",
             "cardInfoDisplay": "Отображение информации карточки",
@@ -678,6 +684,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "Пользовательский (совместимый с OpenAI)"
             },
@@ -1581,6 +1588,21 @@
             "downloadCsv": "Скачать CSV",
             "columnModelName": "Имя модели",
             "columnError": "Ошибка"
+        },
+        "downloadBatchSummary": {
+            "title": "Сводка пакетной загрузки",
+            "statSuccess": "Успешно",
+            "statFailed": "Ошибки",
+            "statTotal": "Всего",
+            "successMessage": "Все {count} моделей успешно загружены",
+            "completedWithErrors": "Завершено с ошибками",
+            "failed": "Не удалось загрузить",
+            "failedItems": "Неудачные элементы ({count})",
+            "columnName": "Имя модели",
+            "columnError": "Ошибка",
+            "close": "Закрыть",
+            "copyReport": "Скопировать отчёт",
+            "retryFailed": "Повторить неудачные ({count})"
         }
     },
     "modelTags": {
@@ -2037,7 +2059,6 @@
             "presetNameTooLong": "Имя пресета должно содержать не более {max} символов",
             "presetNameInvalidChars": "Имя пресета содержит недопустимые символы",
             "presetNameExists": "Пресет с таким именем уже существует",
-            "maxPresetsReached": "Допустимо максимум {max} пресетов. Удалите один, чтобы добавить больше.",
             "presetNotFound": "Пресет не найден",
             "invalidPreset": "Недопустимые данные пресета",
             "deletePresetFailed": "Не удалось удалить пресет",

@@ -449,6 +449,12 @@
                 "compact": "7（1080p），8（2K），10（4K）"
             },
             "displayDensityWarning": "警告：高密度可能导致资源有限的系统性能下降。",
+            "recipesLayout": "配方布局",
+            "recipesLayoutHelp": "选择配方卡片的排列方式：统一网格，或保留每张图片原始宽高比的瀑布流（Pinterest 风格）布局。",
+            "recipesLayoutOptions": {
+                "grid": "网格",
+                "masonry": "瀑布流"
+            },
             "showFolderSidebar": "显示文件夹侧边栏",
             "showFolderSidebarHelp": "在模型页面启用或禁用文件夹导航侧边栏。关闭后，侧边栏和悬停区域将保持隐藏。",
             "cardInfoDisplay": "卡片信息显示",
@@ -678,6 +684,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "自定义（OpenAI 兼容）"
             },
@@ -1581,6 +1588,21 @@
             "downloadCsv": "下载 CSV",
             "columnModelName": "模型名称",
             "columnError": "错误"
+        },
+        "downloadBatchSummary": {
+            "title": "批量下载摘要",
+            "statSuccess": "成功",
+            "statFailed": "失败",
+            "statTotal": "总数",
+            "successMessage": "全部 {count} 个模型下载成功",
+            "completedWithErrors": "已完成，但有错误",
+            "failed": "下载失败",
+            "failedItems": "失败项（{count}）",
+            "columnName": "模型名称",
+            "columnError": "错误",
+            "close": "关闭",
+            "copyReport": "复制报告",
+            "retryFailed": "重试失败项（{count}）"
         }
     },
     "modelTags": {
@@ -2037,7 +2059,6 @@
             "presetNameTooLong": "预设名称不能超过 {max} 个字符",
             "presetNameInvalidChars": "预设名称包含无效字符",
             "presetNameExists": "已存在同名预设",
-            "maxPresetsReached": "最多允许 {max} 个预设。删除一个以添加更多。",
             "presetNotFound": "预设未找到",
             "invalidPreset": "无效的预设数据",
             "deletePresetFailed": "删除预设失败",

@@ -449,6 +449,12 @@
         "compact": "7 (1080p), 8 (2K), 10 (4K)"
       },
       "displayDensityWarning": "Warning: Higher densities may cause performance issues on systems with limited resources.",
+      "recipesLayout": "Recipes Layout",
+      "recipesLayoutHelp": "Choose how recipe cards are arranged: a uniform grid or a masonry (Pinterest-style) layout that preserves each image's aspect ratio.",
+      "recipesLayoutOptions": {
+        "grid": "Grid",
+        "masonry": "Masonry"
+      },
       "showFolderSidebar": "Show Folder Sidebar",
       "showFolderSidebarHelp": "Toggle the folder navigation sidebar on model pages. When disabled, the sidebar and hover area stay hidden.",
       "cardInfoDisplay": "Card Info Display",
@@ -678,6 +684,7 @@
         "deepseek": "DeepSeek",
         "groq": "Groq",
         "openrouter": "OpenRouter",
+        "google": "Gemini",
         "opencode-go": "OpenCode Go",
         "custom": "Custom (OpenAI-compatible)"
       },
@@ -1581,6 +1588,21 @@
       "downloadCsv": "Download CSV",
       "columnModelName": "Model Name",
       "columnError": "Error"
+    },
+    "downloadBatchSummary": {
+      "title": "Batch Download Summary",
+      "statSuccess": "Success",
+      "statFailed": "Failed",
+      "statTotal": "Total",
+      "successMessage": "All {count} models downloaded successfully",
+      "completedWithErrors": "Completed with errors",
+      "failed": "Download failed",
+      "failedItems": "Failed Items ({count})",
+      "columnName": "Model Name",
+      "columnError": "Error",
+      "close": "Close",
+      "copyReport": "Copy Report",
+      "retryFailed": "Retry Failed ({count})"
     }
   },
   "modelTags": {
@@ -2037,7 +2059,6 @@
       "presetNameTooLong": "Preset name must be {max} characters or less",
       "presetNameInvalidChars": "Preset name contains invalid characters",
       "presetNameExists": "A preset with this name already exists",
-      "maxPresetsReached": "Maximum {max} presets allowed. Delete one to add more.",
       "presetNotFound": "Preset not found",
       "invalidPreset": "Invalid preset data",
       "deletePresetFailed": "Failed to delete preset",

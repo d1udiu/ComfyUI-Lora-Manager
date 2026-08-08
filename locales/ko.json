@@ -449,6 +449,12 @@
                 "compact": "7개 (1080p), 8개 (2K), 10개 (4K)"
             },
             "displayDensityWarning": "경고: 높은 밀도는 리소스가 제한된 시스템에서 성능 문제를 일으킬 수 있습니다.",
+            "recipesLayout": "레시피 레이아웃",
+            "recipesLayoutHelp": "레시피 카드의 배열 방식을 선택하세요: 균일한 그리드 또는 각 이미지의 종횡비를 유지하는 메이슨리(Pinterest 스타일) 레이아웃.",
+            "recipesLayoutOptions": {
+                "grid": "그리드",
+                "masonry": "메이슨리"
+            },
             "showFolderSidebar": "폴더 사이드바 표시",
             "showFolderSidebarHelp": "모델 페이지에서 폴더 탐색 사이드바를 켜거나 끕니다. 비활성화하면 사이드바와 호버 영역이 표시되지 않습니다.",
             "cardInfoDisplay": "카드 정보 표시",
@@ -678,6 +684,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "사용자 정의 (OpenAI 호환)"
             },
@@ -1581,6 +1588,21 @@
             "downloadCsv": "CSV 다운로드",
             "columnModelName": "모델 이름",
             "columnError": "오류"
+        },
+        "downloadBatchSummary": {
+            "title": "일괄 다운로드 요약",
+            "statSuccess": "성공",
+            "statFailed": "실패",
+            "statTotal": "전체",
+            "successMessage": "{count}개 모델이 모두 성공적으로 다운로드되었습니다",
+            "completedWithErrors": "오류와 함께 완료됨",
+            "failed": "다운로드 실패",
+            "failedItems": "실패한 항목 ({count})",
+            "columnName": "모델 이름",
+            "columnError": "오류",
+            "close": "닫기",
+            "copyReport": "보고서 복사",
+            "retryFailed": "실패 항목 재시도 ({count})"
         }
     },
     "modelTags": {
@@ -2037,7 +2059,6 @@
             "presetNameTooLong": "프리셋 이름은 {max}자 이하여야 합니다",
             "presetNameInvalidChars": "프리셋 이름에 유효하지 않은 문자가 포함되어 있습니다",
             "presetNameExists": "동일한 이름의 프리셋이 이미 존재합니다",
-            "maxPresetsReached": "최대 {max}개의 프리셋만 허용됩니다. 더 추가하려면 기존 것을 삭제하세요.",
             "presetNotFound": "프리셋을 찾을 수 없습니다",
             "invalidPreset": "잘못된 프리셋 데이터입니다",
             "deletePresetFailed": "프리셋 삭제에 실패했습니다",

@@ -449,6 +449,12 @@
                 "compact": "7 (1080p), 8 (2K), 10 (4K)"
             },
             "displayDensityWarning": "Advertencia: Densidades más altas pueden causar problemas de rendimiento en sistemas con recursos limitados.",
+            "recipesLayout": "Diseño de recetas",
+            "recipesLayoutHelp": "Elige cómo se organizan las tarjetas de recetas: una cuadrícula uniforme o un diseño masonry (estilo Pinterest) que conserva la proporción de aspecto de cada imagen.",
+            "recipesLayoutOptions": {
+                "grid": "Cuadrícula",
+                "masonry": "Masonry"
+            },
             "showFolderSidebar": "Mostrar barra lateral de carpetas",
             "showFolderSidebarHelp": "Activa o desactiva la barra lateral de navegación de carpetas en las páginas de modelos. Cuando está desactivada, la barra lateral y el área de desplazamiento permanecen ocultas.",
             "cardInfoDisplay": "Visualización de información de tarjeta",
@@ -678,6 +684,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "Personalizado (compatible con OpenAI)"
             },
@@ -1581,6 +1588,21 @@
             "downloadCsv": "Descargar CSV",
             "columnModelName": "Nombre del modelo",
             "columnError": "Error"
+        },
+        "downloadBatchSummary": {
+            "title": "Resumen de descarga por lotes",
+            "statSuccess": "Correctos",
+            "statFailed": "Fallidos",
+            "statTotal": "Total",
+            "successMessage": "Todos los {count} modelos se descargaron correctamente",
+            "completedWithErrors": "Completado con errores",
+            "failed": "Descarga fallida",
+            "failedItems": "Elementos fallidos ({count})",
+            "columnName": "Nombre del modelo",
+            "columnError": "Error",
+            "close": "Cerrar",
+            "copyReport": "Copiar informe",
+            "retryFailed": "Reintentar fallidos ({count})"
         }
     },
     "modelTags": {
@@ -2037,7 +2059,6 @@
             "presetNameTooLong": "El nombre del preajuste debe tener {max} caracteres o menos",
             "presetNameInvalidChars": "El nombre del preajuste contiene caracteres inválidos",
             "presetNameExists": "Ya existe un preajuste con este nombre",
-            "maxPresetsReached": "Máximo {max} preajustes permitidos. Elimine uno para agregar más.",
             "presetNotFound": "Preajuste no encontrado",
             "invalidPreset": "Datos de preajuste inválidos",
             "deletePresetFailed": "Error al eliminar el preajuste",

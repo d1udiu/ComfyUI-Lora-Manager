@@ -2,6 +2,7 @@
 import { showToast } from '../utils/uiHelpers.js';
 import { RecipeCard } from './RecipeCard.js';
 import { state, getCurrentPageState } from '../state/index.js';
+import { recreateVirtualScroll } from '../utils/infiniteScroll.js';
 
 export class DuplicatesManager {
     constructor(recipeManager) {
@@ -71,7 +72,7 @@ export class DuplicatesManager {
         this.updateSelectedCount();
     }
     
-    exitDuplicateMode() {
+    async exitDuplicateMode() {
         this.inDuplicateMode = false;
         this.selectedForDeletion.clear();
         
@@ -94,8 +95,16 @@ export class DuplicatesManager {
             recipeGrid.innerHTML = '';
         }
         
-        // Re-enable virtual scrolling
-        state.virtualScroller.enable();
+        // Re-enable virtual scrolling, or apply a layout switch deferred
+        // while duplicates mode was active (enabling the old scroller first
+        // would let its pending rAF render repopulate the grid after the
+        // new scroller is created, leaving orphaned/overlapping cards).
+        if (state.pendingLayoutRecreate) {
+            state.pendingLayoutRecreate = false;
+            await recreateVirtualScroll('recipes');
+        } else if (state.virtualScroller) {
+            state.virtualScroller.enable();
+        }
     }
     
     renderDuplicateGroups() {

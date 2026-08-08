@@ -449,6 +449,12 @@
                 "compact": "7 (1080p), 8 (2K), 10 (4K)"
             },
             "displayDensityWarning": "אזהרה: צפיפויות גבוהות יותר עלולות לגרום לבעיות ביצועים במערכות עם משאבים מוגבלים.",
+            "recipesLayout": "פריסת מתכונים",
+            "recipesLayoutHelp": "בחר כיצד יסודרו כרטיסי המתכונים: רשת אחידה או פריסת Masonry (בסגנון Pinterest) השומרת על יחס הגובה-רוחב של כל תמונה.",
+            "recipesLayoutOptions": {
+                "grid": "רשת",
+                "masonry": "Masonry"
+            },
             "showFolderSidebar": "הצג סרגל צד תיקיות",
             "showFolderSidebarHelp": "הפעל או כבה את סרגל הצד לניווט תיקיות בדפי המודל. כאשר הוא כבוי, סרגל הצד ואזור הריחוף נשארים מוסתרים.",
             "cardInfoDisplay": "תצוגת מידע בכרטיס",
@@ -678,6 +684,7 @@
                 "deepseek": "DeepSeek",
                 "groq": "Groq",
                 "openrouter": "OpenRouter",
+                "google": "Gemini",
                 "opencode-go": "OpenCode Go",
                 "custom": "מותאם אישית (תואם OpenAI)"
             },
@@ -1581,6 +1588,21 @@
             "downloadCsv": "הורד CSV",
             "columnModelName": "שם המודל",
             "columnError": "שגיאה"
+        },
+        "downloadBatchSummary": {
+            "title": "סיכום הורדה בכמות",
+            "statSuccess": "הצליחו",
+            "statFailed": "נכשלו",
+            "statTotal": "סה\"כ",
+            "successMessage": "כל {count} הדגמים הורדו בהצלחה",
+            "completedWithErrors": "הושלם עם שגיאות",
+            "failed": "ההורדה נכשלה",
+            "failedItems": "פריטים שנכשלו ({count})",
+            "columnName": "שם הדגם",
+            "columnError": "שגיאה",
+            "close": "סגור",
+            "copyReport": "העתק דוח",
+            "retryFailed": "נסה שוב ({count})"
         }
     },
     "modelTags": {
@@ -2037,7 +2059,6 @@
             "presetNameTooLong": "שם קביעה מראש חייב להיות {max} תווים או פחות",
             "presetNameInvalidChars": "שם קביעה מראש מכיל תווים לא חוקיים",
             "presetNameExists": "קביעה מראש עם שם זה כבר קיימת",
-            "maxPresetsReached": "מותר מקסימום {max} קביעות מראש. מחק אחת כדי להוסיף עוד.",
             "presetNotFound": "קביעה מראש לא נמצאה",
             "invalidPreset": "נתוני קביעה מראש לא חוקיים",
             "deletePresetFailed": "מחיקת קביעה מראש נכשלה",
