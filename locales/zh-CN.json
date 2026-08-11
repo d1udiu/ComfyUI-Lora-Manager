@@ -186,6 +186,16 @@
             "cancelled": "修复已取消。已修复 {count} 个配方。",
             "error": "配方修复失败：{message}"
         },
+        "rematchRecipes": {
+            "label": "将食谱重新匹配到本地模型",
+            "loading": "正在将食谱重新匹配到本地模型...",
+            "success": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱",
+            "successErrors": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱，{failures} 个失败",
+            "allFailed": "{failures}/{total} 个食谱重新匹配失败",
+            "noMatch": "在 {recipes} 个食谱中未找到 {entries} 个条目的本地匹配",
+            "cancelled": "已取消重新匹配。{recipes} 个食谱已更新（{entries} 个条目）。",
+            "error": "食谱重新匹配失败：{message}"
+        },
         "manageExcludedModels": {
             "label": "管理已排除的模型"
         },
@@ -433,6 +443,7 @@
             "label": "跳过已下载的模型版本",
             "help": "启用后，如果下载历史服务记录显示该版本已下载，LoRA Manager 将跳过下载该模型版本。适用于所有下载流程。"
         },
+        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "按模型分组",
             "groupByModelHelp": "开启后，每个 Civitai 模型仅显示最新版本的单张卡片，旧版本将被隐藏。",
@@ -768,6 +779,7 @@
             "copyAll": "复制所选中语法",
             "refreshAll": "刷新所选中元数据",
             "repairMetadata": "修复所选中元数据",
+            "rematchMetadata": "将所选中重新匹配到本地模型",
             "reimportMetadata": "从源重新导入",
             "checkUpdates": "检查所选更新",
             "moveAll": "移动所选中到文件夹",
@@ -823,6 +835,7 @@
             "setContentRating": "设置内容评级",
             "moveToFolder": "移动到文件夹",
             "repairMetadata": "修复元数据",
+            "rematchMetadata": "重新匹配到本地模型",
             "reimportMetadata": "从源重新导入",
             "excludeModel": "排除模型",
             "restoreModel": "恢复模型",
@@ -923,8 +936,16 @@
         },
         "duplicates": {
             "found": "发现 {count} 个重复组",
+            "noGroups": "按当前判重依据未找到重复组",
             "keepLatest": "保留最新版本",
-            "deleteSelected": "删除已选"
+            "deleteSelected": "删除已选",
+            "includePromptLabel": "将提示词纳入判重",
+            "basis": {
+                "loraCombo": "判重依据：LoRA 组合",
+                "loraComboAndPrompt": "判重依据：LoRA 组合 + 提示词",
+                "hintLoraCombo": "使用相同 LoRA（强度一致）的配方会被分组。",
+                "hintPromptIncluded": "仅当配方使用相同的 LoRA（强度一致）且提示词相同时才会被分组。"
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1257,8 +1278,11 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "[TODO: Translate] Frees {size}",
             "title": "删除模型",
-            "message": "你确定要删除此模型及所有相关文件吗？"
+            "message": "你确定要删除此模型及所有相关文件吗？",
+            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
+            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
         },
         "excludeModel": {
             "title": "排除模型",
@@ -1951,6 +1975,12 @@
             "repairBulkComplete": "修复完成：{repaired} 个已修复，{skipped} 个已跳过（共 {total} 个）",
             "repairBulkSkipped": "所选 {total} 个配方无需修复",
             "repairBulkFailed": "修复所选配方失败：{message}",
+            "rematchComplete": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱",
+            "rematchCompleteErrors": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱，{failures} 个失败",
+            "rematchAllFailed": "{failures}/{total} 个所选食谱重新匹配失败",
+            "rematchUnmatched": "在 {recipes} 个食谱中未找到 {entries} 个条目的本地匹配",
+            "rematchSkipped": "{total} 个所选食谱均无需重新匹配",
+            "rematchFailed": "重新匹配所选食谱失败：{message}",
             "reimporting": "正在从源重新导入配方...",
             "reimportSuccess": "配方已从源重新导入成功",
             "reimportBulkComplete": "重新导入完成：{completed} 个已导入，{failed} 个失败（共 {total} 个）",
@@ -2086,6 +2116,14 @@
             "updateSuccess": "触发词更新成功",
             "updateFailed": "触发词更新失败",
             "copyFailed": "复制失败"
+        },
+        "undo": {
+            "action": "[TODO: Translate] Undo",
+            "deleted": "[TODO: Translate] Deleted {name}",
+            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
+            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
+            "failed": "[TODO: Translate] Undo failed: {error}",
+            "restored": "[TODO: Translate] Item restored"
         },
         "virtual": {
             "loadFailed": "加载项目失败",

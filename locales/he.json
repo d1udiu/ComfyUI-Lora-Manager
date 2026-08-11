@@ -186,6 +186,16 @@
             "cancelled": "תיקון בוטל. {count} מתכונים תוקנו.",
             "error": "תיקון המתכונים נכשל: {message}"
         },
+        "rematchRecipes": {
+            "label": "התאמה מחדש של מתכונים למודלים מקומיים",
+            "loading": "מתבצעת התאמה מחדש של מתכונים למודלים מקומיים...",
+            "success": "הותאמו {entries} פריטים ב־{recipes} מתכונים",
+            "successErrors": "הותאמו {entries} פריטים ב־{recipes} מתכונים, {failures} נכשלו",
+            "allFailed": "ההתאמה נכשלה עבור {failures} מתוך {total} מתכונים",
+            "noMatch": "לא נמצאה התאמה מקומית עבור {entries} פריטים ב־{recipes} מתכונים",
+            "cancelled": "ההתאמה בוטלה. עודכנו {recipes} מתכונים ({entries} פריטים)",
+            "error": "ההתאמה מחדש של המתכונים נכשלה: {message}"
+        },
         "manageExcludedModels": {
             "label": "ניהול מודלים מוחרגים"
         },
@@ -433,6 +443,7 @@
             "label": "דלג על גרסאות מודלים שהורדו בעבר",
             "help": "כאשר מופעל, LoRA Manager ידלג על הורדת גרסת מודל אם שירות היסטוריית ההורדות רושם את הגרסה המדויקת הזו ככבר שהורדה. חל על כל תהליכי ההורדה."
         },
+        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "קיבוץ לפי דגם",
             "groupByModelHelp": "כאשר מופעל, רק הגרסה העדכנית ביותר של כל דגם Civitai מוצגת ככרטיס בודד. גרסאות ישנות יותר מוסתרות.",
@@ -768,6 +779,7 @@
             "copyAll": "העתק את כל התחבירים",
             "refreshAll": "רענן את כל המטא-דאטה",
             "repairMetadata": "תקן מטא-דאטה עבור הנבחרים",
+            "rematchMetadata": "התאמה מחדש של הנבחרים למודלים מקומיים",
             "reimportMetadata": "ייבא מחדש ממקור",
             "checkUpdates": "בדוק עדכונים לבחירה",
             "moveAll": "העבר הכל לתיקייה",
@@ -823,6 +835,7 @@
             "setContentRating": "הגדר דירוג תוכן",
             "moveToFolder": "העבר לתיקייה",
             "repairMetadata": "תיקון מטא-דאטה",
+            "rematchMetadata": "התאמה מחדש למודלים מקומיים",
             "reimportMetadata": "ייבא מחדש ממקור",
             "excludeModel": "החרג מודל",
             "restoreModel": "שחזור מודל",
@@ -923,8 +936,16 @@
         },
         "duplicates": {
             "found": "נמצאו {count} קבוצות כפולות",
+            "noGroups": "לא נמצאו קבוצות כפולות לפי קריטריון ההתאמה הנוכחי",
             "keepLatest": "שמור גרסאות אחרונות",
-            "deleteSelected": "מחק נבחרים"
+            "deleteSelected": "מחק נבחרים",
+            "includePromptLabel": "כלול הנחיה בהתאמה",
+            "basis": {
+                "loraCombo": "התאמה לפי: שילוב LoRA",
+                "loraComboAndPrompt": "התאמה לפי: שילוב LoRA + הנחיה",
+                "hintLoraCombo": "מתכונים עם אותם LoRAs בעוצמות זהות מקובצים יחד.",
+                "hintPromptIncluded": "מתכונים מקובצים רק כאשר הם משתמשים באותם LoRAs בעוצמות זהות ויש להם אותה הנחיה."
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1257,8 +1278,11 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "[TODO: Translate] Frees {size}",
             "title": "מחק מודל",
-            "message": "האם אתה בטוח שברצונך למחוק מודל זה וכל הקבצים הנלווים?"
+            "message": "האם אתה בטוח שברצונך למחוק מודל זה וכל הקבצים הנלווים?",
+            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
+            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
         },
         "excludeModel": {
             "title": "החרג מודל",
@@ -1951,6 +1975,12 @@
             "repairBulkComplete": "התיקון הושלם: {repaired} תוקנו, {skipped} דולגו (מתוך {total})",
             "repairBulkSkipped": "אין צורך בתיקון עבור {total} המתכונים הנבחרים",
             "repairBulkFailed": "תיקון המתכונים הנבחרים נכשל: {message}",
+            "rematchComplete": "הותאמו {entries} פריטים ב־{recipes} מתכונים",
+            "rematchCompleteErrors": "הותאמו {entries} פריטים ב־{recipes} מתכונים, {failures} נכשלו",
+            "rematchAllFailed": "ההתאמה נכשלה עבור {failures} מתוך {total} מתכונים שנבחרו",
+            "rematchUnmatched": "לא נמצאה התאמה מקומית עבור {entries} פריטים ב־{recipes} מתכונים",
+            "rematchSkipped": "אין צורך בהתאמה עבור {total} המתכונים שנבחרו",
+            "rematchFailed": "ההתאמה מחדש של המתכונים שנבחרו נכשלה: {message}",
             "reimporting": "מייבא מתכון מחדש מהמקור...",
             "reimportSuccess": "המתכון יובא מחדש בהצלחה",
             "reimportBulkComplete": "ייבוא מחדש הושלם: {completed} יובאו, {failed} נכשלו (מתוך {total})",
@@ -2086,6 +2116,14 @@
             "updateSuccess": "מילות הטריגר עודכנו בהצלחה",
             "updateFailed": "עדכון מילות הטריגר נכשל",
             "copyFailed": "ההעתקה נכשלה"
+        },
+        "undo": {
+            "action": "[TODO: Translate] Undo",
+            "deleted": "[TODO: Translate] Deleted {name}",
+            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
+            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
+            "failed": "[TODO: Translate] Undo failed: {error}",
+            "restored": "[TODO: Translate] Item restored"
         },
         "virtual": {
             "loadFailed": "טעינת הפריטים נכשלה",

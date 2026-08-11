@@ -186,6 +186,16 @@
             "cancelled": "修復がキャンセルされました。{count}個のレシピが修復されました。",
             "error": "レシピの修復に失敗しました: {message}"
         },
+        "rematchRecipes": {
+            "label": "レシピをローカルモデルに再マッチング",
+            "loading": "レシピをローカルモデルに再マッチングしています...",
+            "success": "{recipes} 件のレシピで {entries} エントリをマッチングしました",
+            "successErrors": "{recipes} 件のレシピで {entries} エントリをマッチングしました（{failures} 件失敗）",
+            "allFailed": "{total} 件中 {failures} 件のレシピの再マッチングに失敗しました",
+            "noMatch": "{recipes} 件のレシピで {entries} エントリのローカルマッチが見つかりませんでした",
+            "cancelled": "再マッチングをキャンセルしました。{recipes} 件のレシピを更新（{entries} エントリ）",
+            "error": "レシピの再マッチングに失敗しました：{message}"
+        },
         "manageExcludedModels": {
             "label": "除外モデルを管理"
         },
@@ -433,6 +443,7 @@
             "label": "以前にダウンロードしたモデルバージョンをスキップ",
             "help": "有効にすると、ダウンロード履歴サービスがそのバージョンが既にダウンロード済みと記録している場合、LoRA Managerはそのモデルバージョンのダウンロードをスキップします。すべてのダウンロードフローに適用されます。"
         },
+        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "モデルでグループ化",
             "groupByModelHelp": "有効にすると、各Civitaiモデルの最新バージョンのみが1枚のカードとして表示され、古いバージョンは非表示になります。",
@@ -768,6 +779,7 @@
             "copyAll": "すべての構文をコピー",
             "refreshAll": "すべてのメタデータを更新",
             "repairMetadata": "選択したレシピのメタデータを修復",
+            "rematchMetadata": "選択したモデルをローカルモデルに再マッチング",
             "reimportMetadata": "ソースから再インポート",
             "checkUpdates": "選択項目の更新を確認",
             "moveAll": "すべてをフォルダに移動",
@@ -823,6 +835,7 @@
             "setContentRating": "コンテンツレーティングを設定",
             "moveToFolder": "フォルダに移動",
             "repairMetadata": "メタデータを修復",
+            "rematchMetadata": "ローカルモデルに再マッチング",
             "reimportMetadata": "ソースから再インポート",
             "excludeModel": "モデルを除外",
             "restoreModel": "モデルを復元",
@@ -923,8 +936,16 @@
         },
         "duplicates": {
             "found": "{count} 個の重複グループが見つかりました",
+            "noGroups": "現在の一致基準では重複グループが見つかりませんでした",
             "keepLatest": "最新バージョンを保持",
-            "deleteSelected": "選択したものを削除"
+            "deleteSelected": "選択したものを削除",
+            "includePromptLabel": "一致判定にプロンプトを含める",
+            "basis": {
+                "loraCombo": "一致基準: LoRA の組み合わせ",
+                "loraComboAndPrompt": "一致基準: LoRA の組み合わせ + プロンプト",
+                "hintLoraCombo": "同じ LoRA を同じ強度で使用するレシピがグループ化されます。",
+                "hintPromptIncluded": "レシピは、同じ LoRA を同じ強度で使用し、かつプロンプトが同じ場合にのみグループ化されます。"
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1257,8 +1278,11 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "[TODO: Translate] Frees {size}",
             "title": "モデルを削除",
-            "message": "このモデルと関連するすべてのファイルを削除してもよろしいですか？"
+            "message": "このモデルと関連するすべてのファイルを削除してもよろしいですか？",
+            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
+            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
         },
         "excludeModel": {
             "title": "モデルを除外",
@@ -1951,6 +1975,12 @@
             "repairBulkComplete": "修復完了：{repaired} 件修復、{skipped} 件スキップ（合計 {total} 件）",
             "repairBulkSkipped": "選択した {total} 件のレシピは修復不要です",
             "repairBulkFailed": "選択したレシピの修復に失敗しました：{message}",
+            "rematchComplete": "{recipes} 件のレシピで {entries} エントリをマッチングしました",
+            "rematchCompleteErrors": "{recipes} 件のレシピで {entries} エントリをマッチングしました（{failures} 件失敗）",
+            "rematchAllFailed": "選択した {total} 件中 {failures} 件のレシピの再マッチングに失敗しました",
+            "rematchUnmatched": "{recipes} 件のレシピで {entries} エントリのローカルマッチが見つかりませんでした",
+            "rematchSkipped": "選択した {total} 件のレシピは再マッチングの必要がありませんでした",
+            "rematchFailed": "選択したレシピの再マッチングに失敗しました：{message}",
             "reimporting": "ソースからレシピを再インポート中...",
             "reimportSuccess": "レシピの再インポートが完了しました",
             "reimportBulkComplete": "再インポート完了：{completed} 件成功、{failed} 件失敗（合計 {total} 件）",
@@ -2086,6 +2116,14 @@
             "updateSuccess": "トリガーワードが正常に更新されました",
             "updateFailed": "トリガーワードの更新に失敗しました",
             "copyFailed": "コピーに失敗しました"
+        },
+        "undo": {
+            "action": "[TODO: Translate] Undo",
+            "deleted": "[TODO: Translate] Deleted {name}",
+            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
+            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
+            "failed": "[TODO: Translate] Undo failed: {error}",
+            "restored": "[TODO: Translate] Item restored"
         },
         "virtual": {
             "loadFailed": "アイテムの読み込みに失敗しました",

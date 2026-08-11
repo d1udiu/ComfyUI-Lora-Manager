@@ -186,6 +186,16 @@
             "cancelled": "수리가 취소되었습니다. {count}개의 레시피가 수리되었습니다.",
             "error": "레시피 복구 실패: {message}"
         },
+        "rematchRecipes": {
+            "label": "레시피를 로컬 모델에 다시 매칭",
+            "loading": "레시피를 로컬 모델에 다시 매칭하는 중...",
+            "success": "{recipes}개 레시피에서 {entries}개 항목이 매칭되었습니다",
+            "successErrors": "{recipes}개 레시피에서 {entries}개 항목이 매칭되었습니다. {failures}개 실패",
+            "allFailed": "{total}개 레시피 중 {failures}개 재매칭 실패",
+            "noMatch": "{recipes}개 레시피에서 {entries}개 항목의 로컬 매칭을 찾지 못했습니다",
+            "cancelled": "재매칭이 취소되었습니다. {recipes}개 레시피 업데이트됨({entries}개 항목)",
+            "error": "레시피 재매칭 실패: {message}"
+        },
         "manageExcludedModels": {
             "label": "제외된 모델 관리"
         },
@@ -433,6 +443,7 @@
             "label": "이전에 다운로드한 모델 버전 건너뛰기",
             "help": "활성화하면 다운로드 기록 서비스가 해당 버전이 이미 다운로드되었음을 기록한 경우 LoRA Manager는 해당 모델 버전 다운로드를 건너뜁니다. 모든 다운로드 플로우에 적용됩니다."
         },
+        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "모델별 그룹화",
             "groupByModelHelp": "활성화하면 각 Civitai 모델의 최신 버전만 단일 카드로 표시되며, 이전 버전은 숨겨집니다.",
@@ -768,6 +779,7 @@
             "copyAll": "모든 문법 복사",
             "refreshAll": "모든 메타데이터 새로고침",
             "repairMetadata": "선택한 레시피 메타데이터 복구",
+            "rematchMetadata": "선택 항목을 로컬 모델에 다시 매칭",
             "reimportMetadata": "소스에서 다시 가져오기",
             "checkUpdates": "선택 항목 업데이트 확인",
             "moveAll": "모두 폴더로 이동",
@@ -823,6 +835,7 @@
             "setContentRating": "콘텐츠 등급 설정",
             "moveToFolder": "폴더로 이동",
             "repairMetadata": "메타데이터 복구",
+            "rematchMetadata": "로컬 모델에 다시 매칭",
             "reimportMetadata": "소스에서 다시 가져오기",
             "excludeModel": "모델 제외",
             "restoreModel": "모델 복원",
@@ -923,8 +936,16 @@
         },
         "duplicates": {
             "found": "{count}개의 중복 그룹 발견",
+            "noGroups": "현재 일치 기준으로 중복 그룹을 찾을 수 없습니다",
             "keepLatest": "최신 버전 유지",
-            "deleteSelected": "선택된 항목 삭제"
+            "deleteSelected": "선택된 항목 삭제",
+            "includePromptLabel": "일치 항목에 프롬프트 포함",
+            "basis": {
+                "loraCombo": "일치 기준: LoRA 조합",
+                "loraComboAndPrompt": "일치 기준: LoRA 조합 + 프롬프트",
+                "hintLoraCombo": "동일한 LoRA를 동일한 강도로 사용하는 레시피가 그룹화됩니다.",
+                "hintPromptIncluded": "동일한 LoRA를 동일한 강도로 사용하고 프롬프트도 동일한 경우에만 레시피가 그룹화됩니다."
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1257,8 +1278,11 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "[TODO: Translate] Frees {size}",
             "title": "모델 삭제",
-            "message": "이 모델과 모든 관련 파일을 삭제하시겠습니까?"
+            "message": "이 모델과 모든 관련 파일을 삭제하시겠습니까?",
+            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
+            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
         },
         "excludeModel": {
             "title": "모델 제외",
@@ -1951,6 +1975,12 @@
             "repairBulkComplete": "복구 완료: {repaired}개 복구, {skipped}개 건너뜀 (총 {total}개)",
             "repairBulkSkipped": "선택한 {total}개 레시피는 복구가 필요하지 않습니다",
             "repairBulkFailed": "선택한 레시피 복구 실패: {message}",
+            "rematchComplete": "{recipes}개 레시피에서 {entries}개 항목이 매칭되었습니다",
+            "rematchCompleteErrors": "{recipes}개 레시피에서 {entries}개 항목이 매칭되었습니다. {failures}개 실패",
+            "rematchAllFailed": "선택한 {total}개 레시피 중 {failures}개 재매칭 실패",
+            "rematchUnmatched": "{recipes}개 레시피에서 {entries}개 항목의 로컬 매칭을 찾지 못했습니다",
+            "rematchSkipped": "선택한 {total}개 레시피는 재매칭이 필요하지 않습니다",
+            "rematchFailed": "선택한 레시피 재매칭 실패: {message}",
             "reimporting": "소스에서 레시피를 다시 가져오는 중...",
             "reimportSuccess": "레시피를 다시 가져왔습니다",
             "reimportBulkComplete": "다시 가져오기 완료: {completed}개 성공, {failed}개 실패 (총 {total}개)",
@@ -2086,6 +2116,14 @@
             "updateSuccess": "트리거 단어가 성공적으로 업데이트되었습니다",
             "updateFailed": "트리거 단어 업데이트에 실패했습니다",
             "copyFailed": "복사 실패"
+        },
+        "undo": {
+            "action": "[TODO: Translate] Undo",
+            "deleted": "[TODO: Translate] Deleted {name}",
+            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
+            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
+            "failed": "[TODO: Translate] Undo failed: {error}",
+            "restored": "[TODO: Translate] Item restored"
         },
         "virtual": {
             "loadFailed": "항목 로딩 실패",

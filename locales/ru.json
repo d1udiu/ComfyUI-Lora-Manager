@@ -186,6 +186,16 @@
             "cancelled": "Восстановление отменено. {count} рецептов было восстановлено.",
             "error": "Ошибка восстановления рецептов: {message}"
         },
+        "rematchRecipes": {
+            "label": "Повторное сопоставление рецептов с локальными моделями",
+            "loading": "Повторное сопоставление рецептов с локальными моделями...",
+            "success": "Сопоставлено записей: {entries} в рецептах: {recipes}",
+            "successErrors": "Сопоставлено записей: {entries} в рецептах: {recipes}, ошибок: {failures}",
+            "allFailed": "Не удалось сопоставить: {failures} из {total} рецептов",
+            "noMatch": "Не найдено локального сопоставления для {entries} записей в {recipes} рецептах",
+            "cancelled": "Сопоставление отменено. Обновлено рецептов: {recipes} (записей: {entries})",
+            "error": "Не удалось выполнить сопоставление рецептов: {message}"
+        },
         "manageExcludedModels": {
             "label": "Управление исключёнными моделями"
         },
@@ -433,6 +443,7 @@
             "label": "Пропускать ранее загруженные версии моделей",
             "help": "Если включено, LoRA Manager будет пропускать загрузку версии модели, если сервис истории загрузок записал, что эта конкретная версия уже загружена. Применяется ко всем потокам загрузки."
         },
+        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "Группировать по модели",
             "groupByModelHelp": "При включении отображается только последняя версия каждой модели Civitai в виде одной карточки. Старые версии скрыты.",
@@ -768,6 +779,7 @@
             "copyAll": "Копировать весь синтаксис",
             "refreshAll": "Обновить все метаданные",
             "repairMetadata": "Восстановить метаданные для выбранных",
+            "rematchMetadata": "Сопоставить выбранные с локальными моделями",
             "reimportMetadata": "Переимпортировать из источника",
             "checkUpdates": "Проверить обновления для выбранных",
             "moveAll": "Переместить все в папку",
@@ -823,6 +835,7 @@
             "setContentRating": "Установить рейтинг контента",
             "moveToFolder": "Переместить в папку",
             "repairMetadata": "Восстановить метаданные",
+            "rematchMetadata": "Сопоставить с локальными моделями",
             "reimportMetadata": "Переимпортировать из источника",
             "excludeModel": "Исключить модель",
             "restoreModel": "Восстановить модель",
@@ -923,8 +936,16 @@
         },
         "duplicates": {
             "found": "Найдено {count} групп дубликатов",
+            "noGroups": "Дубликатов с текущим критерием не найдено",
             "keepLatest": "Оставить последние версии",
-            "deleteSelected": "Удалить выбранные"
+            "deleteSelected": "Удалить выбранные",
+            "includePromptLabel": "Учитывать запрос при поиске дубликатов",
+            "basis": {
+                "loraCombo": "Критерий: комбинация LoRA",
+                "loraComboAndPrompt": "Критерий: комбинация LoRA + запрос",
+                "hintLoraCombo": "Рецепты с одинаковыми LoRA и одинаковой силой группируются вместе.",
+                "hintPromptIncluded": "Рецепты группируются только при одинаковых LoRA с одинаковой силой И одинаковом запросе."
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1257,8 +1278,11 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "[TODO: Translate] Frees {size}",
             "title": "Удалить модель",
-            "message": "Вы уверены, что хотите удалить эту модель и все связанные файлы?"
+            "message": "Вы уверены, что хотите удалить эту модель и все связанные файлы?",
+            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
+            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
         },
         "excludeModel": {
             "title": "Исключить модель",
@@ -1951,6 +1975,12 @@
             "repairBulkComplete": "Восстановление завершено: {repaired} восстановлено, {skipped} пропущено (из {total})",
             "repairBulkSkipped": "Ни один из {total} выбранных рецептов не требует восстановления",
             "repairBulkFailed": "Не удалось восстановить выбранные рецепты: {message}",
+            "rematchComplete": "Сопоставлено записей: {entries} в рецептах: {recipes}",
+            "rematchCompleteErrors": "Сопоставлено записей: {entries} в рецептах: {recipes}, ошибок: {failures}",
+            "rematchAllFailed": "Не удалось сопоставить: {failures} из {total} выбранных рецептов",
+            "rematchUnmatched": "Не найдено локального сопоставления для {entries} записей в {recipes} рецептах",
+            "rematchSkipped": "Ни один из {total} выбранных рецептов не требует сопоставления",
+            "rematchFailed": "Не удалось сопоставить выбранные рецепты: {message}",
             "reimporting": "Переимпорт рецепта из источника...",
             "reimportSuccess": "Рецепт успешно переимпортирован",
             "reimportBulkComplete": "Переимпорт завершён: {completed} переимпортировано, {failed} ошибок (из {total})",
@@ -2086,6 +2116,14 @@
             "updateSuccess": "Триггерные слова успешно обновлены",
             "updateFailed": "Не удалось обновить триггерные слова",
             "copyFailed": "Копирование не удалось"
+        },
+        "undo": {
+            "action": "[TODO: Translate] Undo",
+            "deleted": "[TODO: Translate] Deleted {name}",
+            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
+            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
+            "failed": "[TODO: Translate] Undo failed: {error}",
+            "restored": "[TODO: Translate] Item restored"
         },
         "virtual": {
             "loadFailed": "Не удалось загрузить элементы",

@@ -186,6 +186,16 @@
             "cancelled": "Réparation annulée. {count} recettes ont été réparées.",
             "error": "Échec de la réparation des recettes : {message}"
         },
+        "rematchRecipes": {
+            "label": "Réassocier les recettes aux modèles locaux",
+            "loading": "Réassociation des recettes aux modèles locaux...",
+            "success": "{entries} entrées associées dans {recipes} recettes",
+            "successErrors": "{entries} entrées associées dans {recipes} recettes, {failures} échecs",
+            "allFailed": "Échec de la réassociation de {failures} recettes sur {total}",
+            "noMatch": "Aucune correspondance locale trouvée pour {entries} entrées dans {recipes} recettes",
+            "cancelled": "Réassociation annulée. {recipes} recettes mises à jour ({entries} entrées)",
+            "error": "Échec de la réassociation des recettes : {message}"
+        },
         "manageExcludedModels": {
             "label": "Gérer les modèles exclus"
         },
@@ -433,6 +443,7 @@
             "label": "Ignorer les versions de modèles précédemment téléchargées",
             "help": "Lorsque activé, LoRA Manager ignorera le téléchargement d'une version de modèle si le service d'historique des téléchargements enregistre cette version exacte comme déjà téléchargée. S'applique à tous les flux de téléchargement."
         },
+        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "Grouper par modèle",
             "groupByModelHelp": "Lorsque activé, seule la version la plus récente de chaque modèle Civitai s'affiche sous forme de carte unique. Les versions plus anciennes sont masquées.",
@@ -768,6 +779,7 @@
             "copyAll": "Copier toute la syntaxe",
             "refreshAll": "Actualiser toutes les métadonnées",
             "repairMetadata": "Réparer les métadonnées de la sélection",
+            "rematchMetadata": "Réassocier la sélection aux modèles locaux",
             "reimportMetadata": "Ré-importer depuis la source",
             "checkUpdates": "Vérifier les mises à jour pour la sélection",
             "moveAll": "Déplacer tout vers un dossier",
@@ -823,6 +835,7 @@
             "setContentRating": "Définir la classification du contenu",
             "moveToFolder": "Déplacer vers un dossier",
             "repairMetadata": "Réparer les métadonnées",
+            "rematchMetadata": "Réassocier aux modèles locaux",
             "reimportMetadata": "Ré-importer depuis la source",
             "excludeModel": "Exclure le modèle",
             "restoreModel": "Restaurer le modèle",
@@ -923,8 +936,16 @@
         },
         "duplicates": {
             "found": "Trouvé {count} groupes de doublons",
+            "noGroups": "Aucun groupe de doublons trouvé avec le critère de correspondance actuel",
             "keepLatest": "Garder les dernières versions",
-            "deleteSelected": "Supprimer la sélection"
+            "deleteSelected": "Supprimer la sélection",
+            "includePromptLabel": "Inclure le prompt dans la correspondance",
+            "basis": {
+                "loraCombo": "Correspondance : combinaison de LoRA",
+                "loraComboAndPrompt": "Correspondance : combinaison de LoRA + prompt",
+                "hintLoraCombo": "Les recettes avec les mêmes LoRAs et des forces identiques sont regroupées.",
+                "hintPromptIncluded": "Les recettes ne sont regroupées que si elles utilisent les mêmes LoRAs avec des forces identiques ET ont le même prompt."
+            }
         },
         "contextMenu": {
             "copyRecipe": {
@@ -1257,8 +1278,11 @@
             }
         },
         "deleteModel": {
+            "freesSpace": "[TODO: Translate] Frees {size}",
             "title": "Supprimer le modèle",
-            "message": "Êtes-vous sûr de vouloir supprimer ce modèle et tous les fichiers associés ?"
+            "message": "Êtes-vous sûr de vouloir supprimer ce modèle et tous les fichiers associés ?",
+            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
+            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
         },
         "excludeModel": {
             "title": "Exclure le modèle",
@@ -1951,6 +1975,12 @@
             "repairBulkComplete": "Réparation terminée : {repaired} réparée(s), {skipped} ignorée(s) (sur {total})",
             "repairBulkSkipped": "Aucune réparation nécessaire parmi les {total} recettes sélectionnées",
             "repairBulkFailed": "Échec de la réparation des recettes sélectionnées : {message}",
+            "rematchComplete": "{entries} entrées associées dans {recipes} recettes",
+            "rematchCompleteErrors": "{entries} entrées associées dans {recipes} recettes, {failures} échecs",
+            "rematchAllFailed": "Échec de la réassociation de {failures} recettes sélectionnées sur {total}",
+            "rematchUnmatched": "Aucune correspondance locale trouvée pour {entries} entrées dans {recipes} recettes",
+            "rematchSkipped": "Aucune des {total} recettes sélectionnées ne nécessite de réassociation",
+            "rematchFailed": "Échec de la réassociation des recettes sélectionnées : {message}",
             "reimporting": "Ré-import de la recette depuis la source...",
             "reimportSuccess": "Recette ré-importée avec succès",
             "reimportBulkComplete": "Ré-import terminé : {completed} ré-importé(s), {failed} échec(s) (sur {total})",
@@ -2086,6 +2116,14 @@
             "updateSuccess": "Mots-clés mis à jour avec succès",
             "updateFailed": "Échec de la mise à jour des mots-clés",
             "copyFailed": "Échec de la copie"
+        },
+        "undo": {
+            "action": "[TODO: Translate] Undo",
+            "deleted": "[TODO: Translate] Deleted {name}",
+            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
+            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
+            "failed": "[TODO: Translate] Undo failed: {error}",
+            "restored": "[TODO: Translate] Item restored"
         },
         "virtual": {
             "loadFailed": "Échec du chargement des éléments",
