@@ -443,7 +443,6 @@
             "label": "이전에 다운로드한 모델 버전 건너뛰기",
             "help": "활성화하면 다운로드 기록 서비스가 해당 버전이 이미 다운로드되었음을 기록한 경우 LoRA Manager는 해당 모델 버전 다운로드를 건너뜁니다. 모든 다운로드 플로우에 적용됩니다."
         },
-        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "모델별 그룹화",
             "groupByModelHelp": "활성화하면 각 Civitai 모델의 최신 버전만 단일 카드로 표시되며, 이전 버전은 숨겨집니다.",
@@ -1278,11 +1277,13 @@
             }
         },
         "deleteModel": {
-            "freesSpace": "[TODO: Translate] Frees {size}",
+            "freesSpace": "{size} 확보",
             "title": "모델 삭제",
             "message": "이 모델과 모든 관련 파일을 삭제하시겠습니까?",
-            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
-            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
+            "recoverableWarning": "실행 취소하지 않으면 20초 후에 파일이 영구적으로 삭제됩니다."
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "이 작업은 20초 이내에 실행 취소할 수 있습니다."
         },
         "excludeModel": {
             "title": "모델 제외",
@@ -1725,6 +1726,7 @@
             "recipeReplaced": "레시피가 워크플로에서 교체되었습니다",
             "recipeFailedToSend": "레시피를 워크플로로 전송하지 못했습니다",
             "noMatchingNodes": "현재 워크플로에서 호환되는 노드가 없습니다",
+            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "대상 노드가 선택되지 않았습니다",
             "modelUpdated": "모델이 워크플로에서 업데이트되었습니다",
             "modelFailed": "모델 노드 업데이트 실패",
@@ -2118,12 +2120,12 @@
             "copyFailed": "복사 실패"
         },
         "undo": {
-            "action": "[TODO: Translate] Undo",
-            "deleted": "[TODO: Translate] Deleted {name}",
-            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
-            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
-            "failed": "[TODO: Translate] Undo failed: {error}",
-            "restored": "[TODO: Translate] Item restored"
+            "action": "실행 취소",
+            "deleted": "{name} 삭제됨",
+            "deletedBulk": "{count}개 항목 삭제됨",
+            "expired": "실행 취소 기간이 만료되었습니다. 항목이 영구적으로 삭제되었습니다.",
+            "failed": "실행 취소 실패: {error}",
+            "restored": "항목이 복원되었습니다"
         },
         "virtual": {
             "loadFailed": "항목 로딩 실패",

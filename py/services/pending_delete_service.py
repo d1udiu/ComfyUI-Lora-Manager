@@ -39,14 +39,13 @@ from typing import (
 
 from ..utils.constants import PREVIEW_EXTENSIONS
 from ..utils import settings_paths
-from .settings_manager import get_settings_manager
 
 logger = logging.getLogger(__name__)
 
 # Undo window in seconds before a staged batch becomes purge-eligible.
-PENDING_DELETE_TTL_SECONDS = 30
-# Hidden staging directory name placed under each model root (and the settings
-# dir for recipes).
+PENDING_DELETE_TTL_SECONDS = 20
+# Hidden staging directory name placed inside each deleted model's own folder
+# (sibling of the model artifacts) and under the settings dir for recipes.
 PENDING_DELETE_DIR_NAME = ".lm-pending-delete"
 # Manifest file name inside every batch directory.
 MANIFEST_FILE_NAME = "manifest.json"
@@ -97,6 +96,11 @@ class PendingDeleteService:
         # ServiceRegistry roots during sweeps so undo/purge work even before
         # every scanner is registered.
         self._known_roots: List[str] = []
+        # MODEL batches only; recipe batches live in the fixed settings-dir
+        # parent. Registry access is short critical sections; the lock-free
+        # reconciliation scan registers concurrently.
+        self._known_batch_dirs: Dict[str, str] = {}
+        self._registry_lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
     # Public API
@@ -111,18 +115,18 @@ class PendingDeleteService:
         original_file_path: str,
         cached_entry: Optional[Dict[str, Any]],
     ) -> Optional[str]:
-        """Rename a model's artifacts into a per-root staging batch.
+        """Rename a model's artifacts into a sibling-of-model staging batch.
 
-        Returns the batch id, or ``None`` when undo is disabled, the staging
-        root cannot be resolved, or staging failed (caller falls back to a
-        hard delete).
+        The batch dir is created inside the model file's OWN directory
+        (``target_dir``), so staging/undo renames stay within one real
+        directory - EXDEV is impossible even when the business path traverses
+        nested symlinks to other volumes. Returns the batch id, or ``None``
+        when the model root cannot be resolved, or staging failed (caller
+        falls back to a hard delete).
         """
         # LOCK-FREE section: opportunistic purge must never run while holding
         # the ops lock (the lock is not re-entrant).
         await self._opportunistic_purge()
-
-        if not self._undo_enabled():
-            return None
 
         async with self._ops_lock:
             batch_dir: Optional[str] = None
@@ -148,7 +152,7 @@ class PendingDeleteService:
 
                 batch_id = self._new_batch_id()
                 batch_dir = os.path.join(
-                    os.path.join(root, PENDING_DELETE_DIR_NAME), batch_id
+                    os.path.abspath(target_dir), PENDING_DELETE_DIR_NAME, batch_id
                 )
                 os.makedirs(batch_dir, exist_ok=True)
 
@@ -176,14 +180,16 @@ class PendingDeleteService:
                 )
                 self._write_manifest_atomic(batch_dir, manifest)
                 self._remember_root(root)
+                await self._remember_batch(batch_id, batch_dir)
                 # Arm the per-batch purge timer. Safe inside the lock: task
                 # creation does not await, and purge_batch re-reads the
                 # manifest's expires_at at fire time, so stale timers no-op.
                 self._arm_purge_timer(batch_id)
                 logger.info(
-                    "Staged model delete batch %s with %d file(s)",
+                    "Staged model delete batch %s with %d file(s): %s",
                     batch_id,
                     len(staged_pairs),
+                    staged_pairs[0]["original"] if staged_pairs else None,
                 )
                 return batch_id
             except OSError as exc:
@@ -209,13 +215,10 @@ class PendingDeleteService:
     ) -> Optional[str]:
         """Copy a recipe JSON (and, when it exists, its image) into staging.
 
-        Returns the batch id, or ``None`` when undo is disabled / staging
-        failed. Missing or shared preview images are skipped.
+        Returns the batch id, or ``None`` when staging failed. Missing or
+        shared preview images are skipped.
         """
         await self._opportunistic_purge()
-
-        if not self._undo_enabled():
-            return None
 
         async with self._ops_lock:
             batch_dir: Optional[str] = None
@@ -246,9 +249,10 @@ class PendingDeleteService:
                 self._write_manifest_atomic(batch_dir, manifest)
                 self._arm_purge_timer(batch_id)
                 logger.info(
-                    "Staged recipe delete batch %s with %d file(s)",
+                    "Staged recipe delete batch %s with %d file(s): %s",
                     batch_id,
                     len(staged_pairs),
+                    staged_pairs[0]["original"] if staged_pairs else None,
                 )
                 return batch_id
             except OSError as exc:
@@ -296,7 +300,7 @@ class PendingDeleteService:
 
             # Track (entry, original_staged_path, loser_dir) for rollback.
             moved: List[Tuple[Dict[str, Any], str, str]] = []
-            processed_losers: List[str] = []
+            processed_losers: List[Tuple[str, str]] = []  # (loser_id, loser_dir)
 
             try:
                 for loser_id in batch_ids[1:]:
@@ -332,7 +336,7 @@ class PendingDeleteService:
                         entry["staged"] = os.path.abspath(new_staged)
                         winner_manifest["entries"].append(entry)
                         moved.append((entry, original_staged, loser_dir))
-                    processed_losers.append(loser_dir)
+                    processed_losers.append((loser_id, loser_dir))
             except OSError as exc:
                 logger.warning(
                     "Merge of %s failed after moving files: %s; rolling back",
@@ -357,10 +361,15 @@ class PendingDeleteService:
                 self._rollback_merge_moves(moved)
                 return None
 
-            # All moves committed: remove loser dirs (must be empty by now).
-            for loser_dir in processed_losers:
+            # All moves committed: remove loser dirs (must be empty by now)
+            # and drop them from the registry. Skipped losers (missing /
+            # corrupted / same-dir) stay registered so the sweep still
+            # quarantines them, exactly as before the registry existed.
+            for loser_id, loser_dir in processed_losers:
                 self._remove_manifest(loser_dir)
                 self._remove_empty_dir(loser_dir)
+                await self._forget_batch(loser_id)
+            await self._remember_batch(winner_id, winner_dir)
 
             # Arm a fresh purge timer for the winner with the re-anchored
             # expiry (the winner's original timer fires at the OLD expiry and
@@ -438,32 +447,100 @@ class PendingDeleteService:
             # Remove the manifest + batch dir only after all entries restored.
             self._remove_manifest(batch_dir)
             self._remove_empty_dir(batch_dir)
+            await self._forget_batch(batch_id)
 
             logger.info("Restored pending-delete batch %s", batch_id)
             return self._undo_result(manifest)
 
-    async def purge_expired(self) -> int:
-        """Purge every expired batch across ALL model roots and the recipe dir.
+    async def purge_expired(self, scan_roots: bool = False) -> int:
+        """Purge every expired batch.
 
-        Lock-free by design: enumerates staging parents (all scanner types via
-        the ServiceRegistry plus the global recipe staging dir) and delegates
-        each batch to :meth:`purge_batch`, which acquires the ops lock. Never
-        call this while holding the ops lock.
+        Default (registry-only): iterates a SNAPSHOT of the in-process MODEL
+        batch registry plus a shallow check of the fixed recipe staging
+        parent - cheap, no tree walk per delete. With ``scan_roots=True``
+        (startup sweep only) a reconciliation pass re-discovers every batch
+        on disk under the model roots and registers it FIRST, so crash
+        leftovers and externally created batches are covered too.
+
+        Lock-free by design: delegates each batch to :meth:`purge_batch`,
+        which acquires the ops lock. Never call this while holding the ops
+        lock.
         """
         purged = 0
-        for parent in await self._get_all_staging_parents():
-            if not os.path.isdir(parent):
+        if scan_roots:
+            await self._reconcile_scan_roots()
+        # MODEL batches: snapshot so purge_batch can remove entries
+        # mid-iteration without a dict-changed-size error.
+        batch_ids: List[str] = [
+            batch_id for batch_id, _dir in await self._registered_batch_dirs()
+        ]
+        # RECIPE batches: fixed settings-dir parent, shallow check as before.
+        recipe_parent = self._recipe_staging_parent()
+        for name in self._list_dir_names(recipe_parent):
+            if name.endswith(ORPHANED_SUFFIX):
+                # Quarantine is terminal - never re-rename or delete.
                 continue
-            for name in self._list_dir_names(parent):
-                if name.endswith(ORPHANED_SUFFIX):
-                    # Quarantine is terminal - never re-rename or delete.
-                    continue
-                try:
-                    await self.purge_batch(name)
-                    purged += 1
-                except Exception as exc:  # defensive - sweep must not crash
-                    logger.warning("Failed to purge batch %s: %s", name, exc)
+            if name not in batch_ids:
+                batch_ids.append(name)
+        for batch_id in batch_ids:
+            try:
+                await self.purge_batch(batch_id)
+                purged += 1
+            except Exception as exc:  # defensive - sweep must not crash
+                logger.warning("Failed to purge batch %s: %s", batch_id, exc)
         return purged
+
+    async def _reconcile_scan_roots(self) -> None:
+        """Register every pending-delete batch found under the model roots.
+
+        Runs at startup (``purge_expired(scan_roots=True)``) to re-discover
+        batches left over from a previous process or created externally.
+        Registers ALL non-orphaned batch dirs regardless of manifest validity:
+        malformed/manifest-less dirs must reach ``_purge_batch_dir`` so it can
+        QUARANTINE them (preserving the pre-registry sweep semantics). The
+        walk only descends into dirs literally named ``.lm-pending-delete``,
+        so false positives are structurally limited.
+        """
+        from .model_scanner import _is_excluded_dir
+
+        for root in await self._get_all_model_roots():
+            if not os.path.isdir(root):
+                continue
+            visited: Set[str] = set()
+            for dirpath, dirnames, _files in os.walk(
+                root, followlinks=True, topdown=True
+            ):
+                real_dir = os.path.realpath(dirpath)
+                if real_dir in visited:
+                    # Symlink cycle: prune descent and move on.
+                    dirnames[:] = []
+                    continue
+                visited.add(real_dir)
+                if os.path.basename(dirpath) == PENDING_DELETE_DIR_NAME:
+                    # The current dir IS a staging parent (reachable only when
+                    # a model root itself is one): register its batches.
+                    await self._register_batch_candidates(dirpath)
+                    dirnames[:] = []
+                    continue
+                next_dirs: List[str] = []
+                for name in dirnames:
+                    if name == PENDING_DELETE_DIR_NAME:
+                        await self._register_batch_candidates(
+                            os.path.join(dirpath, name)
+                        )
+                    elif _is_excluded_dir(name):
+                        continue
+                    else:
+                        next_dirs.append(name)
+                dirnames[:] = next_dirs
+
+    async def _register_batch_candidates(self, staging_parent: str) -> None:
+        """Register every non-orphaned batch subdir of a staging parent."""
+        for name in self._list_dir_names(staging_parent):
+            if name.endswith(ORPHANED_SUFFIX):
+                # Quarantine is terminal - never re-register.
+                continue
+            await self._remember_batch(name, os.path.join(staging_parent, name))
 
     async def purge_batch(self, batch_id: str) -> None:
         """Purge one batch. Silent no-op for missing/undone/not-yet-expired.
@@ -476,7 +553,10 @@ class PendingDeleteService:
             batch_dir = await self._find_batch_dir(batch_id)
             if not batch_dir:
                 return
-            self._purge_batch_dir(batch_dir)
+            if self._purge_batch_dir(batch_dir):
+                # Both purge and quarantine remove the batch dir (quarantine
+                # renames it to *.orphaned), so the registry entry is stale.
+                await self._forget_batch(batch_id)
 
     # ------------------------------------------------------------------
     # Internals
@@ -488,17 +568,33 @@ class PendingDeleteService:
         except Exception as exc:  # defensive - staging/undo must still proceed
             logger.warning("Opportunistic pending-delete purge failed: %s", exc)
 
-    def _undo_enabled(self) -> bool:
-        try:
-            return bool(get_settings_manager().get("delete_undo_enabled", True))
-        except Exception as exc:  # defensive - default to enabled
-            logger.warning("Failed to read delete_undo_enabled setting: %s", exc)
-            return True
-
     def _remember_root(self, root: str) -> None:
         """Record a root the service has staged into (in-process registry)."""
         if root and root not in self._known_roots:
             self._known_roots.append(root)
+
+    async def _remember_batch(self, batch_id: str, batch_dir: str) -> None:
+        """Register a MODEL batch in the in-process registry (idempotent).
+
+        Short critical section (dict mutation only, no I/O while holding the
+        lock) so the lock-free reconciliation scan can register concurrently.
+        """
+        async with self._registry_lock:
+            self._known_batch_dirs[batch_id] = batch_dir
+
+    async def _forget_batch(self, batch_id: str) -> None:
+        """Remove a MODEL batch from the in-process registry (idempotent)."""
+        async with self._registry_lock:
+            self._known_batch_dirs.pop(batch_id, None)
+
+    async def _registered_batch_dirs(self) -> List[Tuple[str, str]]:
+        """Return a SNAPSHOT of (batch_id, batch_dir) registry pairs.
+
+        The snapshot lets purge iterate safely while purge_batch removes
+        entries mid-loop (no dict-changed-size error).
+        """
+        async with self._registry_lock:
+            return list(self._known_batch_dirs.items())
 
     def _find_model_root(self, scanner: Any, original_file_path: Optional[str]) -> Optional[str]:
         """Return the configured root containing ``original_file_path``."""
@@ -818,18 +914,6 @@ class PendingDeleteService:
             settings_paths.get_settings_dir(create=True), PENDING_DELETE_DIR_NAME
         )
 
-    async def _get_all_staging_parents(self) -> List[str]:
-        """Model staging parents for every scanner type + the recipe parent."""
-        parents: List[str] = []
-        for root in await self._get_all_model_roots():
-            parent = os.path.join(root, PENDING_DELETE_DIR_NAME)
-            if parent not in parents:
-                parents.append(parent)
-        recipe_parent = self._recipe_staging_parent()
-        if recipe_parent not in parents:
-            parents.append(recipe_parent)
-        return parents
-
     async def _get_all_model_roots(self) -> List[str]:
         """Collect every configured model root across all scanner types.
 
@@ -878,13 +962,81 @@ class PendingDeleteService:
         return roots
 
     async def _find_batch_dir(self, batch_id: str) -> Optional[str]:
-        """Locate a batch directory across every staging parent."""
+        """Locate a batch directory.
+
+        Registry lookup first (fast path; stale entries are forgotten when
+        their dir vanished); then a targeted scan of the model roots for a
+        batch dir named exactly ``batch_id`` under a ``.lm-pending-delete``
+        parent (restart / externally created batches; manifest verification
+        applies so random uuid-named user dirs are never registered); finally
+        the fixed recipe staging parent. Returns ``None`` (404 semantics)
+        when not found.
+        """
         if not batch_id:
             return None
-        for parent in await self._get_all_staging_parents():
-            candidate = os.path.join(parent, batch_id)
-            if os.path.isdir(candidate):
+        # 1) Registry fast path.
+        async with self._registry_lock:
+            known = self._known_batch_dirs.get(batch_id)
+        if known is not None:
+            if os.path.isdir(known):
+                return known
+            await self._forget_batch(batch_id)  # stale entry - dir is gone
+        # 2) Targeted scan fallback across the model roots.
+        for root in await self._get_all_model_roots():
+            if not os.path.isdir(root):
+                continue
+            candidate = await self._scan_root_for_batch(root, batch_id)
+            if candidate is not None:
+                await self._remember_batch(batch_id, candidate)
                 return candidate
+        # 3) Recipe batches: fixed settings-dir parent, shallow check.
+        candidate = os.path.join(self._recipe_staging_parent(), batch_id)
+        if os.path.isdir(candidate):
+            return candidate
+        return None
+
+    async def _scan_root_for_batch(self, root: str, batch_id: str) -> Optional[str]:
+        """Search one model root for a batch dir named exactly ``batch_id``.
+
+        Walks the root (``followlinks=True``) with a realpath cycle guard,
+        looking for ``.lm-pending-delete`` parents whose subdir matches
+        ``batch_id`` AND has a parseable manifest. The manifest check prevents
+        random uuid-named user dirs from being treated as batches (a batch
+        with no parseable manifest cannot be undone anyway).
+        """
+        from .model_scanner import _is_excluded_dir
+
+        visited: Set[str] = set()
+        for dirpath, dirnames, _files in os.walk(root, followlinks=True, topdown=True):
+            real_dir = os.path.realpath(dirpath)
+            if real_dir in visited:
+                # Symlink cycle: prune descent and move on.
+                dirnames[:] = []
+                continue
+            visited.add(real_dir)
+            if os.path.basename(dirpath) == PENDING_DELETE_DIR_NAME:
+                candidate = os.path.join(dirpath, batch_id)
+                if (
+                    os.path.isdir(candidate)
+                    and self._read_manifest(candidate) is not None
+                ):
+                    return candidate
+                dirnames[:] = []
+                continue
+            next_dirs: List[str] = []
+            for name in dirnames:
+                if name == PENDING_DELETE_DIR_NAME:
+                    candidate = os.path.join(dirpath, name, batch_id)
+                    if (
+                        os.path.isdir(candidate)
+                        and self._read_manifest(candidate) is not None
+                    ):
+                        return candidate
+                    continue
+                if _is_excluded_dir(name):
+                    continue
+                next_dirs.append(name)
+            dirnames[:] = next_dirs
         return None
 
     def _list_dir_names(self, parent: str) -> List[str]:

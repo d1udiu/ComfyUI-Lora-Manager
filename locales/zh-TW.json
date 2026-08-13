@@ -443,7 +443,6 @@
             "label": "跳過已下載的模型版本",
             "help": "啟用後，如果下載歷史服務記錄顯示該版本已下載，LoRA Manager 將跳過下載該模型版本。適用於所有下載流程。"
         },
-        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "按模型分組",
             "groupByModelHelp": "啟用後，每個 Civitai 模型僅顯示最新版本的單張卡片，舊版本將被隱藏。",
@@ -1278,11 +1277,13 @@
             }
         },
         "deleteModel": {
-            "freesSpace": "[TODO: Translate] Frees {size}",
+            "freesSpace": "釋放 {size}",
             "title": "刪除模型",
             "message": "您確定要刪除此模型及所有相關檔案嗎？",
-            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
-            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
+            "recoverableWarning": "如果未復原，檔案將在 20 秒後被永久刪除。"
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "此操作可在 20 秒內復原。"
         },
         "excludeModel": {
             "title": "排除模型",
@@ -1725,6 +1726,7 @@
             "recipeReplaced": "配方已取代於工作流",
             "recipeFailedToSend": "傳送配方到工作流失敗",
             "noMatchingNodes": "目前工作流程中沒有相容的節點",
+            "noPromptTargets": "工作流中沒有相容的 prompt 目標節點。\n在 ComfyUI 中右鍵節點 → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "未選擇目標節點",
             "modelUpdated": "模型已更新到工作流",
             "modelFailed": "更新模型節點失敗",
@@ -2118,12 +2120,12 @@
             "copyFailed": "複製失敗"
         },
         "undo": {
-            "action": "[TODO: Translate] Undo",
-            "deleted": "[TODO: Translate] Deleted {name}",
-            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
-            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
-            "failed": "[TODO: Translate] Undo failed: {error}",
-            "restored": "[TODO: Translate] Item restored"
+            "action": "復原",
+            "deleted": "已刪除 {name}",
+            "deletedBulk": "已刪除 {count} 個項目",
+            "expired": "復原視窗已過期，項目已被永久刪除。",
+            "failed": "復原失敗：{error}",
+            "restored": "項目已還原"
         },
         "virtual": {
             "loadFailed": "載入項目失敗",

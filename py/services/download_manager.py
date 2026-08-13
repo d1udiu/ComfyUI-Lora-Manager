@@ -18,6 +18,7 @@ from ..utils.models import LoraMetadata, CheckpointMetadata, EmbeddingMetadata
 from ..utils.constants import (
     CARD_PREVIEW_WIDTH,
     DIFFUSION_MODEL_BASE_MODELS,
+    MODEL_WEIGHT_FILE_TYPES,
     SUPPORTED_DOWNLOAD_SKIP_BASE_MODELS,
     VALID_LORA_TYPES,
 )
@@ -44,6 +45,11 @@ CIVITAI_DOWNLOAD_URL_PREFIXES = (
     "https://civitai.com/api/download/",
     "https://civitai.red/api/download/",
 )
+
+
+# File types that are never the intended download target even when CivitAI
+# marks them primary — configs/archives/workflows are auxiliary artifacts.
+NON_DOWNLOADABLE_PRIMARY_TYPES = ("Config", "Archive", "Workflow", "Training Data")
 
 
 class DownloadManager:
@@ -217,6 +223,7 @@ class DownloadManager:
         download_id: str | None = None,
         source: str | None = None,
         file_params: Dict[str, Any] | None = None,
+        use_save_dir_as_root: bool = False,
     ) -> Dict[str, Any]:
         """Download model from Civitai with task tracking and concurrency control
 
@@ -257,6 +264,7 @@ class DownloadManager:
             "save_dir": save_dir,
             "relative_path": relative_path,
             "use_default_paths": bool(use_default_paths),
+            "use_save_dir_as_root": bool(use_save_dir_as_root),
             "source": source,
             "file_params": copy.deepcopy(file_params) if file_params is not None else None,
             "progress": 0,
@@ -287,6 +295,7 @@ class DownloadManager:
                 use_default_paths,
                 source,
                 file_params,
+                use_save_dir_as_root,
             )
         )
 
@@ -321,6 +330,7 @@ class DownloadManager:
         use_default_paths: bool = False,
         source: str | None = None,
         file_params: Dict[str, Any] | None = None,
+        use_save_dir_as_root: bool = False,
     ):
         """Execute download with semaphore to limit concurrency"""
         # Update status to waiting
@@ -401,6 +411,7 @@ class DownloadManager:
                         ),
                         source,
                         file_params,
+                        use_save_dir_as_root=use_save_dir_as_root,
                     )
 
                     # Update status based on result
@@ -621,6 +632,7 @@ class DownloadManager:
             "save_dir": info.get("save_dir"),
             "relative_path": info.get("relative_path", ""),
             "use_default_paths": bool(info.get("use_default_paths", False)),
+            "use_save_dir_as_root": bool(info.get("use_save_dir_as_root", False)),
             "source": info.get("source"),
             "file_params": copy.deepcopy(info.get("file_params")),
             "transfer_backend": info.get("transfer_backend", "aria2"),
@@ -643,6 +655,7 @@ class DownloadManager:
             "save_dir": record.get("save_dir"),
             "relative_path": record.get("relative_path", ""),
             "use_default_paths": bool(record.get("use_default_paths", False)),
+            "use_save_dir_as_root": bool(record.get("use_save_dir_as_root", False)),
             "source": record.get("source"),
             "file_params": copy.deepcopy(record.get("file_params")),
             "progress": record.get("progress", 0),
@@ -1001,6 +1014,7 @@ class DownloadManager:
                                         bool(restored.get("use_default_paths", False)),
                                         restored.get("source"),
                                         restored.get("file_params"),
+                                        bool(restored.get("use_save_dir_as_root", False)),
                                     )
                                 )
                         continue
@@ -1134,6 +1148,7 @@ class DownloadManager:
         transfer_backend: str = "python",
         source: str | None = None,
         file_params: Dict[str, Any] | None = None,
+        use_save_dir_as_root: bool = False,
     ) -> Dict[str, Any]:
         """Wrapper for original download_from_civitai implementation"""
         try:
@@ -1362,36 +1377,41 @@ class DownloadManager:
             # Handle use_default_paths
             if use_default_paths:
                 settings_manager = get_settings_manager()
-                # Set save_dir based on model type
-                if model_type == "checkpoint":
-                    if is_diffusion_model:
-                        default_path = settings_manager.get("default_unet_root")
-                        error_msg = "Default unet root path not set in settings"
-                    else:
-                        default_path = settings_manager.get("default_checkpoint_root")
-                        error_msg = "Default checkpoint root path not set in settings"
-                    if not default_path:
-                        return {
-                            "success": False,
-                            "error": error_msg,
-                        }
-                    save_dir = default_path
-                elif model_type == "lora":
-                    default_path = settings_manager.get("default_lora_root")
-                    if not default_path:
-                        return {
-                            "success": False,
-                            "error": "Default lora root path not set in settings",
-                        }
-                    save_dir = default_path
-                elif model_type == "embedding":
-                    default_path = settings_manager.get("default_embedding_root")
-                    if not default_path:
-                        return {
-                            "success": False,
-                            "error": "Default embedding root path not set in settings",
-                        }
-                    save_dir = default_path
+                # With use_save_dir_as_root, an explicitly provided save_dir is kept
+                # as the base root and the path template is resolved underneath it.
+                # Otherwise fall back to the configured default root, which keeps the
+                # classic "download to default root" behavior for regular downloads.
+                if not save_dir or not use_save_dir_as_root:
+                    # Set save_dir based on model type
+                    if model_type == "checkpoint":
+                        if is_diffusion_model:
+                            default_path = settings_manager.get("default_unet_root")
+                            error_msg = "Default unet root path not set in settings"
+                        else:
+                            default_path = settings_manager.get("default_checkpoint_root")
+                            error_msg = "Default checkpoint root path not set in settings"
+                        if not default_path:
+                            return {
+                                "success": False,
+                                "error": error_msg,
+                            }
+                        save_dir = default_path
+                    elif model_type == "lora":
+                        default_path = settings_manager.get("default_lora_root")
+                        if not default_path:
+                            return {
+                                "success": False,
+                                "error": "Default lora root path not set in settings",
+                            }
+                        save_dir = default_path
+                    elif model_type == "embedding":
+                        default_path = settings_manager.get("default_embedding_root")
+                        if not default_path:
+                            return {
+                                "success": False,
+                                "error": "Default embedding root path not set in settings",
+                            }
+                        save_dir = default_path
 
                 # Calculate relative path using template
                 relative_path = self._calculate_relative_path(version_info, model_type)
@@ -1486,7 +1506,7 @@ class DownloadManager:
                             f
                             for f in files
                             if f.get("primary")
-                            and f.get("type") in ("Model", "Negative", "Diffusion Model", "UNet")
+                            and f.get("type") in MODEL_WEIGHT_FILE_TYPES
                         ),
                         None,
                     )
@@ -1526,21 +1546,52 @@ class DownloadManager:
             # Fallback to primary file if no match found
             if not file_info:
                 logger.debug("[download] Looking for primary file as fallback")
+                # Prefer a weights-type file CivitAI marked primary; then any
+                # weights-type file (providers without primary flags, e.g.
+                # civarchive); then trust CivitAI's primary flag regardless of
+                # type — newer types like 'Enhancement LoRA' are valid primary
+                # files. Weights files are preferred over non-weights primary
+                # files so a Config/Archive primary never replaces a Model.
                 file_info = next(
                     (
                         f
                         for f in files
-                        if f.get("primary") and f.get("type") in ("Model", "Negative", "Diffusion Model", "UNet")
+                        if f.get("primary") and f.get("type") in MODEL_WEIGHT_FILE_TYPES
                     ),
                     None,
                 )
                 if file_info:
                     logger.debug(
-                        "[download] Fallback primary file selected: id=%s, name=%s",
+                        "[download] Fallback primary file selected (primary + weights): id=%s, name=%s",
                         file_info.get("id"), file_info.get("name"),
                     )
                 else:
-                    logger.debug("[download] No primary file found in fallback lookup")
+                    file_info = next(
+                        (f for f in files if f.get("type") in MODEL_WEIGHT_FILE_TYPES),
+                        None,
+                    )
+                    if file_info:
+                        logger.debug(
+                            "[download] Fallback primary file selected (weights type, no primary flag): id=%s, name=%s",
+                            file_info.get("id"), file_info.get("name"),
+                        )
+                    else:
+                        file_info = next(
+                            (
+                                f
+                                for f in files
+                                if f.get("primary")
+                                and f.get("type") not in NON_DOWNLOADABLE_PRIMARY_TYPES
+                            ),
+                            None,
+                        )
+                        if file_info:
+                            logger.debug(
+                                "[download] Fallback primary file selected (trusting CivitAI primary flag): id=%s, name=%s, type=%s",
+                                file_info.get("id"), file_info.get("name"), file_info.get("type"),
+                            )
+                        else:
+                            logger.debug("[download] No primary file found in fallback lookup")
 
             if not file_info:
                 return {"success": False, "error": "No suitable file found in metadata"}
@@ -2761,6 +2812,7 @@ class DownloadManager:
                                 bool(persisted.get("use_default_paths", False)),
                                 persisted.get("source"),
                                 persisted.get("file_params"),
+                                bool(persisted.get("use_save_dir_as_root", False)),
                             ),
                         )
             except Exception as exc:

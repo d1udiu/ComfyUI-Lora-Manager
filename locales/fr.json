@@ -443,7 +443,6 @@
             "label": "Ignorer les versions de modèles précédemment téléchargées",
             "help": "Lorsque activé, LoRA Manager ignorera le téléchargement d'une version de modèle si le service d'historique des téléchargements enregistre cette version exacte comme déjà téléchargée. S'applique à tous les flux de téléchargement."
         },
-        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "Grouper par modèle",
             "groupByModelHelp": "Lorsque activé, seule la version la plus récente de chaque modèle Civitai s'affiche sous forme de carte unique. Les versions plus anciennes sont masquées.",
@@ -1278,11 +1277,13 @@
             }
         },
         "deleteModel": {
-            "freesSpace": "[TODO: Translate] Frees {size}",
+            "freesSpace": "Libère {size}",
             "title": "Supprimer le modèle",
             "message": "Êtes-vous sûr de vouloir supprimer ce modèle et tous les fichiers associés ?",
-            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
-            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
+            "recoverableWarning": "Le fichier sera définitivement supprimé après 20 secondes, sauf si vous annulez."
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "Cette action peut être annulée pendant 20 secondes."
         },
         "excludeModel": {
             "title": "Exclure le modèle",
@@ -1725,6 +1726,7 @@
             "recipeReplaced": "Recipe remplacée dans le workflow",
             "recipeFailedToSend": "Échec de l'envoi de la recipe au workflow",
             "noMatchingNodes": "Aucun nœud compatible disponible dans le workflow actuel",
+            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "Aucun nœud cible sélectionné",
             "modelUpdated": "Modèle mis à jour dans le workflow",
             "modelFailed": "Échec de la mise à jour du nœud modèle",
@@ -2118,12 +2120,12 @@
             "copyFailed": "Échec de la copie"
         },
         "undo": {
-            "action": "[TODO: Translate] Undo",
-            "deleted": "[TODO: Translate] Deleted {name}",
-            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
-            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
-            "failed": "[TODO: Translate] Undo failed: {error}",
-            "restored": "[TODO: Translate] Item restored"
+            "action": "Annuler",
+            "deleted": "Supprimé : {name}",
+            "deletedBulk": "{count} élément(s) supprimé(s)",
+            "expired": "La fenêtre d'annulation a expiré. L'élément a été définitivement supprimé.",
+            "failed": "Échec de l'annulation : {error}",
+            "restored": "Élément restauré"
         },
         "virtual": {
             "loadFailed": "Échec du chargement des éléments",

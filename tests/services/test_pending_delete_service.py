@@ -15,10 +15,11 @@ import asyncio
 import errno
 import json
 import os
+import shutil
 import time
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import pytest
 
@@ -30,7 +31,6 @@ from py.services.pending_delete_service import (
 )
 from py.services.model_hash_index import ModelHashIndex
 from py.services.model_scanner import ModelScanner
-from py.services.settings_manager import DEFAULT_SETTINGS, get_settings_manager
 from py.utils import settings_paths
 from py.utils.models import LoraMetadata
 
@@ -451,7 +451,9 @@ async def test_g_manifestless_dir_quarantined(tmp_path: Path, monkeypatch) -> No
     await _register_model_root(monkeypatch, lora_roots=[root])
 
     service = await PendingDeleteService.get_instance()
-    await service.purge_expired()
+    # The batch is hand-created (unregistered): the reconciliation pass is
+    # required for the default registry-only purge to discover it.
+    await service.purge_expired(scan_roots=True)
 
     orphaned = staging / "batch1.orphaned"
     assert orphaned.is_dir()
@@ -474,7 +476,8 @@ async def test_h_corrupted_manifest_quarantined(tmp_path: Path, monkeypatch) -> 
     await _register_model_root(monkeypatch, lora_roots=[root])
     service = await PendingDeleteService.get_instance()
 
-    await service.purge_expired()  # must not crash
+    # Hand-created (unregistered) batch: reconciliation discovers it.
+    await service.purge_expired(scan_roots=True)  # must not crash
 
     orphaned = staging / "batch2.orphaned"
     assert orphaned.is_dir()
@@ -768,32 +771,6 @@ async def test_l2_merge_basename_collision_aborts_without_dropping_files(
 
 
 # ---------------------------------------------------------------------------
-# (m) delete_undo_enabled=false -> stage returns None, nothing created
-# ---------------------------------------------------------------------------
-async def test_m_undo_disabled_returns_none(tmp_path: Path) -> None:
-    root = tmp_path / "loras"
-    root.mkdir()
-    model = root / "model.safetensors"
-    model.write_bytes(b"data")
-
-    get_settings_manager().settings["delete_undo_enabled"] = False
-
-    service = await PendingDeleteService.get_instance()
-    batch_id = await service.stage_model_delete(
-        scanner=ScannerForStage([root]),
-        target_dir=str(root),
-        file_name="model",
-        main_extension=".safetensors",
-        original_file_path=str(model),
-        cached_entry=None,
-    )
-
-    assert batch_id is None
-    assert model.exists()
-    assert not (root / PENDING_DELETE_DIR_NAME).exists()
-
-
-# ---------------------------------------------------------------------------
 # (n) simulated OSError during staging -> rollback, no orphaned batch dir
 # ---------------------------------------------------------------------------
 async def test_n_staging_oserror_rolls_back(tmp_path: Path, monkeypatch) -> None:
@@ -833,13 +810,6 @@ async def test_n_staging_oserror_rolls_back(tmp_path: Path, monkeypatch) -> None
     staging = root / PENDING_DELETE_DIR_NAME
     if staging.exists():
         assert not any(staging.iterdir())
-
-
-# ---------------------------------------------------------------------------
-# (o) DEFAULT_SETTINGS contains delete_undo_enabled=True
-# ---------------------------------------------------------------------------
-def test_o_default_settings_contains_undo_enabled() -> None:
-    assert DEFAULT_SETTINGS.get("delete_undo_enabled") is True
 
 
 # ---------------------------------------------------------------------------
@@ -1055,7 +1025,8 @@ async def test_r_purge_expired_enumerates_all_scanner_types_and_recipe_dir(
     )
 
     service = await PendingDeleteService.get_instance()
-    purged = await service.purge_expired()
+    # Hand-created (unregistered) batches: reconciliation pass discovers them.
+    purged = await service.purge_expired(scan_roots=True)
 
     assert purged >= 4
     for root in (lora_root, ckpt_root, emb_root):
@@ -1117,12 +1088,13 @@ async def test_t_quarantine_is_terminal(tmp_path: Path, monkeypatch) -> None:
     await _register_model_root(monkeypatch, lora_roots=[root])
     service = await PendingDeleteService.get_instance()
 
-    await service.purge_expired()
+    # Hand-created (unregistered) batch: reconciliation discovers it.
+    await service.purge_expired(scan_roots=True)
     orphaned = staging / "qbatch.orphaned"
     assert orphaned.is_dir()
 
     # Second sweep must NOT re-rename or delete the quarantined dir.
-    await service.purge_expired()
+    await service.purge_expired(scan_roots=True)
     assert orphaned.is_dir()
     assert (orphaned / "model.safetensors").read_bytes() == b"data"
     assert not batch_dir.exists()
@@ -1169,7 +1141,9 @@ async def test_u_lock_no_deadlock_with_concurrent_purge(tmp_path: Path, monkeypa
             cached_entry=None,
         )
 
-    purge_task = asyncio.create_task(service.purge_expired())
+    # Hand-created (unregistered) "expired" batch: the purge task must run the
+    # reconciliation pass to discover it alongside the staged "new" batch.
+    purge_task = asyncio.create_task(service.purge_expired(scan_roots=True))
     stage_task = asyncio.create_task(do_stage())
     results = await asyncio.gather(purge_task, stage_task, return_exceptions=True)
 
@@ -1533,3 +1507,773 @@ async def test_snap2_merge_keeps_both_snapshots(
     snap_entries = [e for e in manifest["entries"] if e.get("snapshot")]
     assert len(snap_entries) == 2
     assert {e["snapshot"]["file_path"] for e in snap_entries} == {str(a1), str(b1)}
+
+
+# ---------------------------------------------------------------------------
+# Batch-registry lifecycle (todo 1: in-process _known_batch_dirs)
+# ---------------------------------------------------------------------------
+
+# (a) stage_model_delete registers in _known_batch_dirs
+async def test_reg_a_stage_model_registers_batch(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    service = await PendingDeleteService.get_instance()
+    batch_id = await _stage_simple(service, root, "model")
+
+    assert service._known_batch_dirs.get(batch_id) == str(
+        root / PENDING_DELETE_DIR_NAME / batch_id
+    )
+
+
+# (b) undo success removes the entry
+async def test_reg_b_undo_success_removes_registry_entry(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    service = await PendingDeleteService.get_instance()
+    batch_id = await _stage_simple(service, root, "model")
+    assert batch_id in service._known_batch_dirs
+
+    await service.undo(batch_id)
+
+    assert batch_id not in service._known_batch_dirs
+
+
+# (c) purge_batch removes the entry after a real purge
+async def test_reg_c_purge_batch_removes_registry_entry(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    service = await PendingDeleteService.get_instance()
+    batch_id = await _stage_simple(service, root, "model")
+    batch_dir = root / PENDING_DELETE_DIR_NAME / batch_id
+    manifest_path = batch_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["expires_at"] = int(time.time()) - 10
+    manifest_path.write_text(json.dumps(manifest))
+
+    await service.purge_batch(batch_id)
+
+    assert batch_id not in service._known_batch_dirs
+    assert not batch_dir.exists()
+
+
+# (d) quarantine (corrupted manifest) removes the entry
+async def test_reg_d_quarantine_removes_registry_entry(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    service = await PendingDeleteService.get_instance()
+    batch_id = await _stage_simple(service, root, "model")
+    batch_dir = root / PENDING_DELETE_DIR_NAME / batch_id
+    assert batch_id in service._known_batch_dirs
+
+    # Corrupt the manifest: purge_batch quarantines the dir (returns True).
+    (batch_dir / "manifest.json").write_text("{ not valid json !!!")
+
+    await service.purge_batch(batch_id)
+
+    assert batch_id not in service._known_batch_dirs
+    assert not batch_dir.exists()
+    assert (batch_dir.with_name(f"{batch_id}.orphaned")).is_dir()
+
+
+# (e) merge success: winner present + losers removed; EXDEV-abort: unchanged
+async def test_reg_e_merge_registry_lifecycle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    _spy_purge_timers(monkeypatch)
+    service = await PendingDeleteService.get_instance()
+    bid_a = await _stage_simple(service, root, "alpha")
+    bid_b = await _stage_simple(service, root, "beta")
+    bid_c = await _stage_simple(service, root, "gamma")
+    assert set(service._known_batch_dirs) == {bid_a, bid_b, bid_c}
+
+    # Merge success: winner stays, processed loser forgotten, untouched batch stays.
+    assert await service.merge_batches([bid_a, bid_b]) == bid_a
+    assert bid_a in service._known_batch_dirs
+    assert bid_b not in service._known_batch_dirs
+    assert bid_c in service._known_batch_dirs
+
+    # EXDEV-abort: registry untouched.
+    def exdev_rename(src: str, dst: str) -> None:
+        raise OSError(errno.EXDEV, "Invalid cross-device link", src, dst)
+
+    monkeypatch.setattr("py.services.pending_delete_service.os.rename", exdev_rename)
+    before = dict(service._known_batch_dirs)
+    assert await service.merge_batches([bid_a, bid_c]) is None
+    assert dict(service._known_batch_dirs) == before
+
+
+# (f) _reset_pending_delete_service clears the registry
+async def test_reg_f_reset_clears_registry(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    service = await PendingDeleteService.get_instance()
+    batch_id = await _stage_simple(service, root, "model")
+    assert service._known_batch_dirs
+
+    _reset_pending_delete_service()
+
+    fresh = await PendingDeleteService.get_instance()
+    assert fresh is not service
+    assert fresh._known_batch_dirs == {}
+
+
+# (g) scan_roots=True reconciles externally created batches (expired purged,
+#     non-expired registered); the registry-only default does NOT find them
+async def test_reg_g_reconciliation_finds_external_batches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    await _register_model_root(monkeypatch, lora_roots=[root])
+
+    expired_dir = root / PENDING_DELETE_DIR_NAME / "ext-expired"
+    expired_dir.mkdir(parents=True)
+    (expired_dir / "old.safetensors").write_bytes(b"old")
+    _write_batch_manifest(
+        expired_dir,
+        batch_id="ext-expired",
+        kind="model",
+        model_type="loras",
+        expires_at=int(time.time()) - 10,
+        entries=[
+            {
+                "staged": str(expired_dir / "old.safetensors"),
+                "original": str(root / "old.safetensors"),
+                "restored": False,
+            }
+        ],
+    )
+    fresh_dir = root / PENDING_DELETE_DIR_NAME / "ext-fresh"
+    fresh_dir.mkdir(parents=True)
+    (fresh_dir / "new.safetensors").write_bytes(b"new")
+    _write_batch_manifest(
+        fresh_dir,
+        batch_id="ext-fresh",
+        kind="model",
+        model_type="loras",
+        expires_at=int(time.time()) + 100,
+        entries=[
+            {
+                "staged": str(fresh_dir / "new.safetensors"),
+                "original": str(root / "new.safetensors"),
+                "restored": False,
+            }
+        ],
+    )
+
+    service = await PendingDeleteService.get_instance()
+
+    # Registry-only default: the externally created batches are invisible.
+    await service.purge_expired()
+    assert expired_dir.is_dir()
+    assert fresh_dir.is_dir()
+    assert "ext-expired" not in service._known_batch_dirs
+    assert "ext-fresh" not in service._known_batch_dirs
+
+    # Reconciliation pass: expired one purged, non-expired one registered.
+    await service.purge_expired(scan_roots=True)
+
+    assert not expired_dir.exists()
+    assert not (root / "old.safetensors").exists()
+    assert fresh_dir.is_dir()
+    assert (fresh_dir / "new.safetensors").exists()
+    assert "ext-expired" not in service._known_batch_dirs
+    assert service._known_batch_dirs.get("ext-fresh") == str(fresh_dir)
+
+
+# (h) _find_batch_dir with cleared registry locates + registers (restart sim)
+async def test_reg_h_find_batch_dir_restart_simulation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    await _register_model_root(monkeypatch, lora_roots=[root])
+    service = await PendingDeleteService.get_instance()
+    batch_id = await _stage_simple(service, root, "model")
+    assert batch_id in service._known_batch_dirs
+
+    # Simulate a restart: the in-process registry is empty but the batch dir
+    # is still on disk.
+    service._known_batch_dirs.clear()
+
+    found = await service._find_batch_dir(batch_id)
+
+    assert found == str(root / PENDING_DELETE_DIR_NAME / batch_id)
+    assert service._known_batch_dirs.get(batch_id) == found
+
+    # Undo works after the restart simulation.
+    await service.undo(batch_id)
+    assert (root / "model.safetensors").read_bytes() == b"model-data"
+    assert batch_id not in service._known_batch_dirs
+
+
+# (i) purge iteration uses a snapshot: no dict-changed-size when entries are
+#     removed mid-iteration
+async def test_reg_i_purge_iteration_uses_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    await _register_model_root(monkeypatch, lora_roots=[root])
+    service = await PendingDeleteService.get_instance()
+    ids = [await _stage_simple(service, root, f"m{i}") for i in range(5)]
+
+    for batch_id in ids:
+        manifest_path = root / PENDING_DELETE_DIR_NAME / batch_id / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["expires_at"] = int(time.time()) - 10
+        manifest_path.write_text(json.dumps(manifest))
+
+    # Every purge removes its registry entry mid-loop; the snapshot makes this
+    # safe (iterating the dict directly would raise RuntimeError).
+    await service.purge_expired()
+
+    assert service._known_batch_dirs == {}
+    for batch_id in ids:
+        assert not (root / PENDING_DELETE_DIR_NAME / batch_id).exists()
+
+
+# (j) STARTUP SWEEP PIN: the startup sweep task passes scan_roots=True
+async def test_reg_j_startup_sweep_passes_scan_roots_true(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from py import lora_manager
+
+    sweep_calls: List[Dict[str, Any]] = []
+
+    class _SpySweepService:
+        async def purge_expired(self, scan_roots: bool = False) -> int:
+            sweep_calls.append({"scan_roots": scan_roots})
+            return 0
+
+    async def _fake_get_service() -> _SpySweepService:
+        return _SpySweepService()
+
+    monkeypatch.setattr(lora_manager, "get_pending_delete_service", _fake_get_service)
+
+    async def _stub(*args: Any, **_kwargs: Any) -> Any:
+        return args[0] if args else None
+
+    class _DummyScanner:
+        async def initialize_in_background(self) -> None:
+            return None
+
+    dummy = _DummyScanner()
+    monkeypatch.setattr(lora_manager.ServiceRegistry, "get_civitai_client", lambda: _stub())
+    monkeypatch.setattr(lora_manager.ServiceRegistry, "get_download_manager", lambda: _stub())
+    monkeypatch.setattr(
+        lora_manager.ServiceRegistry, "get_download_queue_service", lambda: _stub()
+    )
+    monkeypatch.setattr(lora_manager.ServiceRegistry, "get_backup_service", lambda: _stub())
+    monkeypatch.setattr(lora_manager.ServiceRegistry, "get_websocket_manager", lambda: _stub())
+    monkeypatch.setattr(lora_manager.ServiceRegistry, "get_lora_scanner", lambda: _stub(dummy))
+    monkeypatch.setattr(
+        lora_manager.ServiceRegistry, "get_checkpoint_scanner", lambda: _stub(dummy)
+    )
+    monkeypatch.setattr(
+        lora_manager.ServiceRegistry, "get_embedding_scanner", lambda: _stub(dummy)
+    )
+    monkeypatch.setattr(lora_manager.ServiceRegistry, "get_recipe_scanner", lambda: _stub(dummy))
+
+    from py.services import metadata_service as metadata_service_module
+
+    monkeypatch.setattr(
+        metadata_service_module,
+        "initialize_metadata_providers",
+        _stub,
+    )
+
+    from py.services.llm_service import LLMService
+
+    monkeypatch.setattr(LLMService, "get_instance", _stub)
+
+    async def _fake_migration() -> None:
+        return None
+
+    monkeypatch.setattr(
+        lora_manager.ExampleImagesMigration,
+        "check_and_run_migrations",
+        staticmethod(_fake_migration),
+    )
+
+    captured: List[Any] = []
+
+    class _DummyTask:
+        def add_done_callback(self, _cb: Any) -> None:  # pragma: no cover - stub
+            pass
+
+        def done(self) -> bool:  # pragma: no cover - stub
+            return False
+
+    def _capture_task(coro: Any, *args: Any, **kwargs: Any) -> _DummyTask:
+        captured.append(coro)
+        return _DummyTask()
+
+    monkeypatch.setattr(asyncio, "create_task", _capture_task)
+
+    try:
+        await lora_manager.LoraManager._initialize_services()
+    finally:
+        sweep_coro: Any = None
+        for coro in captured:
+            qualname = getattr(coro.cr_code, "co_qualname", "")
+            if "_SpySweepService.purge_expired" in qualname:
+                sweep_coro = coro
+            else:
+                coro.close()
+        if sweep_coro is not None:
+            # The sweep task body only runs when awaited; execute just the
+            # spy's purge_expired so it records its invocation arguments.
+            await sweep_coro
+
+    # The startup sweep must invoke purge_expired with scan_roots=True (the
+    # reconciliation flag) - forgetting it would break restart cleanup.
+    assert sweep_calls == [{"scan_roots": True}]
+
+
+# ---------------------------------------------------------------------------
+# Todo 2: SIBLING-OF-MODEL STAGING (model file in a SUBDIR of the scanner root)
+# ---------------------------------------------------------------------------
+
+# (a) staging lands in <model_dir>/.lm-pending-delete/<batch_id>, NOT under the
+#     scanner root - manifest entries' staged paths live under the sibling dir.
+async def test_sibling1_stage_model_in_subdir_uses_sibling_dir(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    sub = root / "nested"
+    sub.mkdir()
+    model = sub / "model.safetensors"
+    model.write_bytes(b"sibling-data")
+    metadata = sub / "model.metadata.json"
+    metadata.write_bytes(b"{}")
+
+    service = await PendingDeleteService.get_instance()
+    batch_id = await service.stage_model_delete(
+        scanner=ScannerForStage([root]),
+        target_dir=str(sub),
+        file_name="model",
+        main_extension=".safetensors",
+        original_file_path=str(model),
+        cached_entry=None,
+    )
+    assert batch_id is not None
+
+    sibling_dir = sub / PENDING_DELETE_DIR_NAME / batch_id
+    assert sibling_dir.is_dir()
+    # The OLD location (under the scanner root) must NOT be created.
+    assert not (root / PENDING_DELETE_DIR_NAME).exists()
+
+    manifest = json.loads((sibling_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert len(manifest["entries"]) == 2
+    for entry in manifest["entries"]:
+        assert str(entry["staged"]).startswith(str(sibling_dir))
+    assert (sibling_dir / "model.safetensors").read_bytes() == b"sibling-data"
+    assert (sibling_dir / "model.metadata.json").exists()
+    assert not model.exists()
+    assert not metadata.exists()
+
+
+# (b) undo of a sibling-staged batch restores the files byte-identically.
+async def test_sibling2_undo_restores_byte_identically(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    sub = root / "nested"
+    sub.mkdir()
+    model = sub / "model.safetensors"
+    model.write_bytes(b"payload-1")
+    preview = sub / "model.preview.png"
+    preview.write_bytes(b"payload-2")
+
+    service = await PendingDeleteService.get_instance()
+    batch_id = await service.stage_model_delete(
+        scanner=ScannerForStage([root]),
+        target_dir=str(sub),
+        file_name="model",
+        main_extension=".safetensors",
+        original_file_path=str(model),
+        cached_entry=None,
+    )
+    assert batch_id is not None
+    sibling_dir = sub / PENDING_DELETE_DIR_NAME / batch_id
+    assert sibling_dir.is_dir()
+    assert not model.exists()
+    assert not preview.exists()
+
+    await service.undo(batch_id)
+
+    assert model.read_bytes() == b"payload-1"
+    assert preview.read_bytes() == b"payload-2"
+    assert not sibling_dir.exists()
+    assert batch_id not in service._known_batch_dirs
+
+
+# (c) ROOT GATING: _find_model_root -> None skips staging entirely.
+async def test_sibling3_root_gating_skips_staging(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    model = root / "model.safetensors"
+    model.write_bytes(b"keep-me")
+
+    service = await PendingDeleteService.get_instance()
+    monkeypatch.setattr(service, "_find_model_root", lambda _scanner, _path: None)
+
+    batch_id = await service.stage_model_delete(
+        scanner=ScannerForStage([root]),
+        target_dir=str(root),
+        file_name="model",
+        main_extension=".safetensors",
+        original_file_path=str(model),
+        cached_entry=None,
+    )
+
+    assert batch_id is None
+    assert model.read_bytes() == b"keep-me"
+    assert not (root / PENDING_DELETE_DIR_NAME).exists()
+
+
+# QA scenario: simulated OSError on the 2nd artifact during sibling staging ->
+# rollback renames the 1st back, returns None, and leaves no orphaned sibling
+# batch dir behind.
+async def test_sibling4_staging_oserror_rolls_back_sibling_dir(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    sub = root / "nested"
+    sub.mkdir()
+    a = sub / "model.safetensors"
+    a.write_bytes(b"a-bytes")
+    b = sub / "model.metadata.json"
+    b.write_bytes(b"b-bytes")
+
+    service = await PendingDeleteService.get_instance()
+
+    real_rename = os.rename
+    calls = {"n": 0}
+
+    def flaky_rename(src: str, dst: str) -> None:
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("simulated sibling staging failure")
+        return real_rename(src, dst)
+
+    monkeypatch.setattr("py.services.pending_delete_service.os.rename", flaky_rename)
+
+    batch_id = await service.stage_model_delete(
+        scanner=ScannerForStage([root]),
+        target_dir=str(sub),
+        file_name="model",
+        main_extension=".safetensors",
+        original_file_path=str(a),
+        cached_entry=None,
+    )
+
+    assert batch_id is None
+    # Both artifacts rolled back; no orphaned sibling batch dir holds data.
+    assert a.read_bytes() == b"a-bytes"
+    assert b.read_bytes() == b"b-bytes"
+    sibling = sub / PENDING_DELETE_DIR_NAME
+    if sibling.exists():
+        assert not any(sibling.iterdir())
+
+
+# (d) SCANNER EXCLUSION at a NESTED staging dir: a model staged into
+#     <root>/sub/.lm-pending-delete is excluded from the walk just like the
+#     root-level one (depth independence).
+async def test_p_model_walk_excludes_nested_staging_dir(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    (root / "normal.safetensors").write_bytes(b"normal")
+    sub = root / "sub"
+    sub.mkdir()
+    (sub / "real.safetensors").write_bytes(b"real")
+    nested_staging = sub / PENDING_DELETE_DIR_NAME / "x"
+    nested_staging.mkdir(parents=True)
+    (nested_staging / "model.safetensors").write_bytes(b"ghost")
+    (nested_staging / "model.metadata.json").write_bytes(b'{"hash_status": "pending"}')
+    # Root-level staging dir for comparison.
+    root_staging = root / PENDING_DELETE_DIR_NAME / "y"
+    root_staging.mkdir(parents=True)
+    (root_staging / "ghost2.safetensors").write_bytes(b"ghost2")
+
+    from py.services import model_scanner as model_scanner_module
+
+    async def _noop_register(*_args: Any, **_kwargs: Any) -> None:
+        return None
+
+    monkeypatch.setattr(model_scanner_module.ServiceRegistry, "register_service", _noop_register)
+    monkeypatch.setenv("LORA_MANAGER_DISABLE_PERSISTENT_CACHE", "1")
+
+    scanner = DummyScannerForWalk(root)
+
+    result = await scanner._gather_model_data()
+    paths = [entry["file_path"] for entry in result.raw_data]
+    assert not any(PENDING_DELETE_DIR_NAME in p for p in paths)
+    # Real files at both depths are still discovered.
+    assert any(p.endswith("normal.safetensors") for p in paths)
+    assert any(p.endswith("sub/real.safetensors") for p in paths)
+
+    assert scanner._count_model_files() == 2
+
+
+# ---------------------------------------------------------------------------
+# Todo 3: REGRESSION SUITE for the undo-delete symlink fix
+# (real symlink round-trip, restart-undo, reconciliation, folder-deleted
+# edge, merge EXDEV-abort + sequential undo)
+# ---------------------------------------------------------------------------
+
+
+# (a) SYMLINK ROUND-TRIP: staging through a symlinked dir must resolve into
+#     the REAL directory (sibling staging derives the batch dir from the
+#     model's own dir, so a nested symlink lands in the target of the link),
+#     never raise EXDEV, restore byte-identically at the business paths, and
+#     purge cleanly after expiry. This is the primary regression proof:
+#     PRE-FIX the batch was staged under the scanner ROOT, so
+#     ``real_batch.is_dir()`` (real_dir/.lm-pending-delete/<batch>) would have
+#     failed - the batch would have lived at <root>/.lm-pending-delete.
+async def test_symlink1_stage_undo_round_trip_through_symlink(tmp_path: Path) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    real_dir = tmp_path / "real_dir"
+    real_dir.mkdir()
+    # The business path traverses a symlink NESTED under the scanner root.
+    link_dir = root / "link_dir"
+    os.symlink(real_dir, link_dir, target_is_directory=True)
+
+    model = link_dir / "model.safetensors"
+    model.write_bytes(b"model-payload")
+    metadata = link_dir / "model.metadata.json"
+    metadata.write_bytes(b'{"k": "v"}')
+    preview = link_dir / "model.preview.webp"
+    preview.write_bytes(b"preview-payload")
+
+    service = await PendingDeleteService.get_instance()
+    batch_id = await service.stage_model_delete(
+        scanner=ScannerForStage([root]),
+        target_dir=str(link_dir),
+        file_name="model",
+        main_extension=".safetensors",
+        original_file_path=str(model),
+        cached_entry=None,
+    )
+    # Staging succeeded - no EXDEV, no silent hard-delete fallback.
+    assert batch_id is not None
+
+    # The registry records the BUSINESS path (symlink preserved, abspath only).
+    business_batch = link_dir / PENDING_DELETE_DIR_NAME / batch_id
+    assert service._known_batch_dirs[batch_id] == str(business_batch)
+    # ... and the dir itself resolves through the symlink into the REAL dir.
+    real_batch = real_dir / PENDING_DELETE_DIR_NAME / batch_id
+    assert real_batch.is_dir()
+    assert os.path.realpath(str(business_batch)) == str(real_batch)
+    assert (real_batch / "model.safetensors").read_bytes() == b"model-payload"
+
+    # Originals renamed away at the business paths.
+    assert not model.exists()
+    assert not metadata.exists()
+    assert not preview.exists()
+
+    # Undo restores byte-identically AT the business paths (through the link).
+    await service.undo(batch_id)
+    assert (link_dir / "model.safetensors").read_bytes() == b"model-payload"
+    assert (link_dir / "model.metadata.json").read_bytes() == b'{"k": "v"}'
+    assert (link_dir / "model.preview.webp").read_bytes() == b"preview-payload"
+    staging = real_dir / PENDING_DELETE_DIR_NAME
+    assert not staging.exists() or not any(staging.iterdir())
+
+    # Purge after expiry leaves the REAL directory clean.
+    batch_id2 = await service.stage_model_delete(
+        scanner=ScannerForStage([root]),
+        target_dir=str(link_dir),
+        file_name="model",
+        main_extension=".safetensors",
+        original_file_path=str(link_dir / "model.safetensors"),
+        cached_entry=None,
+    )
+    assert batch_id2 is not None
+    real_batch2 = real_dir / PENDING_DELETE_DIR_NAME / batch_id2
+    manifest_path = real_batch2 / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["expires_at"] = int(time.time()) - 10
+    manifest_path.write_text(json.dumps(manifest))
+
+    await service.purge_expired()
+
+    assert not (real_dir / "model.safetensors").exists()
+    assert not staging.exists() or not any(staging.iterdir())
+
+
+# (b) RESTART-UNDO: with an empty in-process registry (simulated restart) undo
+#     still locates the batch via the scan fallback, restores it, and
+#     re-registers it (transiently) before the dir is removed.
+async def test_symlink2_restart_undo_empty_registry_scan_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    await _register_model_root(monkeypatch, lora_roots=[root])
+    service = await PendingDeleteService.get_instance()
+    batch_id = await _stage_simple(service, root, "model")
+    batch_dir = root / PENDING_DELETE_DIR_NAME / batch_id
+    assert batch_id in service._known_batch_dirs
+
+    # Simulate a restart: the batch dir survives on disk, the registry does not.
+    service._known_batch_dirs.clear()
+    assert service._known_batch_dirs == {}
+
+    # Spy on the re-registration performed by the scan fallback inside undo.
+    registrations: List[Tuple[str, str]] = []
+    real_remember = service._remember_batch
+
+    async def _spy_remember(bid: str, bdir: str) -> None:
+        registrations.append((bid, bdir))
+        await real_remember(bid, bdir)
+
+    monkeypatch.setattr(service, "_remember_batch", _spy_remember)
+
+    result = await service.undo(batch_id)
+
+    assert result["batch_id"] == batch_id
+    assert (root / "model.safetensors").read_bytes() == b"model-data"
+    assert not batch_dir.exists()
+    # The scan fallback re-registered the batch during the undo lookup; undo
+    # then forgets it once the batch dir is removed.
+    assert (batch_id, str(batch_dir)) in registrations
+    assert batch_id not in service._known_batch_dirs
+
+
+# (c) RECONCILIATION: crash leftovers hand-written in a NESTED staging parent
+#     (the sibling staging location for a model in a root subdir) are found by
+#     the startup sweep: expired ones purged, fresh ones registered. The
+#     registry-only default does NOT discover them.
+async def test_symlink3_reconciliation_nested_staging_parents(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    nested = root / "sub"
+    nested.mkdir()
+    await _register_model_root(monkeypatch, lora_roots=[root])
+
+    expired_dir = nested / PENDING_DELETE_DIR_NAME / "crash-expired"
+    expired_dir.mkdir(parents=True)
+    (expired_dir / "old.safetensors").write_bytes(b"old")
+    _write_batch_manifest(
+        expired_dir,
+        batch_id="crash-expired",
+        kind="model",
+        model_type="loras",
+        expires_at=int(time.time()) - 10,
+        entries=[
+            {
+                "staged": str(expired_dir / "old.safetensors"),
+                "original": str(nested / "old.safetensors"),
+                "restored": False,
+            }
+        ],
+    )
+    fresh_dir = nested / PENDING_DELETE_DIR_NAME / "crash-fresh"
+    fresh_dir.mkdir(parents=True)
+    (fresh_dir / "new.safetensors").write_bytes(b"new")
+    _write_batch_manifest(
+        fresh_dir,
+        batch_id="crash-fresh",
+        kind="model",
+        model_type="loras",
+        expires_at=int(time.time()) + 100,
+        entries=[
+            {
+                "staged": str(fresh_dir / "new.safetensors"),
+                "original": str(nested / "new.safetensors"),
+                "restored": False,
+            }
+        ],
+    )
+
+    service = await PendingDeleteService.get_instance()
+    assert service._known_batch_dirs == {}
+
+    # Registry-only default: the externally created (crash-leftover) batches
+    # are invisible.
+    await service.purge_expired()
+    assert expired_dir.is_dir()
+    assert fresh_dir.is_dir()
+
+    # Reconciliation pass (startup sweep): expired purged, fresh registered.
+    await service.purge_expired(scan_roots=True)
+
+    assert not expired_dir.exists()
+    assert not (nested / "old.safetensors").exists()
+    assert fresh_dir.is_dir()
+    assert (fresh_dir / "new.safetensors").exists()
+    assert "crash-expired" not in service._known_batch_dirs
+    assert service._known_batch_dirs.get("crash-fresh") == str(fresh_dir)
+
+
+# (d) FOLDER-DELETED EDGE: the model's whole folder is deleted during the undo
+#     window (the batch lived inside it - accepted edge). undo() must surface
+#     ValueError (batch gone) without crashing and forget the stale registry
+#     entry.
+async def test_symlink4_folder_deleted_edge_forgets_stale_registry(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    service = await PendingDeleteService.get_instance()
+    batch_id = await _stage_simple(service, root, "model")
+    batch_dir = root / PENDING_DELETE_DIR_NAME / batch_id
+    assert batch_id in service._known_batch_dirs
+
+    # The model's folder (and with it the sibling batch dir) vanishes.
+    shutil.rmtree(root)
+
+    with pytest.raises(ValueError, match="Unknown batch"):
+        await service.undo(batch_id)
+
+    # No stale registry entry survives the failed undo.
+    assert batch_id not in service._known_batch_dirs
+    assert not batch_dir.exists()
+
+
+# (e) MERGE EXDEV-ABORT: a cross-volume merge abort leaves the registry
+#     untouched AND the constituent batches individually undoable - sequential
+#     undo after the abort restores every file. (The merge-success winner/loser
+#     registry half is covered by test_reg_e; this adds the post-abort undo
+#     proof.)
+async def test_symlink5_merge_exdev_abort_registry_unchanged_then_sequential_undo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "loras"
+    root.mkdir()
+    _spy_purge_timers(monkeypatch)
+    service = await PendingDeleteService.get_instance()
+    bid_a = await _stage_simple(service, root, "alpha")
+    bid_b = await _stage_simple(service, root, "beta")
+    assert set(service._known_batch_dirs) == {bid_a, bid_b}
+
+    real_rename = os.rename
+    fail_next = {"enabled": True}
+
+    def exdev_rename(src: str, dst: str) -> None:
+        if fail_next["enabled"]:
+            raise OSError(errno.EXDEV, "Invalid cross-device link", src, dst)
+        return real_rename(src, dst)
+
+    monkeypatch.setattr("py.services.pending_delete_service.os.rename", exdev_rename)
+
+    before = dict(service._known_batch_dirs)
+    assert await service.merge_batches([bid_a, bid_b]) is None
+    assert dict(service._known_batch_dirs) == before
+
+    # Sequential undo of the constituents after the abort restores everything.
+    fail_next["enabled"] = False
+    await service.undo(bid_a)
+    await service.undo(bid_b)
+    assert (root / "alpha.safetensors").read_bytes() == b"alpha-data"
+    assert (root / "beta.safetensors").read_bytes() == b"beta-data"
+    staging = root / PENDING_DELETE_DIR_NAME
+    assert not staging.exists() or not any(staging.iterdir())

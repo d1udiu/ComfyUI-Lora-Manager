@@ -471,6 +471,482 @@ def test_conditioning_provenance_recovers_combined_controlnet_prompts(
     assert params["negative_prompt"] == "low quality"
 
 
+def test_conditioning_provenance_recovers_transformed_switched_prompts(
+    metadata_registry, monkeypatch
+):
+    prompt_graph = {
+        "encode_pos": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "expected positive", "clip": ["clip", 0]},
+        },
+        "encode_other_pos": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "wrong positive", "clip": ["clip", 0]},
+        },
+        "encode_neg": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "expected negative", "clip": ["clip", 0]},
+        },
+        "encode_other_neg": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "wrong negative", "clip": ["clip", 0]},
+        },
+        "enhancer": {
+            "class_type": "KreaSeedVarianceEnhancer",
+            "inputs": {"conditioning": ["encode_pos", 0]},
+        },
+        "zero_out": {
+            "class_type": "ConditioningZeroOut",
+            "inputs": {"conditioning": ["encode_neg", 0]},
+        },
+        "positive_switch": {
+            "class_type": "ComfySwitchNode",
+            "inputs": {
+                "switch": True,
+                "on_false": ["encode_other_pos", 0],
+                "on_true": ["enhancer", 0],
+            },
+        },
+        "negative_switch": {
+            "class_type": "ComfySwitchNode",
+            "inputs": {
+                "switch": True,
+                "on_false": ["encode_other_neg", 0],
+                "on_true": ["zero_out", 0],
+            },
+        },
+        "sampler": {
+            "class_type": "ClownsharKSampler_Beta",
+            "inputs": {
+                "seed": 123,
+                "steps": 8,
+                "cfg": 1.0,
+                "sampler_name": "linear/euler",
+                "scheduler": "beta57",
+                "denoise": 1.0,
+                "positive": ["positive_switch", 0],
+                "negative": ["negative_switch", 0],
+                "latent_image": {
+                    "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+                },
+            },
+        },
+    }
+    prompt = SimpleNamespace(original_prompt=prompt_graph)
+
+    positive_conditioning = object()
+    other_positive_conditioning = object()
+    negative_conditioning = object()
+    other_negative_conditioning = object()
+    enhanced_conditioning = object()
+    zeroed_conditioning = object()
+
+    monkeypatch.setattr(metadata_processor, "standalone_mode", False)
+
+    metadata_registry.start_collection("prompt-transformed-switch")
+    metadata_registry.set_current_prompt(prompt)
+
+    for node_id, text, conditioning in (
+        ("encode_pos", "expected positive", positive_conditioning),
+        ("encode_other_pos", "wrong positive", other_positive_conditioning),
+        ("encode_neg", "expected negative", negative_conditioning),
+        ("encode_other_neg", "wrong negative", other_negative_conditioning),
+    ):
+        metadata_registry.record_node_execution(
+            node_id, "CLIPTextEncode", {"text": text}, None
+        )
+        metadata_registry.update_node_execution(
+            node_id, "CLIPTextEncode", [(conditioning,)]
+        )
+
+    metadata_registry.record_node_execution(
+        "enhancer",
+        "KreaSeedVarianceEnhancer",
+        {"conditioning": positive_conditioning},
+        None,
+        return_types=("CONDITIONING", "STRING"),
+    )
+    metadata_registry.update_node_execution(
+        "enhancer",
+        "KreaSeedVarianceEnhancer",
+        [(enhanced_conditioning, "diagnostics")],
+        return_types=("CONDITIONING", "STRING"),
+    )
+    metadata_registry.record_node_execution(
+        "zero_out",
+        "ConditioningZeroOut",
+        {"conditioning": negative_conditioning},
+        None,
+        return_types=("CONDITIONING",),
+    )
+    metadata_registry.update_node_execution(
+        "zero_out",
+        "ConditioningZeroOut",
+        [(zeroed_conditioning,)],
+        return_types=("CONDITIONING",),
+    )
+    metadata_registry.record_node_execution(
+        "positive_switch",
+        "ComfySwitchNode",
+        {
+            "switch": True,
+            "on_false": other_positive_conditioning,
+            "on_true": enhanced_conditioning,
+        },
+        None,
+    )
+    metadata_registry.update_node_execution(
+        "positive_switch", "ComfySwitchNode", [(enhanced_conditioning,)]
+    )
+    metadata_registry.record_node_execution(
+        "negative_switch",
+        "ComfySwitchNode",
+        {
+            "switch": True,
+            "on_false": other_negative_conditioning,
+            "on_true": zeroed_conditioning,
+        },
+        None,
+    )
+    metadata_registry.update_node_execution(
+        "negative_switch", "ComfySwitchNode", [(zeroed_conditioning,)]
+    )
+    metadata_registry.record_node_execution(
+        "sampler",
+        "ClownsharKSampler_Beta",
+        {
+            "seed": 123,
+            "steps": 8,
+            "cfg": 1.0,
+            "sampler_name": "linear/euler",
+            "scheduler": "beta57",
+            "denoise": 1.0,
+            "positive": enhanced_conditioning,
+            "negative": zeroed_conditioning,
+            "latent_image": {
+                "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+            },
+        },
+        None,
+    )
+
+    metadata = metadata_registry.get_metadata("prompt-transformed-switch")
+    params = MetadataProcessor.extract_generation_params(metadata)
+
+    assert params["prompt"] == "expected positive"
+    assert params["negative_prompt"] == "expected negative"
+
+
+def test_conditioning_provenance_identity_switch_between_encoders(
+    metadata_registry, monkeypatch
+):
+    """Lock identity-preserving switches placed directly between encoders.
+
+    A switch returns the selected input conditioning verbatim, so provenance
+    must be recovered through object identity without any transform metadata.
+    """
+    prompt_graph = {
+        "encode_pos": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "chosen positive", "clip": ["clip", 0]},
+        },
+        "encode_other_pos": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "unchosen positive", "clip": ["clip", 0]},
+        },
+        "positive_switch": {
+            "class_type": "ComfySwitchNode",
+            "inputs": {
+                "switch": True,
+                "on_false": ["encode_other_pos", 0],
+                "on_true": ["encode_pos", 0],
+            },
+        },
+        "sampler": {
+            "class_type": "ClownsharKSampler_Beta",
+            "inputs": {
+                "seed": 123,
+                "steps": 8,
+                "cfg": 1.0,
+                "sampler_name": "linear/euler",
+                "scheduler": "beta57",
+                "denoise": 1.0,
+                "positive": ["positive_switch", 0],
+                "negative": ["encode_other_pos", 0],
+                "latent_image": {
+                    "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+                },
+            },
+        },
+    }
+    prompt = SimpleNamespace(original_prompt=prompt_graph)
+
+    chosen_conditioning = object()
+    unchosen_conditioning = object()
+
+    monkeypatch.setattr(metadata_processor, "standalone_mode", False)
+
+    metadata_registry.start_collection("prompt-identity-switch")
+    metadata_registry.set_current_prompt(prompt)
+
+    metadata_registry.record_node_execution(
+        "encode_pos", "CLIPTextEncode", {"text": "chosen positive"}, None
+    )
+    metadata_registry.update_node_execution(
+        "encode_pos", "CLIPTextEncode", [(chosen_conditioning,)]
+    )
+    metadata_registry.record_node_execution(
+        "encode_other_pos", "CLIPTextEncode", {"text": "unchosen positive"}, None
+    )
+    metadata_registry.update_node_execution(
+        "encode_other_pos", "CLIPTextEncode", [(unchosen_conditioning,)]
+    )
+    metadata_registry.record_node_execution(
+        "positive_switch",
+        "ComfySwitchNode",
+        {
+            "switch": True,
+            "on_false": unchosen_conditioning,
+            "on_true": chosen_conditioning,
+        },
+        None,
+    )
+    metadata_registry.update_node_execution(
+        "positive_switch", "ComfySwitchNode", [(chosen_conditioning,)]
+    )
+    metadata_registry.record_node_execution(
+        "sampler",
+        "ClownsharKSampler_Beta",
+        {
+            "seed": 123,
+            "steps": 8,
+            "cfg": 1.0,
+            "sampler_name": "linear/euler",
+            "scheduler": "beta57",
+            "denoise": 1.0,
+            "positive": chosen_conditioning,
+            "negative": unchosen_conditioning,
+            "latent_image": {
+                "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+            },
+        },
+        None,
+    )
+
+    metadata = metadata_registry.get_metadata("prompt-identity-switch")
+    params = MetadataProcessor.extract_generation_params(metadata)
+
+    assert params["prompt"] == "chosen positive"
+    assert params["negative_prompt"] == "unchosen positive"
+
+
+def test_conditioning_provenance_ignores_scalar_conditioning_fields(
+    metadata_registry, monkeypatch
+):
+    """Scalar fields like ``conditioning_strength`` must not be collected as
+    conditioning objects for unregistered transform nodes."""
+    monkeypatch.setattr(metadata_processor, "standalone_mode", False)
+
+    metadata_registry.start_collection("prompt-scalar-filter")
+    metadata_registry.set_current_prompt(SimpleNamespace(original_prompt={}))
+
+    input_conditioning = object()
+    metadata_registry.record_node_execution(
+        "strength_node",
+        "SomeStrengthTransform",
+        {"conditioning": input_conditioning, "conditioning_strength": 0.8},
+        None,
+        return_types=("CONDITIONING",),
+    )
+
+    metadata = metadata_registry.get_metadata("prompt-scalar-filter")
+    assert metadata[PROMPTS]["strength_node"]["orig_conditionings"] == [
+        input_conditioning
+    ]
+
+
+def test_conditioning_provenance_selector_with_conditioning_named_inputs(
+    metadata_registry, monkeypatch
+):
+    """An identity selector whose inputs use ``conditioning*`` names must not
+    leak the unselected branch's prompt."""
+    prompt_graph = {
+        "encode_a": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "AAA", "clip": ["clip", 0]},
+        },
+        "encode_b": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "BBB", "clip": ["clip", 0]},
+        },
+        "selector": {
+            "class_type": "ConditioningSelector",
+            "inputs": {
+                "conditioning_a": ["encode_a", 0],
+                "conditioning_b": ["encode_b", 0],
+            },
+        },
+        "sampler": {
+            "class_type": "ClownsharKSampler_Beta",
+            "inputs": {
+                "seed": 123,
+                "steps": 8,
+                "cfg": 1.0,
+                "sampler_name": "linear/euler",
+                "scheduler": "beta57",
+                "denoise": 1.0,
+                "positive": ["selector", 0],
+                "negative": ["encode_b", 0],
+                "latent_image": {
+                    "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+                },
+            },
+        },
+    }
+    prompt = SimpleNamespace(original_prompt=prompt_graph)
+
+    conditioning_a = object()
+    conditioning_b = object()
+
+    monkeypatch.setattr(metadata_processor, "standalone_mode", False)
+
+    metadata_registry.start_collection("prompt-selector")
+    metadata_registry.set_current_prompt(prompt)
+
+    metadata_registry.record_node_execution(
+        "encode_a", "CLIPTextEncode", {"text": "AAA"}, None
+    )
+    metadata_registry.update_node_execution(
+        "encode_a", "CLIPTextEncode", [(conditioning_a,)]
+    )
+    metadata_registry.record_node_execution(
+        "encode_b", "CLIPTextEncode", {"text": "BBB"}, None
+    )
+    metadata_registry.update_node_execution(
+        "encode_b", "CLIPTextEncode", [(conditioning_b,)]
+    )
+    metadata_registry.record_node_execution(
+        "selector",
+        "ConditioningSelector",
+        {"conditioning_a": conditioning_a, "conditioning_b": conditioning_b},
+        None,
+        return_types=("CONDITIONING",),
+    )
+    metadata_registry.update_node_execution(
+        "selector", "ConditioningSelector", [(conditioning_a,)],
+        return_types=("CONDITIONING",),
+    )
+    metadata_registry.record_node_execution(
+        "sampler",
+        "ClownsharKSampler_Beta",
+        {
+            "seed": 123,
+            "steps": 8,
+            "cfg": 1.0,
+            "sampler_name": "linear/euler",
+            "scheduler": "beta57",
+            "denoise": 1.0,
+            "positive": conditioning_a,
+            "negative": conditioning_b,
+            "latent_image": {
+                "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+            },
+        },
+        None,
+    )
+
+    metadata = metadata_registry.get_metadata("prompt-selector")
+    params = MetadataProcessor.extract_generation_params(metadata)
+
+    assert params["prompt"] == "AAA"
+    assert params["negative_prompt"] == "BBB"
+
+
+def test_conditioning_provenance_uses_conditioning_output_slot(
+    metadata_registry, monkeypatch
+):
+    """Unregistered nodes whose CONDITIONING output is not the first slot
+    must still be tracked through the correct output position.
+
+    The graph's conditioning chain ends at an unexecuted phantom node so the
+    topology fallback in extract_generation_params cannot mask a runtime
+    provenance failure.
+    """
+    prompt_graph = {
+        "diag_node": {
+            "class_type": "DiagThenCond",
+            "inputs": {"conditioning": ["phantom_source", 0]},
+        },
+        "sampler": {
+            "class_type": "ClownsharKSampler_Beta",
+            "inputs": {
+                "seed": 123,
+                "steps": 8,
+                "cfg": 1.0,
+                "sampler_name": "linear/euler",
+                "scheduler": "beta57",
+                "denoise": 1.0,
+                "positive": ["diag_node", 1],
+                "latent_image": {
+                    "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+                },
+            },
+        },
+    }
+    prompt = SimpleNamespace(original_prompt=prompt_graph)
+
+    input_conditioning = object()
+    transformed_conditioning = object()
+
+    monkeypatch.setattr(metadata_processor, "standalone_mode", False)
+
+    metadata_registry.start_collection("prompt-output-slot")
+    metadata_registry.set_current_prompt(prompt)
+
+    metadata_registry.record_node_execution(
+        "encode_pos", "CLIPTextEncode", {"text": "AAA"}, None
+    )
+    metadata_registry.update_node_execution(
+        "encode_pos", "CLIPTextEncode", [(input_conditioning,)]
+    )
+    metadata_registry.record_node_execution(
+        "diag_node",
+        "DiagThenCond",
+        {"conditioning": input_conditioning},
+        None,
+        return_types=("STRING", "CONDITIONING"),
+    )
+    metadata_registry.update_node_execution(
+        "diag_node",
+        "DiagThenCond",
+        [("diagnostics", transformed_conditioning)],
+        return_types=("STRING", "CONDITIONING"),
+    )
+    metadata_registry.record_node_execution(
+        "sampler",
+        "ClownsharKSampler_Beta",
+        {
+            "seed": 123,
+            "steps": 8,
+            "cfg": 1.0,
+            "sampler_name": "linear/euler",
+            "scheduler": "beta57",
+            "denoise": 1.0,
+            "positive": transformed_conditioning,
+            "negative": input_conditioning,
+            "latent_image": {
+                "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+            },
+        },
+        None,
+    )
+
+    metadata = metadata_registry.get_metadata("prompt-output-slot")
+    params = MetadataProcessor.extract_generation_params(metadata)
+
+    assert params["prompt"] == "AAA"
+
+
 def test_conditioning_provenance_recovers_kj_set_get_prompts(
     metadata_registry, monkeypatch
 ):

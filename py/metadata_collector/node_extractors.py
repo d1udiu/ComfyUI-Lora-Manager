@@ -40,7 +40,7 @@ class GenericNodeExtractor(NodeMetadataExtractor):
     * ``MODEL`` output: common input fields (ckpt_name, unet_name, etc.)
       are checked for a model file name and stored as checkpoint metadata.
     * ``CONDITIONING`` output: common text input fields are checked for
-      prompt text and stored as prompt metadata.
+      prompt text, and conditioning inputs are tracked through transforms.
     """
 
     # Input field names that carry a model path in loader-style nodes.
@@ -73,7 +73,7 @@ class GenericNodeExtractor(NodeMetadataExtractor):
                     _store_checkpoint_metadata(metadata, node_id, name)
                     return
 
-        # — CONDITIONING encoder detection (CLIPTextEncode, Flux, custom) —
+        # — CONDITIONING encoder / transform detection —
         if "CONDITIONING" in return_types or any("CONDITIONING" in str(t) for t in return_types):
             text = None
             for field in GenericNodeExtractor._TEXT_FIELDS:
@@ -81,12 +81,14 @@ class GenericNodeExtractor(NodeMetadataExtractor):
                 if val and isinstance(val, str) and val.strip():
                     text = val.strip()
                     break
-            if text:
-                prompt_data = metadata.setdefault(PROMPTS, {})
-                prompt_data[node_id] = {
-                    "text": text,
-                    "node_id": node_id,
-                }
+
+            input_conditionings = _collect_conditioning_inputs(inputs)
+            if text or input_conditionings:
+                prompt_metadata = _ensure_prompt_metadata(metadata, node_id)
+                if text:
+                    prompt_metadata["text"] = text
+                if input_conditionings:
+                    prompt_metadata["orig_conditionings"] = input_conditionings
 
     @staticmethod
     def update(node_id, outputs, metadata, return_types=None):
@@ -98,11 +100,26 @@ class GenericNodeExtractor(NodeMetadataExtractor):
             return
         if node_id not in metadata.get(PROMPTS, {}):
             return
-        if outputs and isinstance(outputs, list) and len(outputs) > 0:
-            if isinstance(outputs[0], tuple) and len(outputs[0]) > 0:
-                cond = outputs[0][0]
-                if cond is not None:
-                    metadata[PROMPTS][node_id]["conditioning"] = cond
+        output_tuple = _first_output_tuple(outputs)
+        if not output_tuple or len(output_tuple) < 1:
+            return
+
+        conditioning_index = _first_conditioning_index(return_types)
+        if conditioning_index is None or len(output_tuple) <= conditioning_index:
+            return
+
+        output_conditioning = output_tuple[conditioning_index]
+        if output_conditioning is None:
+            return
+
+        prompt_metadata = metadata[PROMPTS][node_id]
+        prompt_metadata["conditioning"] = output_conditioning
+        _record_conditioning_source(
+            metadata,
+            node_id,
+            output_conditioning,
+            prompt_metadata.get("orig_conditionings", []),
+        )
 
 class CheckpointLoaderExtractor(NodeMetadataExtractor):
     @staticmethod
@@ -417,6 +434,34 @@ def _first_output_tuple(outputs):
     return None
 
 
+def _first_conditioning_index(return_types):
+    """Return the index of the first CONDITIONING output slot, or None."""
+    if not return_types:
+        return None
+    for index, return_type in enumerate(return_types):
+        if "CONDITIONING" in str(return_type):
+            return index
+    return None
+
+
+def _collect_conditioning_inputs(inputs):
+    """Collect conditioning object inputs (``conditioning*`` keys).
+
+    Primitive values (None, str, int, float, bool) are excluded so scalar
+    fields like ``conditioning_strength`` are not mistaken for conditioning
+    objects during provenance tracking.
+    """
+    if not inputs:
+        return []
+    return [
+        value
+        for input_name, value in inputs.items()
+        if input_name.startswith("conditioning")
+        and value is not None
+        and not isinstance(value, (str, int, float, bool))
+    ]
+
+
 def _record_conditioning_source(
     metadata, node_id, output_conditioning, input_conditionings
 ):
@@ -428,6 +473,14 @@ def _record_conditioning_source(
     ]
     if not sources:
         return
+
+    # Identity-preserving selectors return one of their inputs unchanged:
+    # only that input contributed to the output, so record it alone instead
+    # of treating every input as a combination source.
+    for conditioning in sources:
+        if id(conditioning) == id(output_conditioning):
+            sources = [conditioning]
+            break
 
     prompt_metadata = _ensure_prompt_metadata(metadata, node_id)
     prompt_metadata.setdefault("conditioning_sources", []).append(
@@ -508,13 +561,7 @@ class ConditioningCombineExtractor(NodeMetadataExtractor):
         if not inputs:
             return
 
-        input_conditionings = []
-        for input_name in inputs:
-            if (
-                input_name.startswith("conditioning")
-                and inputs[input_name] is not None
-            ):
-                input_conditionings.append(inputs[input_name])
+        input_conditionings = _collect_conditioning_inputs(inputs)
 
         if input_conditionings:
             prompt_metadata = _ensure_prompt_metadata(metadata, node_id)

@@ -3,6 +3,7 @@ import { showToast, setupAutoNewlineOnPaste } from '../utils/uiHelpers.js';
 import { state } from '../state/index.js';
 import { LoadingManager } from './LoadingManager.js';
 import { getModelApiClient, resetAndReload } from '../api/modelApiFactory.js';
+import { isModelWeightFile } from '../utils/modelFileTypes.js';
 import { getStorageItem, setStorageItem } from '../utils/storageHelpers.js';
 import { FolderTreeManager } from '../components/FolderTreeManager.js';
 import { translate } from '../utils/i18nHelpers.js';
@@ -557,8 +558,7 @@ export class DownloadManager {
             const firstImage = version.images?.find(img => !img.url.endsWith('.mp4'));
             const thumbnailUrl = firstImage ? firstImage.url : '/loras_static/images/no-preview.png';
 
-            // Count model-type files per version
-            const modelFiles = (version.files || []).filter(f => f.type === 'Model' || f.type === 'UNet' || f.type === 'Diffusion Model');
+            const modelFiles = (version.files || []).filter(f => isModelWeightFile(f.type));
             const primaryFile = modelFiles.find(f => f.primary) || modelFiles[0] || {};
             const fileSize = version.modelSizeKB ?
                 (version.modelSizeKB / 1024).toFixed(2) :
@@ -685,7 +685,7 @@ export class DownloadManager {
         if (!version) return;
 
         this.currentVersion = version;
-        const modelFiles = (version.files || []).filter(f => f.type === 'Model' || f.type === 'UNet' || f.type === 'Diffusion Model');
+        const modelFiles = (version.files || []).filter(f => isModelWeightFile(f.type));
 
         document.getElementById('versionStep').style.display = 'none';
         document.getElementById('fileSelectionStep').style.display = 'block';
@@ -747,7 +747,7 @@ export class DownloadManager {
             return;
         }
 
-        const modelFiles = (version.files || []).filter(f => f.type === 'Model' || f.type === 'UNet' || f.type === 'Diffusion Model');
+        const modelFiles = (version.files || []).filter(f => isModelWeightFile(f.type));
         this.selectedFile = modelFiles.find(f => f.id.toString() === selectedRadio.value);
 
         console.log('[download] confirmFileSelection: selected file id=%s, name="%s", type="%s", metadata=%o',
@@ -912,6 +912,7 @@ export class DownloadManager {
         modelRoot = '',
         targetFolder = '',
         useDefaultPaths = false,
+        useSaveDirAsRoot = false,
         source = null,
         fileParams = null,
         closeModal = false,
@@ -923,7 +924,7 @@ export class DownloadManager {
         }
 
         const displayName = versionName || `#${versionId}`;
-        const retryParams = { modelId, versionId, versionName, modelRoot, targetFolder, useDefaultPaths, source, fileParams, closeModal: false };
+        const retryParams = { modelId, versionId, versionName, modelRoot, targetFolder, useDefaultPaths, useSaveDirAsRoot, source, fileParams, closeModal: false };
         let ws = null;
         let updateProgress = () => { };
         let cancelled = false;
@@ -995,7 +996,8 @@ export class DownloadManager {
                 useDefaultPaths,
                 downloadId,
                 source,
-                fileParams
+                fileParams,
+                useSaveDirAsRoot
             );
 
             if (cancelled) {
@@ -1809,7 +1811,9 @@ export class DownloadManager {
         versionName = '', 
         source = null,
         modelRoot = '',
-        targetFolder = ''
+        targetFolder = '',
+        useDefaultPaths = null,
+        useSaveDirAsRoot = false
     } = {}) {
         console.warn('[download] downloadVersionWithDefaults: NO fileParams will be sent — backend will always use primary file. '
             + 'modelType=%s, modelId=%s, versionId=%s, versionName="%s"',
@@ -1824,14 +1828,14 @@ export class DownloadManager {
         this.modelId = modelId ? modelId.toString() : null;
         this.source = source;
 
-        const useDefaultPaths = !modelRoot;
         return this.executeDownloadWithProgress({
             modelId,
             versionId,
             versionName,
             modelRoot: modelRoot || '',
             targetFolder: targetFolder || '',
-            useDefaultPaths,
+            useDefaultPaths: useDefaultPaths ?? !modelRoot,
+            useSaveDirAsRoot,
             source,
             closeModal: false,
         });

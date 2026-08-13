@@ -236,11 +236,11 @@ export function showToast(key, params = {}, type = 'info', fallback = null) {
  * @param {Object} [options]
  * @param {string} [options.actionText] - Label for the action button (button omitted when empty)
  * @param {Function} [options.onAction] - Callback invoked at most once on button click
- * @param {number} [options.durationMs=30000] - How long the toast stays visible
+ * @param {number} [options.durationMs=20000] - How long the toast stays visible
  * @param {boolean} [options.countdown=true] - Show a ticking `(N)s` countdown
  */
 export function showActionToast(key, params = {}, type = 'info', options = {}) {
-  const { actionText, onAction, durationMs = 30000, countdown = true } = options;
+  const { actionText, onAction, durationMs = 20000, countdown = true } = options;
 
   const isPlainMessage = typeof key === 'string' && /\s/.test(key);
   const message = isPlainMessage ? key : translate(key, params);
@@ -295,6 +295,20 @@ export function showActionToast(key, params = {}, type = 'info', options = {}) {
       }
     }, 1000);
   }
+
+  // Manual close button: hides the toast early without firing onAction. The
+  // backend undo window keeps running and the batch is purged when it expires.
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'toast-close-btn';
+  closeBtn.textContent = '×';
+  closeBtn.setAttribute('aria-label', translate('common.actions.close'));
+  closeBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    clearCountdown();
+    dismiss();
+  });
+  toast.append(closeBtn);
 }
 
 export function restoreFolderFilter() {
@@ -1092,6 +1106,9 @@ export async function sendEmbeddingToWorkflow(embeddingCode, onComplete = null) 
     if (!isNodeEnabled(node)) {
       return false;
     }
+    if (node.capabilities?.text_widget_connected === true) {
+      return false;
+    }
     return (
       node.capabilities?.has_text_widget === true ||
       node.marker_role === "send_prompt_target"
@@ -1100,7 +1117,15 @@ export async function sendEmbeddingToWorkflow(embeddingCode, onComplete = null) 
 
   const nodeKeys = Object.keys(textNodes);
   if (nodeKeys.length === 0) {
-    showToast('uiHelpers.workflow.noMatchingNodes', {}, 'warning');
+    showToast(
+      translate(
+        'uiHelpers.workflow.noPromptTargets',
+        {},
+        'No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target'
+      ),
+      {},
+      'warning'
+    );
     return false;
   }
 
@@ -1152,6 +1177,11 @@ export async function sendPromptToWorkflow(promptText, options = {}) {
     if (!isNodeEnabled(node)) {
       return false;
     }
+    // A node whose text widget is backed by a connected input cannot have its
+    // text changed via the widget — execution reads the linked input.
+    if (node.capabilities?.text_widget_connected === true) {
+      return false;
+    }
     return (
       node.capabilities?.has_text_widget === true ||
       node.marker_role === "send_prompt_target"
@@ -1160,7 +1190,12 @@ export async function sendPromptToWorkflow(promptText, options = {}) {
 
   const nodeKeys = Object.keys(textNodes);
   if (nodeKeys.length === 0) {
-    showToast(options.missingNodesMessage || 'uiHelpers.workflow.noMatchingNodes', {}, 'warning');
+    const defaultHint = translate(
+      'uiHelpers.workflow.noPromptTargets',
+      {},
+      'No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target'
+    );
+    showToast(options.missingNodesMessage || defaultHint, {}, 'warning');
     return false;
   }
 

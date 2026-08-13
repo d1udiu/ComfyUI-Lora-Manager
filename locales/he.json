@@ -443,7 +443,6 @@
             "label": "דלג על גרסאות מודלים שהורדו בעבר",
             "help": "כאשר מופעל, LoRA Manager ידלג על הורדת גרסת מודל אם שירות היסטוריית ההורדות רושם את הגרסה המדויקת הזו ככבר שהורדה. חל על כל תהליכי ההורדה."
         },
-        "deleteUndoEnabled": "[TODO: Translate] Keep deleted items recoverable for 30 seconds (undo)",
         "layoutSettings": {
             "groupByModel": "קיבוץ לפי דגם",
             "groupByModelHelp": "כאשר מופעל, רק הגרסה העדכנית ביותר של כל דגם Civitai מוצגת ככרטיס בודד. גרסאות ישנות יותר מוסתרות.",
@@ -1278,11 +1277,13 @@
             }
         },
         "deleteModel": {
-            "freesSpace": "[TODO: Translate] Frees {size}",
+            "freesSpace": "מפנה {size}",
             "title": "מחק מודל",
             "message": "האם אתה בטוח שברצונך למחוק מודל זה וכל הקבצים הנלווים?",
-            "permanentWarning": "[TODO: Translate] This will permanently delete the file from disk.",
-            "recoverableWarning": "[TODO: Translate] This will permanently delete the file after 30 seconds unless you undo."
+            "recoverableWarning": "הקובץ יימחק לצמיתות לאחר 20 שניות, אלא אם תבטלו את הפעולה."
+        },
+        "deleteRecipe": {
+            "recoverableWarning": "ניתן לבטל פעולה זו תוך 20 שניות."
         },
         "excludeModel": {
             "title": "החרג מודל",
@@ -1725,6 +1726,7 @@
             "recipeReplaced": "מתכון הוחלף ב-workflow",
             "recipeFailedToSend": "שליחת מתכון ל-workflow נכשלה",
             "noMatchingNodes": "אין צמתים תואמים זמינים ב-workflow הנוכחי",
+            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "לא נבחר צומת יעד",
             "modelUpdated": "מודל עודכן ב-workflow",
             "modelFailed": "עדכון צומת המודל נכשל",
@@ -2118,12 +2120,12 @@
             "copyFailed": "ההעתקה נכשלה"
         },
         "undo": {
-            "action": "[TODO: Translate] Undo",
-            "deleted": "[TODO: Translate] Deleted {name}",
-            "deletedBulk": "[TODO: Translate] Deleted {count} item(s)",
-            "expired": "[TODO: Translate] Undo window expired. The item was permanently deleted.",
-            "failed": "[TODO: Translate] Undo failed: {error}",
-            "restored": "[TODO: Translate] Item restored"
+            "action": "בטל",
+            "deleted": "נמחק: {name}",
+            "deletedBulk": "{count} פריטים נמחקו",
+            "expired": "חלון הביטול פג. הפריט נמחק לצמיתות.",
+            "failed": "הביטול נכשל: {error}",
+            "restored": "הפריט שוחזר"
         },
         "virtual": {
             "loadFailed": "טעינת הפריטים נכשלה",
