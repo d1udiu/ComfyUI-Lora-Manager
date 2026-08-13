@@ -600,6 +600,7 @@ class CivitaiClient:
         for field, value in license_payload.items():
             model_info[field] = value
 
+        # 将version和model_data中的images数组合并，并为image对象添加 id 字段
         version_id = version.get("id")
         target_model_version = None
         for mv in model_data.get("modelVersions", []):
@@ -607,40 +608,33 @@ class CivitaiClient:
                 target_model_version = mv
                 break
 
+        # 第一步：处理 version 中原有的 images，添加 id，并记录已存在的 id
+        seen_ids = set()
+        final_images = []
+
+        for img in version.get("images", []):
+            img_id = self._assign_image_id(img)
+            seen_ids.add(img_id)
+            final_images.append(img)
+
+        # 第二步：如果存在目标 model_version，处理其 images，添加 id 并去重合并
         if target_model_version:
-            hash_images = version.get("images", [])
-
-            model_images = target_model_version.get("images", [])
-
-            final_images = []
-            seen_ids = set()
-
-            def process_image(img_obj):
-                url = img_obj.get("url")
-                
-                filename = url.split("?")[0].split("/")[-1]
-                img_id_str = os.path.splitext(filename)[0]
-                
-                try:
-                    img_id = int(img_id_str)
-                except ValueError:
-                    img_id = img_id_str
-                    
-                img_obj["id"] = img_id
-                return img_id
-
-            for img in hash_images:
-                img_id = process_image(img)
-                seen_ids.add(img_id)
-                final_images.append(img)
-
-            for img in model_images:
-                img_id = process_image(img)
+            for img in target_model_version.get("images", []):
+                img_id = self._assign_image_id(img)
                 if img_id not in seen_ids:
                     seen_ids.add(img_id)
                     final_images.append(img)
 
-            version["images"] = final_images
+        # 更新 version 的 images
+        version["images"] = final_images
+
+    # ---------- 辅助函数：为单个图片对象生成 id（从 url 解析） ----------
+    def _assign_image_id(self, img_obj: Dict[str, Any]) -> int:
+        url = img_obj.get("url")
+        img_id_str = url.split("/")[-1].split(".")[0]
+        img_id = int(img_id_str)
+        img_obj["id"] = img_id
+        return img_id
 
     async def get_model_version_info(
         self, version_id: str
