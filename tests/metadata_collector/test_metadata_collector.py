@@ -1373,6 +1373,97 @@ def test_metadata_overwrite_extractor_empty_inputs(metadata_registry):
     metadata_registry.clear_metadata()
 
 
+def _make_ksampler(func_name: str):
+    """Build a duck-typed comfy.samplers.KSAMPLER stub with a named function."""
+    def _sampler_function(*args, **kwargs):
+        pass
+
+    _sampler_function.__name__ = func_name
+    return SimpleNamespace(sampler_function=_sampler_function)
+
+
+def test_metadata_overwrite_extractor_sampler_union(metadata_registry):
+    """Wired SAMPLER objects should be converted to sampler names."""
+    from py.metadata_collector.constants import CLIP_SKIP_SENTINEL
+
+    metadata_registry.start_collection("prompt-ow-sampler")
+    metadata = metadata_registry.prompt_metadata["prompt-ow-sampler"]
+
+    inputs: Dict[str, Any] = {key: "" for key in METADATA_OVERWRITE_FIELDS}
+    inputs.update({"seed": 0, "steps": 0, "cfg_scale": 0.0, "clip_skip": CLIP_SKIP_SENTINEL})
+    inputs["sampler"] = _make_ksampler("sample_euler")
+
+    MetadataOverwriteExtractor.extract("ow-sampler-1", inputs, None, metadata)
+
+    params = metadata[OVERWRITE]["ow-sampler-1"]["parameters"]
+    assert params["sampler"] == "euler"
+
+    metadata_registry.clear_metadata()
+
+
+def test_metadata_overwrite_extractor_sampler_union_special_cases(metadata_registry):
+    """Sampler functions whose names diverge from SAMPLER_NAMES entries."""
+    from py.metadata_collector.constants import CLIP_SKIP_SENTINEL
+
+    metadata_registry.start_collection("prompt-ow-sampler2")
+    metadata = metadata_registry.prompt_metadata["prompt-ow-sampler2"]
+
+    cases = [
+        ("dpm_fast_function", "dpm_fast"),
+        ("dpm_adaptive_function", "dpm_adaptive"),
+        ("sample_unipc", "uni_pc"),
+        ("sample_unipc_bh2", "uni_pc_bh2"),
+        ("sample_dpmpp_2m_sde", "dpmpp_2m_sde"),
+    ]
+    for i, (func_name, expected) in enumerate(cases):
+        inputs: Dict[str, Any] = {key: "" for key in METADATA_OVERWRITE_FIELDS}
+        inputs.update({"seed": 0, "steps": 0, "cfg_scale": 0.0, "clip_skip": CLIP_SKIP_SENTINEL})
+        inputs["sampler"] = _make_ksampler(func_name)
+        MetadataOverwriteExtractor.extract(f"ow-sampler-{i}", inputs, None, metadata)
+
+    params_by_node = {node_id: entry["parameters"] for node_id, entry in metadata[OVERWRITE].items()}
+    for i, (func_name, expected) in enumerate(cases):
+        assert params_by_node[f"ow-sampler-{i}"]["sampler"] == expected, func_name
+
+    metadata_registry.clear_metadata()
+
+
+def test_metadata_overwrite_extractor_sampler_union_unrecognized_skipped(metadata_registry):
+    """Unrecognized sampler functions should skip the field, not crash."""
+    from py.metadata_collector.constants import CLIP_SKIP_SENTINEL
+
+    metadata_registry.start_collection("prompt-ow-sampler3")
+    metadata = metadata_registry.prompt_metadata["prompt-ow-sampler3"]
+
+    inputs: Dict[str, Any] = {key: "" for key in METADATA_OVERWRITE_FIELDS}
+    inputs.update({"seed": 0, "steps": 0, "cfg_scale": 0.0, "clip_skip": CLIP_SKIP_SENTINEL})
+    inputs["sampler"] = _make_ksampler("my_custom_sampler_function")
+
+    MetadataOverwriteExtractor.extract("ow-sampler-unrec", inputs, None, metadata)
+
+    assert not metadata[OVERWRITE]
+
+    metadata_registry.clear_metadata()
+
+
+def test_metadata_overwrite_extractor_sampler_union_no_sampler_function(metadata_registry):
+    """Objects without a sampler_function (e.g. old KUNASampler classes) are skipped."""
+    from py.metadata_collector.constants import CLIP_SKIP_SENTINEL
+
+    metadata_registry.start_collection("prompt-ow-sampler4")
+    metadata = metadata_registry.prompt_metadata["prompt-ow-sampler4"]
+
+    inputs: Dict[str, Any] = {key: "" for key in METADATA_OVERWRITE_FIELDS}
+    inputs.update({"seed": 0, "steps": 0, "cfg_scale": 0.0, "clip_skip": CLIP_SKIP_SENTINEL})
+    inputs["sampler"] = SimpleNamespace()
+
+    MetadataOverwriteExtractor.extract("ow-sampler-nofn", inputs, None, metadata)
+
+    assert not metadata[OVERWRITE]
+
+    metadata_registry.clear_metadata()
+
+
 def test_extract_generation_params_applies_overwrite(metadata_registry, populated_registry, monkeypatch):
     """overwrite values should replace inferred params in extract_generation_params."""
     import py.metadata_collector.metadata_processor as mp
@@ -1522,3 +1613,213 @@ def test_fill_missing_metadata_fills_overwrite_for_muted_node(metadata_registry)
     assert "ow-1" not in metadata.get(OVERWRITE, {})
 
     metadata_registry.clear_metadata()
+
+
+def test_krea_two_stage_sampler_prompt_and_params_collected(
+    metadata_registry, monkeypatch
+):
+    """KreaTwoStageSampler should be recognized as the primary sampler and
+    contribute the prompt, canonical sampling params, and final resolution."""
+    prompt_graph = {
+        "encode_pos": {
+            "class_type": "PromptLM",
+            "inputs": {"text": "krea masterpiece", "clip": ["clip", 0]},
+        },
+        "encode_neg": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": "low quality", "clip": ["clip", 0]},
+        },
+        "sampler": {
+            "class_type": "KreaTwoStageSampler",
+            "inputs": {
+                "seed": 42,
+                "handoff_percent": 16.67,
+                "stage1_steps": 52,
+                "stage1_cfg": 4.0,
+                "stage1_sampler_name": "euler",
+                "stage1_scheduler": "simple",
+                "stage2_steps": 12,
+                "stage2_cfg": 1.0,
+                "stage2_sampler_name": "euler",
+                "stage2_scheduler": "simple",
+                "final_width": 2048,
+                "final_height": 2048,
+                "upscale_method": "bislerp",
+                "positive": ["encode_pos", 0],
+                "negative": ["encode_neg", 0],
+                "latent_image": {
+                    "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+                },
+            },
+        },
+    }
+    prompt = SimpleNamespace(original_prompt=prompt_graph)
+
+    pos_conditioning = object()
+    neg_conditioning = object()
+
+    monkeypatch.setattr(metadata_processor, "standalone_mode", False)
+
+    metadata_registry.start_collection("krea-two-stage")
+    metadata_registry.set_current_prompt(prompt)
+
+    metadata_registry.record_node_execution(
+        "encode_pos", "PromptLM", {"text": "krea masterpiece"}, None
+    )
+    metadata_registry.update_node_execution(
+        "encode_pos", "PromptLM", [(pos_conditioning, "krea masterpiece")]
+    )
+    metadata_registry.record_node_execution(
+        "encode_neg", "CLIPTextEncode", {"text": "low quality"}, None
+    )
+    metadata_registry.update_node_execution(
+        "encode_neg", "CLIPTextEncode", [(neg_conditioning,)]
+    )
+    metadata_registry.record_node_execution(
+        "sampler",
+        "KreaTwoStageSampler",
+        {
+            "seed": 42,
+            "handoff_percent": 16.67,
+            "stage1_steps": 52,
+            "stage1_cfg": 4.0,
+            "stage1_sampler_name": "euler",
+            "stage1_scheduler": "simple",
+            "stage2_steps": 12,
+            "stage2_cfg": 1.0,
+            "stage2_sampler_name": "euler",
+            "stage2_scheduler": "simple",
+            "final_width": 2048,
+            "final_height": 2048,
+            "upscale_method": "bislerp",
+            "positive": pos_conditioning,
+            "negative": neg_conditioning,
+            "latent_image": {
+                "samples": types.SimpleNamespace(shape=(1, 4, 16, 16))
+            },
+        },
+        None,
+    )
+
+    metadata = metadata_registry.get_metadata("krea-two-stage")
+
+    sampler_data = metadata[SAMPLING]["sampler"]
+    assert sampler_data["is_sampler"] is True
+    parameters = sampler_data["parameters"]
+    assert parameters["seed"] == 42
+    assert parameters["steps"] == 64
+    assert parameters["cfg"] == 4.0
+    assert parameters["sampler_name"] == "euler"
+    assert parameters["scheduler"] == "simple"
+    assert parameters["stage1_steps"] == 52
+    assert parameters["stage2_cfg"] == 1.0
+
+    assert metadata[SIZE]["sampler"] == {
+        "width": 2048,
+        "height": 2048,
+        "node_id": "sampler",
+    }
+
+    prompt_results = MetadataProcessor.match_conditioning_to_prompts(
+        metadata, "sampler"
+    )
+    assert prompt_results["prompt"] == "krea masterpiece"
+    assert prompt_results["negative_prompt"] == "low quality"
+
+    params = MetadataProcessor.extract_generation_params(metadata)
+    assert params["prompt"] == "krea masterpiece"
+    assert params["negative_prompt"] == "low quality"
+    assert params["seed"] == 42
+    assert params["steps"] == 64
+    assert params["cfg_scale"] == 4.0
+    assert params["sampler"] == "euler"
+    assert params["scheduler"] == "simple"
+    assert params["size"] == "2048x2048"
+
+
+def test_krea_three_stage_sampler_uses_stage1_canonical_fields(metadata_registry):
+    """KreaThreeStageSampler reuses stage 1 settings for stage 3, so canonical
+    fields map from stage 1 and the total counts both sampling stages."""
+    metadata_registry.start_collection("krea-three-stage")
+    metadata_registry.set_current_prompt(SimpleNamespace(original_prompt={}))
+
+    metadata_registry.record_node_execution(
+        "sampler",
+        "KreaThreeStageSampler",
+        {
+            "seed": 7,
+            "handoff_percent": 16.67,
+            "stage3_handoff_percent": 83.33,
+            "stage1_steps": 52,
+            "stage1_cfg": 4.0,
+            "stage1_sampler_name": "euler",
+            "stage1_scheduler": "simple",
+            "stage2_steps": 12,
+            "stage2_cfg": 1.0,
+            "stage2_sampler_name": "euler",
+            "stage2_scheduler": "simple",
+            "final_width": 1024,
+            "final_height": 2048,
+            "upscale_method": "bislerp",
+            "positive": object(),
+            "negative": object(),
+            "latent_image": {"samples": types.SimpleNamespace(shape=(1, 4, 8, 16))},
+        },
+        None,
+    )
+
+    metadata = metadata_registry.get_metadata("krea-three-stage")
+
+    sampler_data = metadata[SAMPLING]["sampler"]
+    assert sampler_data["is_sampler"] is True
+    parameters = sampler_data["parameters"]
+    assert parameters["seed"] == 7
+    assert parameters["stage3_handoff_percent"] == 83.33
+    assert parameters["steps"] == 64
+    assert parameters["cfg"] == 4.0
+    assert parameters["sampler_name"] == "euler"
+    assert parameters["scheduler"] == "simple"
+
+    # Final resolution takes precedence over the latent dimensions (64x128).
+    assert metadata[SIZE]["sampler"] == {
+        "width": 1024,
+        "height": 2048,
+        "node_id": "sampler",
+    }
+
+
+def test_krea_dual_resolution_selector_extracts_size_from_outputs(
+    metadata_registry,
+):
+    """KreaDualResolutionSelector computes dimensions at runtime, so the base
+    resolution is recorded from its outputs in the update phase."""
+    metadata_registry.start_collection("krea-selector")
+    metadata_registry.set_current_prompt(SimpleNamespace(original_prompt={}))
+
+    metadata_registry.record_node_execution(
+        "selector",
+        "KreaDualResolutionSelector",
+        {
+            "aspect_ratio": "1:1",
+            "base_megapixels": 1.0,
+            "final_megapixels": 2.0,
+            "multiple": 16,
+            "random_seed": 123,
+        },
+        None,
+        return_types=("INT", "INT", "INT", "INT", "INT"),
+    )
+    metadata_registry.update_node_execution(
+        "selector",
+        "KreaDualResolutionSelector",
+        [(1024, 1024, 2048, 2048, 123)],
+        return_types=("INT", "INT", "INT", "INT", "INT"),
+    )
+
+    metadata = metadata_registry.get_metadata("krea-selector")
+
+    assert metadata[SIZE]["selector"] == {
+        "width": 1024,
+        "height": 1024,
+        "node_id": "selector",
+    }

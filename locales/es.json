@@ -622,6 +622,10 @@
             "label": "Ocultar actualizaciones de acceso temprano",
             "help": "Solo actualizaciones de acceso temprano"
         },
+        "hidePaidUpdates": {
+            "label": "Ocultar actualizaciones de pago",
+            "help": "Cuando está activado, los modelos que solo tienen actualizaciones de pago no mostrarán la insignia de 'Actualización disponible'"
+        },
         "licenseIcons": {
             "useNewStyle": "Usar iconos de licencia actualizados",
             "useNewStyleHelp": "Mostrar permisos de licencia con indicadores de color (nuevo estilo) o solo iconos de restricción (estilo clásico). Refleja el diseño actual de CivitAI."
@@ -849,7 +853,8 @@
     "recipes": {
         "title": "Recetas de LoRA",
         "actions": {
-            "sendCheckpoint": "Enviar a ComfyUI"
+            "sendCheckpoint": "Enviar a ComfyUI",
+            "sendRecipe": "Enviar a ComfyUI"
         },
         "controls": {
             "import": {
@@ -920,7 +925,9 @@
                 "dateAsc": "Más antiguo",
                 "lorasCount": "Cant. de LoRAs",
                 "lorasCountDesc": "Más",
-                "lorasCountAsc": "Menos"
+                "lorasCountAsc": "Menos",
+                "opened": "Abiertos recientemente",
+                "openedDesc": "Abiertos recientemente"
             },
             "refresh": {
                 "title": "Actualizar lista de recetas",
@@ -931,6 +938,11 @@
             "favorites": {
                 "title": "Mostrar solo favoritos",
                 "action": "Favoritos"
+            },
+            "layout": {
+                "title": "Diseño de recetas",
+                "grid": "Vista de cuadrícula",
+                "masonry": "Vista masonry (estilo Pinterest, conserva la proporción de aspecto de la imagen)"
             }
         },
         "duplicates": {
@@ -1232,11 +1244,13 @@
             "downloaded": "Descargado",
             "downloadedTooltip": "Descargado anteriormente, pero actualmente no está en tu biblioteca.",
             "alreadyInLibrary": "Ya en la biblioteca",
+            "partiallyDownloaded": "Descargado parcialmente",
             "autoOrganizedPath": "[Auto-organizado por plantilla de ruta]",
             "fileSelection": {
                 "title": "Seleccionar formato de archivo",
                 "files": "archivos",
-                "select": "Seleccionar archivo"
+                "select": "Seleccionar archivo",
+                "inLibrary": "En la biblioteca"
             },
             "errors": {
                 "invalidUrl": "Formato de URL de Civitai inválido",
@@ -1521,6 +1535,30 @@
                 "examples": "Cargando ejemplos...",
                 "versions": "Cargando versiones..."
             },
+            "showcase": {
+                "hiddenBySfw": "{count} ocultas por el ajuste de solo contenido SFW",
+                "showExamples": "Mostrar ejemplos",
+                "showCount": "Mostrar ejemplos ({count})",
+                "hideExamples": "Ocultar ejemplos",
+                "addExamples": "Añadir ejemplos",
+                "previousExample": "Ejemplo anterior",
+                "nextExample": "Ejemplo siguiente",
+                "noExamples": "No hay imágenes de ejemplo disponibles",
+                "addMoreExamples": "Añadir más ejemplos",
+                "dragDrop": "Arrastra y suelta imágenes o videos aquí",
+                "or": "o",
+                "selectFiles": "Seleccionar archivos",
+                "supportedFormats": "Formatos compatibles: jpg, png, gif, webp, avif, jxl, mp4, webm",
+                "importing": "Importando archivos...",
+                "noSupportedFiles": "No se seleccionaron archivos compatibles. Selecciona archivos de imagen o video.",
+                "allFiltered": "Todas las imágenes de ejemplo están filtradas por los ajustes de contenido NSFW",
+                "sfwOnlyEnabled": "Tus ajustes están configurados actualmente para mostrar solo contenido apto para todo público",
+                "changeInSettings": "Puedes cambiarlo en Configuración",
+                "nsfwMature": "Contenido para adultos",
+                "nsfwR": "Contenido clasificación R",
+                "nsfwX": "Contenido clasificación X",
+                "nsfwXxx": "Contenido clasificación XXX"
+            },
             "versions": {
                 "heading": "Versiones del modelo",
                 "copy": "Administra todas las versiones de este modelo en un solo lugar.",
@@ -1548,6 +1586,8 @@
                     "newerTooltip": "Esta versión es más reciente que tu última versión local",
                     "earlyAccess": "Acceso temprano",
                     "earlyAccessTooltip": "Esta versión requiere actualmente acceso temprano de Civitai",
+                    "paid": "De pago",
+                    "paidTooltip": "Esta versión requiere pago para descargarse",
                     "ignored": "Ignorada",
                     "ignoredTooltip": "Las notificaciones de actualización están desactivadas para esta versión",
                     "onSiteOnly": "Solo en Sitio",
@@ -1556,7 +1596,9 @@
                 "actions": {
                     "download": "Descargar",
                     "downloadTooltip": "Descargar esta versión",
+                    "downloadRemainingTooltip": "Descargar los archivos restantes de esta versión",
                     "downloadEarlyAccessTooltip": "Descargar esta versión de acceso temprano desde Civitai",
+                    "downloadPaidTooltip": "Descargar esta versión de pago desde Civitai",
                     "downloadNotAllowedTooltip": "Esta versión solo está disponible para generación en el sitio de Civitai",
                     "delete": "Eliminar",
                     "deleteTooltip": "Eliminar esta versión local",
@@ -1726,7 +1768,7 @@
             "recipeReplaced": "Receta reemplazada en el flujo de trabajo",
             "recipeFailedToSend": "Error al enviar receta al flujo de trabajo",
             "noMatchingNodes": "No hay nodos compatibles disponibles en el flujo de trabajo actual",
-            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
+            "noPromptTargets": "No hay destinos de prompt compatibles en el workflow.\nHaz clic derecho en un nodo de ComfyUI → Marcar como → Destino de envío de prompt",
             "noTargetNodeSelected": "No se ha seleccionado ningún nodo de destino",
             "modelUpdated": "Modelo actualizado en el flujo de trabajo",
             "modelFailed": "Error al actualizar nodo de modelo",
@@ -1903,6 +1945,7 @@
             "downloadPartialSuccess": "Descargados {completed} de {total} LoRAs",
             "downloadPartialWithAccess": "Descargados {completed} de {total} LoRAs. {accessFailures} fallaron debido a restricciones de acceso. Revisa tu clave API en configuración o estado de acceso temprano.",
             "pleaseSelectVersion": "Por favor selecciona una versión",
+            "pleaseSelectFile": "Por favor selecciona al menos un archivo",
             "versionExists": "Esta versión ya existe en tu biblioteca",
             "downloadCompleted": "Descarga completada exitosamente",
             "downloadSkippedByBaseModel": "Descarga omitida porque el modelo base {baseModel} está excluido",
@@ -2190,6 +2233,7 @@
             "fileRenameFailed": "Error al renombrar archivo: {error}",
             "previewUpdated": "Vista previa actualizada exitosamente",
             "previewUploadFailed": "Error al subir imagen de vista previa",
+            "previewDropInvalid": "Tipo de archivo no admitido: {name}. Arrastra una imagen o un video MP4 en su lugar.",
             "refreshComplete": "{action} completada",
             "refreshFailed": "Error al {action} {type}s",
             "metadataRefreshed": "Metadatos actualizados exitosamente",

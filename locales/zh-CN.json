@@ -622,6 +622,10 @@
             "label": "隐藏抢先体验更新",
             "help": "抢先体验更新"
         },
+        "hidePaidUpdates": {
+            "label": "隐藏付费更新",
+            "help": "启用后，仅有付费更新的模型将不显示“有可用更新”徽标"
+        },
         "licenseIcons": {
             "useNewStyle": "使用新版许可协议图标",
             "useNewStyleHelp": "以彩色指示器显示许可权限（新样式），或仅显示限制图标（经典样式）。与当前 CivitAI 设计保持一致。"
@@ -849,7 +853,8 @@
     "recipes": {
         "title": "LoRA 配方",
         "actions": {
-            "sendCheckpoint": "发送到 ComfyUI"
+            "sendCheckpoint": "发送到 ComfyUI",
+            "sendRecipe": "发送到 ComfyUI"
         },
         "controls": {
             "import": {
@@ -920,7 +925,9 @@
                 "dateAsc": "最早",
                 "lorasCount": "LoRA 数量",
                 "lorasCountDesc": "最多",
-                "lorasCountAsc": "最少"
+                "lorasCountAsc": "最少",
+                "opened": "最近打开",
+                "openedDesc": "最近打开"
             },
             "refresh": {
                 "title": "刷新配方列表",
@@ -931,6 +938,11 @@
             "favorites": {
                 "title": "仅显示收藏",
                 "action": "收藏"
+            },
+            "layout": {
+                "title": "配方布局",
+                "grid": "网格布局",
+                "masonry": "瀑布流布局（Pinterest 风格，保留图片原始宽高比）"
             }
         },
         "duplicates": {
@@ -1232,11 +1244,13 @@
             "downloaded": "已下载",
             "downloadedTooltip": "之前已下载，但当前不在你的库中。",
             "alreadyInLibrary": "已存在于库中",
+            "partiallyDownloaded": "部分已下载",
             "autoOrganizedPath": "【已按路径模板自动整理】",
             "fileSelection": {
                 "title": "选择文件格式",
                 "files": "个文件",
-                "select": "选择文件"
+                "select": "选择文件",
+                "inLibrary": "已在库中"
             },
             "errors": {
                 "invalidUrl": "无效的 Civitai URL 格式",
@@ -1521,6 +1535,30 @@
                 "examples": "正在加载示例...",
                 "versions": "正在加载版本..."
             },
+            "showcase": {
+                "hiddenBySfw": "{count} 张因仅显示 SFW 设置而被隐藏",
+                "showExamples": "显示示例",
+                "showCount": "显示示例（{count}）",
+                "hideExamples": "隐藏示例",
+                "addExamples": "添加示例",
+                "previousExample": "上一个示例",
+                "nextExample": "下一个示例",
+                "noExamples": "暂无示例图片",
+                "addMoreExamples": "添加更多示例",
+                "dragDrop": "将图片或视频拖放到此处",
+                "or": "或",
+                "selectFiles": "选择文件",
+                "supportedFormats": "支持的格式：jpg, png, gif, webp, avif, jxl, mp4, webm",
+                "importing": "正在导入文件...",
+                "noSupportedFiles": "未选择受支持的文件。请选择图片或视频文件。",
+                "allFiltered": "所有示例图片均因 NSFW 内容设置而被过滤",
+                "sfwOnlyEnabled": "你当前的设置为仅显示 SFW 内容",
+                "changeInSettings": "你可以在设置中更改此选项",
+                "nsfwMature": "成熟内容",
+                "nsfwR": "R 级内容",
+                "nsfwX": "X 级内容",
+                "nsfwXxx": "XXX 级内容"
+            },
             "versions": {
                 "heading": "模型版本",
                 "copy": "在一个位置管理该模型的所有版本。",
@@ -1548,6 +1586,8 @@
                     "newerTooltip": "此版本比你本地的最新版本更新",
                     "earlyAccess": "抢先体验",
                     "earlyAccessTooltip": "此版本当前需要 Civitai 抢先体验权限",
+                    "paid": "付费",
+                    "paidTooltip": "此版本需要付费后才能下载",
                     "ignored": "已忽略",
                     "ignoredTooltip": "此版本已关闭更新通知",
                     "onSiteOnly": "仅站内生成",
@@ -1556,7 +1596,9 @@
                 "actions": {
                     "download": "下载",
                     "downloadTooltip": "下载此版本",
+                    "downloadRemainingTooltip": "下载此版本的剩余文件",
                     "downloadEarlyAccessTooltip": "从 Civitai 下载此抢先体验版本",
+                    "downloadPaidTooltip": "从 Civitai 下载此付费版本",
                     "downloadNotAllowedTooltip": "此版本仅在 Civitai 站内可用，无法下载",
                     "delete": "删除",
                     "deleteTooltip": "删除此本地版本",
@@ -1903,6 +1945,7 @@
             "downloadPartialSuccess": "已下载 {completed}/{total} 个 LoRA",
             "downloadPartialWithAccess": "已下载 {completed}/{total} 个 LoRA。{accessFailures} 个因访问限制失败。请检查设置中的 API 密钥或早期访问状态。",
             "pleaseSelectVersion": "请选择版本",
+            "pleaseSelectFile": "请至少选择一个文件",
             "versionExists": "该版本已存在于你的库中",
             "downloadCompleted": "下载成功完成",
             "downloadSkippedByBaseModel": "由于基础模型 {baseModel} 已被排除，已跳过下载",
@@ -2190,6 +2233,7 @@
             "fileRenameFailed": "重命名文件失败：{error}",
             "previewUpdated": "预览图片更新成功",
             "previewUploadFailed": "上传预览图片失败",
+            "previewDropInvalid": "不支持的文件类型：{name}。请拖入图片或 MP4 视频。",
             "refreshComplete": "{action} 完成",
             "refreshFailed": "{action} {type} 失败",
             "metadataRefreshed": "元数据刷新成功",

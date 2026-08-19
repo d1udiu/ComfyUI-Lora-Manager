@@ -622,6 +622,10 @@
             "label": "Скрыть обновления раннего доступа",
             "help": "Только обновления раннего доступа"
         },
+        "hidePaidUpdates": {
+            "label": "Скрывать платные обновления",
+            "help": "Если включено, у моделей, для которых доступны только платные обновления, не будет отображаться значок «Доступно обновление»"
+        },
         "licenseIcons": {
             "useNewStyle": "Использовать обновлённые значки лицензии",
             "useNewStyleHelp": "Отображать разрешения лицензии с цветными индикаторами (новый стиль) или только значки ограничений (классический стиль). Соответствует текущему дизайну CivitAI."
@@ -849,7 +853,8 @@
     "recipes": {
         "title": "Рецепты LoRA",
         "actions": {
-            "sendCheckpoint": "Отправить в ComfyUI"
+            "sendCheckpoint": "Отправить в ComfyUI",
+            "sendRecipe": "Отправить в ComfyUI"
         },
         "controls": {
             "import": {
@@ -920,7 +925,9 @@
                 "dateAsc": "Сначала старые",
                 "lorasCount": "Кол-во LoRA",
                 "lorasCountDesc": "Больше всего",
-                "lorasCountAsc": "Меньше всего"
+                "lorasCountAsc": "Меньше всего",
+                "opened": "Недавно открытые",
+                "openedDesc": "Недавно открытые"
             },
             "refresh": {
                 "title": "Обновить список рецептов",
@@ -931,6 +938,11 @@
             "favorites": {
                 "title": "Только избранные",
                 "action": "Избранное"
+            },
+            "layout": {
+                "title": "Макет рецептов",
+                "grid": "Макет сеткой",
+                "masonry": "Masonry-макет (в стиле Pinterest, сохраняет пропорции изображения)"
             }
         },
         "duplicates": {
@@ -1232,11 +1244,13 @@
             "downloaded": "Загружено",
             "downloadedTooltip": "Ранее загружено, но сейчас этого нет в вашей библиотеке.",
             "alreadyInLibrary": "Уже в библиотеке",
+            "partiallyDownloaded": "Загружено частично",
             "autoOrganizedPath": "[Автоматически организовано по шаблону пути]",
             "fileSelection": {
                 "title": "Выбрать формат файла",
                 "files": "файлов",
-                "select": "Выбрать файл"
+                "select": "Выбрать файл",
+                "inLibrary": "В библиотеке"
             },
             "errors": {
                 "invalidUrl": "Неверный формат URL Civitai",
@@ -1521,6 +1535,30 @@
                 "examples": "Загрузка примеров...",
                 "versions": "Загрузка версий..."
             },
+            "showcase": {
+                "hiddenBySfw": "{count} скрыто настройкой «только SFW»",
+                "showExamples": "Показать примеры",
+                "showCount": "Показать примеры ({count})",
+                "hideExamples": "Скрыть примеры",
+                "addExamples": "Добавить примеры",
+                "previousExample": "Предыдущий пример",
+                "nextExample": "Следующий пример",
+                "noExamples": "Примеры изображений недоступны",
+                "addMoreExamples": "Добавить ещё примеры",
+                "dragDrop": "Перетащите изображения или видео сюда",
+                "or": "или",
+                "selectFiles": "Выбрать файлы",
+                "supportedFormats": "Поддерживаемые форматы: jpg, png, gif, webp, avif, jxl, mp4, webm",
+                "importing": "Импорт файлов...",
+                "noSupportedFiles": "Не выбрано поддерживаемых файлов. Пожалуйста, выберите файлы изображений или видео.",
+                "allFiltered": "Все примеры изображений отфильтрованы из-за настроек NSFW-контента",
+                "sfwOnlyEnabled": "В настройках сейчас включён показ только безопасного для работы (SFW) контента",
+                "changeInSettings": "Вы можете изменить это в Настройках",
+                "nsfwMature": "Контент для взрослых",
+                "nsfwR": "Контент с рейтингом R",
+                "nsfwX": "Контент с рейтингом X",
+                "nsfwXxx": "Контент с рейтингом XXX"
+            },
             "versions": {
                 "heading": "Версии модели",
                 "copy": "Управляйте всеми версиями этой модели в одном месте.",
@@ -1548,6 +1586,8 @@
                     "newerTooltip": "Эта версия новее вашей последней локальной версии",
                     "earlyAccess": "Ранний доступ",
                     "earlyAccessTooltip": "Для этой версии сейчас требуется ранний доступ Civitai",
+                    "paid": "Платная",
+                    "paidTooltip": "Скачивание этой версии платное",
                     "ignored": "Игнорируется",
                     "ignoredTooltip": "Уведомления об обновлениях для этой версии отключены",
                     "onSiteOnly": "Только на Сайте",
@@ -1556,7 +1596,9 @@
                 "actions": {
                     "download": "Скачать",
                     "downloadTooltip": "Скачать эту версию",
+                    "downloadRemainingTooltip": "Скачать оставшиеся файлы этой версии",
                     "downloadEarlyAccessTooltip": "Скачать эту версию раннего доступа с Civitai",
+                    "downloadPaidTooltip": "Скачать эту платную версию с Civitai",
                     "downloadNotAllowedTooltip": "Эта версия доступна только для генерации на сайте Civitai",
                     "delete": "Удалить",
                     "deleteTooltip": "Удалить эту локальную версию",
@@ -1726,7 +1768,7 @@
             "recipeReplaced": "Рецепт заменён в workflow",
             "recipeFailedToSend": "Не удалось отправить рецепт в workflow",
             "noMatchingNodes": "В текущем workflow нет совместимых узлов",
-            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
+            "noPromptTargets": "В рабочем процессе нет совместимых целей для промпта.\nЩёлкните правой кнопкой мыши по узлу в ComfyUI → Отметить как → Send Prompt Target",
             "noTargetNodeSelected": "Целевой узел не выбран",
             "modelUpdated": "Модель обновлена в workflow",
             "modelFailed": "Не удалось обновить узел модели",
@@ -1903,6 +1945,7 @@
             "downloadPartialSuccess": "Загружено {completed} из {total} LoRAs",
             "downloadPartialWithAccess": "Загружено {completed} из {total} LoRAs. {accessFailures} не удалось из-за ограничений доступа. Проверьте ваш API ключ в настройках или статус раннего доступа.",
             "pleaseSelectVersion": "Пожалуйста, выберите версию",
+            "pleaseSelectFile": "Пожалуйста, выберите хотя бы один файл",
             "versionExists": "Эта версия уже существует в вашей библиотеке",
             "downloadCompleted": "Загрузка успешно завершена",
             "downloadSkippedByBaseModel": "Загрузка пропущена, потому что базовая модель {baseModel} исключена",
@@ -2190,6 +2233,7 @@
             "fileRenameFailed": "Не удалось переименовать файл: {error}",
             "previewUpdated": "Превью успешно обновлено",
             "previewUploadFailed": "Не удалось загрузить превью изображение",
+            "previewDropInvalid": "Неподдерживаемый тип файла: {name}. Перетащите вместо этого изображение или видео MP4.",
             "refreshComplete": "{action} завершено",
             "refreshFailed": "Не удалось {action} {type}s",
             "metadataRefreshed": "Метаданные успешно обновлены",

@@ -622,6 +622,10 @@
             "label": "הסתר עדכוני גישה מוקדמת",
             "help": "רק עדכוני גישה מוקדמת"
         },
+        "hidePaidUpdates": {
+            "label": "הסתר עדכונים בתשלום",
+            "help": "כשאפשרות זו מופעלת, מודלים עם עדכונים בתשלום בלבד לא יציגו את תגית 'עדכון זמין'"
+        },
         "licenseIcons": {
             "useNewStyle": "השתמש בסמלי רישיון מעודכנים",
             "useNewStyleHelp": "הצג הרשאות רישיון עם מחוונים צבעוניים (סגנון חדש) או סמלי הגבלה בלבד (סגנון קלאסי). משקף את העיצוב העדכני של CivitAI."
@@ -849,7 +853,8 @@
     "recipes": {
         "title": "מתכוני LoRA",
         "actions": {
-            "sendCheckpoint": "שלח ל-ComfyUI"
+            "sendCheckpoint": "שלח ל-ComfyUI",
+            "sendRecipe": "שלח ל-ComfyUI"
         },
         "controls": {
             "import": {
@@ -920,7 +925,9 @@
                 "dateAsc": "הכי ישן",
                 "lorasCount": "מספר LoRAs",
                 "lorasCountDesc": "הכי הרבה",
-                "lorasCountAsc": "הכי פחות"
+                "lorasCountAsc": "הכי פחות",
+                "opened": "נפתחו לאחרונה",
+                "openedDesc": "נפתחו לאחרונה"
             },
             "refresh": {
                 "title": "רענן רשימת מתכונים",
@@ -931,6 +938,11 @@
             "favorites": {
                 "title": "הצג מועדפים בלבד",
                 "action": "מועדפים"
+            },
+            "layout": {
+                "title": "פריסת מתכונים",
+                "grid": "פריסת רשת",
+                "masonry": "פריסת Masonry (בסגנון Pinterest, שומרת על יחס הגובה-רוחב של התמונה)"
             }
         },
         "duplicates": {
@@ -1232,11 +1244,13 @@
             "downloaded": "הורד",
             "downloadedTooltip": "הורד בעבר, אך הוא אינו נמצא כרגע בספרייה שלך.",
             "alreadyInLibrary": "כבר בספרייה",
+            "partiallyDownloaded": "הורד חלקית",
             "autoOrganizedPath": "[מאורגן אוטומטית לפי תבנית נתיב]",
             "fileSelection": {
                 "title": "בחר פורמט קובץ",
                 "files": "קבצים",
-                "select": "בחר קובץ"
+                "select": "בחר קובץ",
+                "inLibrary": "בספרייה"
             },
             "errors": {
                 "invalidUrl": "פורמט URL של Civitai לא חוקי",
@@ -1521,6 +1535,30 @@
                 "examples": "טוען דוגמאות...",
                 "versions": "טוען גרסאות..."
             },
+            "showcase": {
+                "hiddenBySfw": "{count} הוסתרו עקב הגדרת SFW בלבד",
+                "showExamples": "הצג דוגמאות",
+                "showCount": "הצג דוגמאות ({count})",
+                "hideExamples": "הסתר דוגמאות",
+                "addExamples": "הוסף דוגמאות",
+                "previousExample": "דוגמה קודמת",
+                "nextExample": "דוגמה הבאה",
+                "noExamples": "אין תמונות דוגמה זמינות",
+                "addMoreExamples": "הוסף עוד דוגמאות",
+                "dragDrop": "גרור ושחרר תמונות או סרטונים כאן",
+                "or": "או",
+                "selectFiles": "בחר קבצים",
+                "supportedFormats": "פורמטים נתמכים: jpg, png, gif, webp, avif, jxl, mp4, webm",
+                "importing": "מייבא קבצים...",
+                "noSupportedFiles": "לא נבחרו קבצים נתמכים. בחר קבצי תמונה או וידאו.",
+                "allFiltered": "כל תמונות הדוגמה מסוננות עקב הגדרות תוכן NSFW",
+                "sfwOnlyEnabled": "ההגדרות שלך מוגדרות כעת להציג רק תוכן SFW",
+                "changeInSettings": "ניתן לשנות זאת בהגדרות",
+                "nsfwMature": "תוכן למבוגרים",
+                "nsfwR": "תוכן בדירוג R",
+                "nsfwX": "תוכן בדירוג X",
+                "nsfwXxx": "תוכן בדירוג XXX"
+            },
             "versions": {
                 "heading": "גרסאות המודל",
                 "copy": "נהל את כל הגרסאות של המודל הזה במקום אחד.",
@@ -1548,6 +1586,8 @@
                     "newerTooltip": "גרסה זו חדשה יותר מהגרסה המקומית האחרונה שלך",
                     "earlyAccess": "גישה מוקדמת",
                     "earlyAccessTooltip": "גרסה זו דורשת כרגע גישת Early Access של Civitai",
+                    "paid": "בתשלום",
+                    "paidTooltip": "גרסה זו דורשת תשלום כדי להוריד",
                     "ignored": "התעלם",
                     "ignoredTooltip": "התראות העדכון מושבתות עבור גרסה זו",
                     "onSiteOnly": "רק באתר",
@@ -1556,7 +1596,9 @@
                 "actions": {
                     "download": "הורדה",
                     "downloadTooltip": "הורד את הגרסה הזו",
+                    "downloadRemainingTooltip": "הורד את הקבצים הנותרים של גרסה זו",
                     "downloadEarlyAccessTooltip": "הורד את גרסת ה-Early Access הזו מ-Civitai",
+                    "downloadPaidTooltip": "הורד את הגרסה בתשלום הזו מ-Civitai",
                     "downloadNotAllowedTooltip": "גרסה זו זמינה רק ליצירה באתר Civitai",
                     "delete": "מחיקה",
                     "deleteTooltip": "מחק את הגרסה המקומית הזו",
@@ -1726,7 +1768,7 @@
             "recipeReplaced": "מתכון הוחלף ב-workflow",
             "recipeFailedToSend": "שליחת מתכון ל-workflow נכשלה",
             "noMatchingNodes": "אין צמתים תואמים זמינים ב-workflow הנוכחי",
-            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
+            "noPromptTargets": "אין יעדי הנחיה תואמים ב-workflow.\nלחץ לחיצה ימנית על צומת ב-ComfyUI → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "לא נבחר צומת יעד",
             "modelUpdated": "מודל עודכן ב-workflow",
             "modelFailed": "עדכון צומת המודל נכשל",
@@ -1903,6 +1945,7 @@
             "downloadPartialSuccess": "הורדו {completed} מתוך {total} LoRAs",
             "downloadPartialWithAccess": "הורדו {completed} מתוך {total} LoRAs. {accessFailures} נכשלו עקב הגבלות גישה. בדוק את מפתח ה-API שלך בהגדרות או את סטטוס הגישה המוקדמת.",
             "pleaseSelectVersion": "אנא בחר גרסה",
+            "pleaseSelectFile": "אנא בחר לפחות קובץ אחד",
             "versionExists": "גרסה זו כבר קיימת בספרייה שלך",
             "downloadCompleted": "ההורדה הושלמה בהצלחה",
             "downloadSkippedByBaseModel": "ההורדה דולגה כי מודל הבסיס {baseModel} מוחרג",
@@ -2190,6 +2233,7 @@
             "fileRenameFailed": "שינוי שם הקובץ נכשל: {error}",
             "previewUpdated": "התצוגה המקדימה עודכנה בהצלחה",
             "previewUploadFailed": "העלאת תמונת התצוגה המקדימה נכשלה",
+            "previewDropInvalid": "סוג קובץ לא נתמך: {name}. גרור במקום זאת תמונה או סרטון MP4.",
             "refreshComplete": "{action} הושלם",
             "refreshFailed": "{action} של {type}s נכשל",
             "metadataRefreshed": "המטא-דאטה רועננה בהצלחה",

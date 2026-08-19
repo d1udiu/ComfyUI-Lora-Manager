@@ -622,6 +622,10 @@
       "label": "Hide Early Access Updates",
       "help": "When enabled, models with only early access updates will not show 'Update available' badge"
     },
+    "hidePaidUpdates": {
+      "label": "Hide Paid Updates",
+      "help": "When enabled, models with only paid updates will not show 'Update available' badge"
+    },
     "licenseIcons": {
       "useNewStyle": "Use updated license icons",
       "useNewStyleHelp": "Display license permissions with colored indicators (new style) or restriction-only icons (classic style). Mirroring the current CivitAI design."
@@ -849,7 +853,8 @@
   "recipes": {
     "title": "LoRA Recipes",
     "actions": {
-      "sendCheckpoint": "Send to ComfyUI"
+      "sendCheckpoint": "Send to ComfyUI",
+      "sendRecipe": "Send to ComfyUI"
     },
     "controls": {
       "import": {
@@ -920,7 +925,9 @@
         "dateAsc": "Oldest",
         "lorasCount": "LoRA Count",
         "lorasCountDesc": "Most",
-        "lorasCountAsc": "Least"
+        "lorasCountAsc": "Least",
+        "opened": "Recently Opened",
+        "openedDesc": "Recently opened"
       },
       "refresh": {
         "title": "Refresh recipe list",
@@ -931,6 +938,11 @@
       "favorites": {
         "title": "Show Favorites Only",
         "action": "Favorites"
+      },
+      "layout": {
+        "title": "Recipes Layout",
+        "grid": "Grid layout",
+        "masonry": "Masonry layout (Pinterest-style, preserves image aspect ratio)"
       }
     },
     "duplicates": {
@@ -1232,11 +1244,13 @@
       "downloaded": "Downloaded",
       "downloadedTooltip": "Previously downloaded, but it is not currently in your library.",
       "alreadyInLibrary": "Already in Library",
+      "partiallyDownloaded": "Partially downloaded",
       "autoOrganizedPath": "[Auto-organized by path template]",
       "fileSelection": {
         "title": "Select File Format",
         "files": "files",
-        "select": "Select File"
+        "select": "Select File",
+        "inLibrary": "In Library"
       },
       "errors": {
         "invalidUrl": "Invalid Civitai URL format",
@@ -1521,6 +1535,30 @@
         "examples": "Loading examples...",
         "versions": "Loading versions..."
       },
+      "showcase": {
+        "hiddenBySfw": "{count} hidden by SFW-only setting",
+        "showExamples": "Show examples",
+        "showCount": "Show examples ({count})",
+        "hideExamples": "Hide examples",
+        "addExamples": "Add examples",
+        "previousExample": "Previous example",
+        "nextExample": "Next example",
+        "noExamples": "No example images available",
+        "addMoreExamples": "Add more examples",
+        "dragDrop": "Drag & drop images or videos here",
+        "or": "or",
+        "selectFiles": "Select Files",
+        "supportedFormats": "Supported formats: jpg, png, gif, webp, avif, jxl, mp4, webm",
+        "importing": "Importing files...",
+        "noSupportedFiles": "No supported files selected. Please select image or video files.",
+        "allFiltered": "All example images are filtered due to NSFW content settings",
+        "sfwOnlyEnabled": "Your settings are currently set to show only safe-for-work content",
+        "changeInSettings": "You can change this in Settings",
+        "nsfwMature": "Mature Content",
+        "nsfwR": "R-rated Content",
+        "nsfwX": "X-rated Content",
+        "nsfwXxx": "XXX-rated Content"
+      },
       "versions": {
         "heading": "Model versions",
         "copy": "Track and manage every version of this model in one place.",
@@ -1548,6 +1586,8 @@
           "newerTooltip": "This version is newer than your latest local version",
           "earlyAccess": "Early Access",
           "earlyAccessTooltip": "This version currently requires Civitai early access",
+          "paid": "Paid",
+          "paidTooltip": "This version requires payment to download",
           "ignored": "Ignored",
           "ignoredTooltip": "Update notifications are disabled for this version",
           "onSiteOnly": "On-Site Only",
@@ -1556,7 +1596,9 @@
         "actions": {
           "download": "Download",
           "downloadTooltip": "Download this version",
+          "downloadRemainingTooltip": "Download remaining files of this version",
           "downloadEarlyAccessTooltip": "Download this early access version from Civitai",
+          "downloadPaidTooltip": "Download this paid version from Civitai",
           "downloadNotAllowedTooltip": "This version is only available for on-site generation on Civitai",
           "delete": "Delete",
           "deleteTooltip": "Delete this local version",
@@ -1903,6 +1945,7 @@
       "downloadPartialSuccess": "Downloaded {completed} of {total} LoRAs",
       "downloadPartialWithAccess": "Downloaded {completed} of {total} LoRAs. {accessFailures} failed due to access restrictions. Check your API key in settings or early access status.",
       "pleaseSelectVersion": "Please select a version",
+      "pleaseSelectFile": "Please select at least one file",
       "versionExists": "This version already exists in your library",
       "downloadCompleted": "Download completed successfully",
       "downloadSkippedByBaseModel": "Skipped download because base model {baseModel} is excluded",
@@ -2190,6 +2233,7 @@
       "fileRenameFailed": "Failed to rename file: {error}",
       "previewUpdated": "Preview updated successfully",
       "previewUploadFailed": "Failed to upload preview image",
+      "previewDropInvalid": "Unsupported file type: {name}. Drop an image or MP4 video instead.",
       "refreshComplete": "{action} complete",
       "refreshFailed": "Failed to {action} {type}s",
       "metadataRefreshed": "Metadata refreshed successfully",

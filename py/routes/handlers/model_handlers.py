@@ -1659,7 +1659,8 @@ class ModelDownloadHandler:
                 import json
 
                 try:
-                    data["file_params"] = json.loads(file_params_json)
+                    # Normalize falsy payloads (e.g. {}) to None (#1058)
+                    data["file_params"] = json.loads(file_params_json) or None
                 except json.JSONDecodeError:
                     self._logger.warning(
                         "Invalid file_params JSON: %s", file_params_json
@@ -1811,7 +1812,8 @@ class ModelDownloadHandler:
 
             model_id = int(model_id_str) if model_id_str else None
             model_version_id = int(model_version_id_str) if model_version_id_str else None
-            file_params = json.loads(file_params_json) if file_params_json else None
+            # Normalize falsy payloads (e.g. {}) to None (#1058)
+            file_params = (json.loads(file_params_json) if file_params_json else None) or None
 
             service = await DownloadQueueService.get_instance()
             item = await service.add_to_queue(
@@ -2187,6 +2189,19 @@ class ModelCivitaiHandler:
                 else:
                     version.pop("localPath", None)
 
+                # Per-file downloaded state so multi-file versions can show
+                # which individual files are already in the library (#1058)
+                local_entries: List[Any] = []
+                if version_id is not None and cache:
+                    files_getter = getattr(cache, "get_files_by_version_id", None)
+                    if files_getter is not None:
+                        local_entries = files_getter(version_id)
+                    elif cache_entry is not None:
+                        local_entries = [cache_entry]
+                version["downloadedFiles"] = self._match_downloaded_files(
+                    version, local_entries
+                )
+
                 model_file = (
                     self._find_model_file(version.get("files", []))
                     if isinstance(version.get("files"), Iterable)
@@ -2200,6 +2215,64 @@ class ModelCivitaiHandler:
                 "Error fetching %s model versions: %s", self._service.model_type, exc
             )
             return web.Response(status=500, text=str(exc))
+
+    @staticmethod
+    def _match_downloaded_files(
+        version: Mapping[str, Any], local_entries: List[Any]
+    ) -> List[Dict[str, Any]]:
+        """Map local library entries back to individual files of a version.
+
+        Matching follows rule D2 (#1058): SHA256 is authoritative when the
+        local entry carries one; otherwise fall back to extension-less file
+        name equality. Returns ``[{fileId, fileName, filePath}]``.
+        """
+        files = version.get("files")
+        if not isinstance(files, list) or not local_entries:
+            return []
+
+        by_hash: Dict[str, Mapping[str, Any]] = {}
+        by_name: Dict[str, Mapping[str, Any]] = {}
+        for file_info in files:
+            if not isinstance(file_info, Mapping):
+                continue
+            sha = str(
+                (file_info.get("hashes") or {}).get("SHA256") or ""
+            ).strip().lower()
+            if sha:
+                by_hash.setdefault(sha, file_info)
+            name = str(file_info.get("name") or "").strip()
+            if name:
+                by_name.setdefault(os.path.splitext(name)[0], file_info)
+
+        downloaded: List[Dict[str, Any]] = []
+        seen_keys: set = set()
+        for entry in local_entries:
+            if not isinstance(entry, Mapping):
+                continue
+            matched: Optional[Mapping[str, Any]] = None
+            local_hash = str(entry.get("sha256") or "").strip().lower()
+            if local_hash:
+                matched = by_hash.get(local_hash)
+            if matched is None:
+                local_name = str(entry.get("file_name") or "").strip()
+                if local_name:
+                    matched = by_name.get(local_name)
+            if matched is None:
+                continue
+
+            file_id = matched.get("id")
+            dedupe_key = file_id if file_id is not None else matched.get("name")
+            if dedupe_key in seen_keys:
+                continue
+            seen_keys.add(dedupe_key)
+            downloaded.append(
+                {
+                    "fileId": file_id,
+                    "fileName": matched.get("name"),
+                    "filePath": entry.get("file_path"),
+                }
+            )
+        return downloaded
 
     async def get_civitai_model_by_version(self, request: web.Request) -> web.Response:
         try:
@@ -2535,6 +2608,7 @@ class ModelUpdateHandler:
             return web.json_response({"success": False, "error": str(exc)}, status=500)
 
         hide_early_access = False
+        hide_paid = False
         if self._settings is not None:
             try:
                 hide_early_access = bool(
@@ -2542,12 +2616,17 @@ class ModelUpdateHandler:
                 )
             except Exception:
                 pass
+            try:
+                hide_paid = bool(self._settings.get("hide_paid_updates", False))
+            except Exception:
+                pass
 
         serialized_records = []
         for record in records.values():
             has_update_fn = getattr(record, "has_update", None)
             if callable(has_update_fn) and has_update_fn(
-                hide_early_access=hide_early_access
+                hide_early_access=hide_early_access,
+                hide_paid=hide_paid,
             ):
                 serialized_records.append(self._serialize_record(record))
 
@@ -2701,10 +2780,16 @@ class ModelUpdateHandler:
         if not record or not record.versions:
             return record
 
-        # Find versions that need enrichment
+        # Find versions that need enrichment. Permanent paid versions are not
+        # early access (mirror _is_early_access_active) and never carry an end
+        # time, so skip them to avoid pointless per-version API calls.
         versions_needing_update = []
         for version in record.versions:
-            if version.is_early_access and not version.early_access_ends_at:
+            if (
+                version.is_early_access
+                and not version.early_access_ends_at
+                and not getattr(version, "is_paid", False)
+            ):
                 versions_needing_update.append(version)
 
         if not versions_needing_update:
@@ -2934,11 +3019,16 @@ class ModelUpdateHandler:
         context = version_context or {}
         # Check user setting for hiding early access versions
         hide_early_access = False
+        hide_paid = False
         if self._settings is not None:
             try:
                 hide_early_access = bool(
                     self._settings.get("hide_early_access_updates", False)
                 )
+            except Exception:
+                pass
+            try:
+                hide_paid = bool(self._settings.get("hide_paid_updates", False))
             except Exception:
                 pass
         return {
@@ -2949,7 +3039,10 @@ class ModelUpdateHandler:
             "inLibraryVersionIds": record.in_library_version_ids,
             "lastCheckedAt": record.last_checked_at,
             "shouldIgnore": record.should_ignore_model,
-            "hasUpdate": record.has_update(hide_early_access=hide_early_access),
+            "hasUpdate": record.has_update(
+                hide_early_access=hide_early_access,
+                hide_paid=hide_paid,
+            ),
             "versions": [
                 self._serialize_version(version, context.get(version.version_id))
                 for version in record.versions
@@ -2968,8 +3061,11 @@ class ModelUpdateHandler:
 
         # Determine if version is currently in early access
         # Two-phase detection: use exact end time if available, otherwise fallback to basic flag
+        # Mirror _is_early_access_active: permanent paid versions (no end time) are NOT early access
         is_early_access = False
-        if version.early_access_ends_at:
+        if getattr(version, "is_paid", False) and not version.early_access_ends_at:
+            is_early_access = False
+        elif version.early_access_ends_at:
             try:
                 from datetime import datetime, timezone
 
@@ -2984,6 +3080,13 @@ class ModelUpdateHandler:
             # Fallback to basic EA flag from bulk API
             is_early_access = True
 
+        paid_access_payload = None
+        if getattr(version, "paid_access", None):
+            try:
+                paid_access_payload = json.loads(version.paid_access)
+            except (TypeError, ValueError):
+                paid_access_payload = None
+
         return {
             "versionId": version.version_id,
             "name": version.name,
@@ -2997,6 +3100,8 @@ class ModelUpdateHandler:
             "earlyAccessEndsAt": version.early_access_ends_at,
             "isEarlyAccess": is_early_access,
             "usageControl": version.usage_control,
+            "isPaid": bool(getattr(version, "is_paid", False)),
+            "paidAccess": paid_access_payload,
             "filePath": context.get("file_path"),
             "fileName": context.get("file_name"),
         }

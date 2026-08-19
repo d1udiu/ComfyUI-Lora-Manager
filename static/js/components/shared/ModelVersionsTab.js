@@ -182,6 +182,10 @@ function isEarlyAccessActive(version) {
     }
 }
 
+function isPaidPermanent(version) {
+    return version && version.isPaid === true;
+}
+
 function isDownloadAllowed(version) {
     if (!version.usageControl) {
         return true;
@@ -342,6 +346,7 @@ function resolveUpdateAvailability(record, baseModel, currentVersionId) {
     const strategy = state?.global?.settings?.version_grouping;
     const sameBaseMode = strategy === DISPLAY_FILTER_MODES.SAME_BASE;
     const hideEarlyAccess = state?.global?.settings?.hide_early_access_updates;
+    const hidePaid = state?.global?.settings?.hide_paid_updates;
 
     if (!sameBaseMode) {
         return Boolean(record?.hasUpdate);
@@ -386,6 +391,9 @@ function resolveUpdateAvailability(record, baseModel, currentVersionId) {
             return false;
         }
         if (hideEarlyAccess && isEarlyAccessActive(version)) {
+            return false;
+        }
+        if (hidePaid && isPaidPermanent(version)) {
             return false;
         }
         if (!isDownloadAllowed(version)) {
@@ -469,6 +477,7 @@ function renderRow(version, options) {
     const downloadedBadgeLabel = translate('modals.model.versions.badges.downloaded', {}, 'Downloaded');
     const newerBadgeLabel = translate('modals.model.versions.badges.newer', {}, 'Newer Version');
     const earlyAccessBadgeLabel = translate('modals.model.versions.badges.earlyAccess', {}, 'Early Access');
+    const paidBadgeLabel = translate('modals.model.versions.badges.paid', {}, 'Paid');
     const ignoredBadgeLabel = translate('modals.model.versions.badges.ignored', {}, 'Ignored');
     const versionName = version.name || translate('modals.model.versions.labels.unnamed', {}, 'Untitled Version');
 
@@ -522,6 +531,16 @@ function renderRow(version, options) {
         }));
     }
 
+    if (isPaidPermanent(version)) {
+        badges.push(buildBadge(paidBadgeLabel, 'paid', {
+            title: translate(
+                'modals.model.versions.badges.paidTooltip',
+                {},
+                'This version requires payment to download'
+            ),
+        }));
+    }
+
     if (!isDownloadAllowed(version)) {
         const onSiteOnlyBadgeLabel = translate('modals.model.versions.badges.onSiteOnly', {}, 'On-Site Only');
         badges.push(buildBadge(onSiteOnlyBadgeLabel, 'info', {
@@ -554,40 +573,53 @@ function renderRow(version, options) {
     );
 
     const actions = [];
-    if (!version.isInLibrary) {
-        const canDownload = isDownloadAllowed(version);
-        const downloadIcon = isEarlyAccess ? '<i class="fas fa-bolt"></i> ' : '';
-        let downloadTitle;
-        if (!canDownload) {
-            downloadTitle = translate(
-                'modals.model.versions.actions.downloadNotAllowedTooltip',
-                {},
-                'This version is only available for on-site generation on Civitai'
-            );
-        } else if (isEarlyAccess) {
-            downloadTitle = translate(
-                'modals.model.versions.actions.downloadEarlyAccessTooltip',
-                {},
-                'Download this early access version from Civitai'
-            );
-        } else {
-            downloadTitle = translate(
-                'modals.model.versions.actions.downloadTooltip',
-                {},
-                'Download this version'
-            );
+    const canDownload = isDownloadAllowed(version);
+    const downloadIcon = isEarlyAccess ? '<i class="fas fa-bolt"></i> ' : '';
+    let downloadTitle;
+    if (!canDownload) {
+        downloadTitle = translate(
+            'modals.model.versions.actions.downloadNotAllowedTooltip',
+            {},
+            'This version is only available for on-site generation on Civitai'
+        );
+    } else if (version.isInLibrary) {
+        // In-library versions may still have undownloaded weight files; the
+        // download modal's file dialog decides what remains (#1058).
+        downloadTitle = translate(
+            'modals.model.versions.actions.downloadRemainingTooltip',
+            {},
+            'Download remaining files of this version'
+        );
+    } else if (isPaidPermanent(version)) {
+        downloadTitle = translate(
+            'modals.model.versions.actions.downloadPaidTooltip',
+            {},
+            'Download this paid version from Civitai'
+        );
+    } else if (isEarlyAccess) {
+        downloadTitle = translate(
+            'modals.model.versions.actions.downloadEarlyAccessTooltip',
+            {},
+            'Download this early access version from Civitai'
+        );
+    } else {
+        downloadTitle = translate(
+            'modals.model.versions.actions.downloadTooltip',
+            {},
+            'Download this version'
+        );
+    }
+    actions.push(buildActionButton(
+        downloadLabel,
+        canDownload ? 'version-action-primary' : 'version-action-disabled',
+        canDownload ? 'download' : '',
+        {
+            title: downloadTitle,
+            iconMarkup: downloadIcon,
+            disabled: !canDownload,
         }
-        actions.push(buildActionButton(
-            downloadLabel,
-            canDownload ? 'version-action-primary' : 'version-action-disabled',
-            canDownload ? 'download' : '',
-            {
-                title: downloadTitle,
-                iconMarkup: downloadIcon,
-                disabled: !canDownload,
-            }
-        ));
-    } else if (version.filePath) {
+    ));
+    if (version.isInLibrary && version.filePath) {
         actions.push(buildActionButton(
             deleteLabel,
             'version-action-danger',
@@ -1397,6 +1429,15 @@ export function initVersionsTab({
         button.disabled = true;
 
         try {
+            // In-library versions may still have undownloaded weight files
+            // (#1058). The tab payload has no per-file state, so open the
+            // download modal's file dialog, which refetches the full version
+            // payload and shows what remains.
+            if (version.isInLibrary) {
+                await downloadManager.openFileSelectionForVersion(modelType, modelId, versionId);
+                return;
+            }
+
             const pathInfo = await resolveDownloadPathFromCurrentVersion();
             const resolveTemplatePath = shouldResolveTemplatePath(version, pathInfo);
             const success = await downloadManager.downloadVersionWithDefaults(modelType, modelId, versionId, {

@@ -622,6 +622,10 @@
             "label": "Früher Zugriff Updates ausblenden",
             "help": "Nur Early-Access-Updates"
         },
+        "hidePaidUpdates": {
+            "label": "Bezahlte Updates ausblenden",
+            "help": "Wenn aktiviert, zeigen Modelle mit nur bezahlten Updates kein 'Update verfügbar'-Badge an"
+        },
         "licenseIcons": {
             "useNewStyle": "Aktualisierte Lizenzsymbole verwenden",
             "useNewStyleHelp": "Lizenzberechtigungen mit farbigen Indikatoren (neuer Stil) oder nur Einschränkungssymbolen (klassischer Stil) anzeigen. Orientiert sich am aktuellen CivitAI-Design."
@@ -849,7 +853,8 @@
     "recipes": {
         "title": "LoRA-Rezepte",
         "actions": {
-            "sendCheckpoint": "Send to ComfyUI"
+            "sendCheckpoint": "Send to ComfyUI",
+            "sendRecipe": "Send to ComfyUI"
         },
         "controls": {
             "import": {
@@ -920,7 +925,9 @@
                 "dateAsc": "Älteste",
                 "lorasCount": "LoRA-Anzahl",
                 "lorasCountDesc": "Meiste",
-                "lorasCountAsc": "Wenigste"
+                "lorasCountAsc": "Wenigste",
+                "opened": "Zuletzt geöffnet",
+                "openedDesc": "Zuletzt geöffnet"
             },
             "refresh": {
                 "title": "Rezeptliste aktualisieren",
@@ -931,6 +938,11 @@
             "favorites": {
                 "title": "Nur Favoriten anzeigen",
                 "action": "Favoriten"
+            },
+            "layout": {
+                "title": "Rezepte-Layout",
+                "grid": "Raster-Layout",
+                "masonry": "Masonry-Layout (Pinterest-Stil, behält das Seitenverhältnis des Bildes bei)"
             }
         },
         "duplicates": {
@@ -1232,11 +1244,13 @@
             "downloaded": "Heruntergeladen",
             "downloadedTooltip": "Zuvor heruntergeladen, aber derzeit nicht in Ihrer Bibliothek.",
             "alreadyInLibrary": "Bereits in Bibliothek",
+            "partiallyDownloaded": "Teilweise heruntergeladen",
             "autoOrganizedPath": "[Automatisch organisiert durch Pfadvorlage]",
             "fileSelection": {
                 "title": "Dateiformat auswählen",
                 "files": "Dateien",
-                "select": "Datei auswählen"
+                "select": "Datei auswählen",
+                "inLibrary": "In Bibliothek"
             },
             "errors": {
                 "invalidUrl": "Ungültiges Civitai URL-Format",
@@ -1521,6 +1535,30 @@
                 "examples": "Beispiele werden geladen...",
                 "versions": "Versionen werden geladen..."
             },
+            "showcase": {
+                "hiddenBySfw": "{count} durch Nur-SFW-Einstellung ausgeblendet",
+                "showExamples": "Beispiele anzeigen",
+                "showCount": "Beispiele anzeigen ({count})",
+                "hideExamples": "Beispiele ausblenden",
+                "addExamples": "Beispiele hinzufügen",
+                "previousExample": "Vorheriges Beispiel",
+                "nextExample": "Nächstes Beispiel",
+                "noExamples": "Keine Beispielbilder verfügbar",
+                "addMoreExamples": "Weitere Beispiele hinzufügen",
+                "dragDrop": "Bilder oder Videos hierher ziehen & ablegen",
+                "or": "oder",
+                "selectFiles": "Dateien auswählen",
+                "supportedFormats": "Unterstützte Formate: jpg, png, gif, webp, avif, jxl, mp4, webm",
+                "importing": "Dateien werden importiert...",
+                "noSupportedFiles": "Keine unterstützten Dateien ausgewählt. Bitte wählen Sie Bild- oder Videodateien aus.",
+                "allFiltered": "Alle Beispielbilder wurden aufgrund der NSFW-Inhaltseinstellungen herausgefiltert",
+                "sfwOnlyEnabled": "Ihre Einstellungen zeigen derzeit nur jugendfreie Inhalte an",
+                "changeInSettings": "Sie können dies in den Einstellungen ändern",
+                "nsfwMature": "Nicht jugendfreie Inhalte",
+                "nsfwR": "Inhalte ab 18 (R)",
+                "nsfwX": "Inhalte mit X-Einstufung",
+                "nsfwXxx": "Inhalte mit XXX-Einstufung"
+            },
             "versions": {
                 "heading": "Modellversionen",
                 "copy": "Verwalten Sie alle Versionen dieses Modells an einem Ort.",
@@ -1548,6 +1586,8 @@
                     "newerTooltip": "Diese Version ist neuer als Ihre neueste lokale Version",
                     "earlyAccess": "Früher Zugriff",
                     "earlyAccessTooltip": "Für diese Version ist derzeit Civitai Early Access erforderlich",
+                    "paid": "Bezahlt",
+                    "paidTooltip": "Diese Version erfordert eine Zahlung zum Herunterladen",
                     "ignored": "Ignoriert",
                     "ignoredTooltip": "Für diese Version sind Update-Benachrichtigungen deaktiviert",
                     "onSiteOnly": "Nur On-Site",
@@ -1556,7 +1596,9 @@
                 "actions": {
                     "download": "Herunterladen",
                     "downloadTooltip": "Diese Version herunterladen",
+                    "downloadRemainingTooltip": "Verbleibende Dateien dieser Version herunterladen",
                     "downloadEarlyAccessTooltip": "Diese Early-Access-Version von Civitai herunterladen",
+                    "downloadPaidTooltip": "Diese bezahlte Version von Civitai herunterladen",
                     "downloadNotAllowedTooltip": "Diese Version ist nur für die On-Site-Generierung auf Civitai verfügbar",
                     "delete": "Löschen",
                     "deleteTooltip": "Diese lokale Version löschen",
@@ -1726,7 +1768,7 @@
             "recipeReplaced": "Rezept im Workflow ersetzt",
             "recipeFailedToSend": "Fehler beim Senden des Rezepts an den Workflow",
             "noMatchingNodes": "Keine kompatiblen Knoten im aktuellen Workflow verfügbar",
-            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
+            "noPromptTargets": "Keine kompatiblen Prompt-Ziele im Workflow.\nKlicken Sie mit der rechten Maustaste auf einen Knoten in ComfyUI → Markieren als → Prompt-Ziel festlegen",
             "noTargetNodeSelected": "Kein Zielknoten ausgewählt",
             "modelUpdated": "Modell im Workflow aktualisiert",
             "modelFailed": "Fehler beim Aktualisieren des Modellknotens",
@@ -1903,6 +1945,7 @@
             "downloadPartialSuccess": "{completed} von {total} LoRAs heruntergeladen",
             "downloadPartialWithAccess": "{completed} von {total} LoRAs heruntergeladen. {accessFailures} fehlgeschlagen aufgrund von Zugriffsbeschränkungen. Überprüfen Sie Ihren API-Schlüssel in den Einstellungen oder den Early Access-Status.",
             "pleaseSelectVersion": "Bitte wählen Sie eine Version aus",
+            "pleaseSelectFile": "Bitte wählen Sie mindestens eine Datei aus",
             "versionExists": "Diese Version existiert bereits in Ihrer Bibliothek",
             "downloadCompleted": "Download erfolgreich abgeschlossen",
             "downloadSkippedByBaseModel": "Download übersprungen, weil das Basismodell {baseModel} ausgeschlossen ist",
@@ -2190,6 +2233,7 @@
             "fileRenameFailed": "Fehler beim Umbenennen der Datei: {error}",
             "previewUpdated": "Vorschau erfolgreich aktualisiert",
             "previewUploadFailed": "Fehler beim Hochladen des Vorschaubilds",
+            "previewDropInvalid": "Nicht unterstützter Dateityp: {name}. Ziehen Sie stattdessen ein Bild oder ein MP4-Video hinein.",
             "refreshComplete": "{action} abgeschlossen",
             "refreshFailed": "Fehler beim {action} der {type}s",
             "metadataRefreshed": "Metadaten erfolgreich aktualisiert",

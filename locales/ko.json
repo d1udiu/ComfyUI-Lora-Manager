@@ -622,6 +622,10 @@
             "label": "얼리 액세스 업데이트 숨기기",
             "help": "얼리 액세스 업데이트만"
         },
+        "hidePaidUpdates": {
+            "label": "유료 업데이트 숨기기",
+            "help": "활성화하면 유료 업데이트만 있는 모델에 '업데이트 가능' 배지가 표시되지 않습니다"
+        },
         "licenseIcons": {
             "useNewStyle": "업데이트된 라이선스 아이콘 사용",
             "useNewStyleHelp": "색상 표시기가 있는 라이선스 권한(새 스타일) 또는 제한 전용 아이콘(클래식 스타일)을 표시합니다. 현재 CivitAI 디자인을 반영합니다."
@@ -849,7 +853,8 @@
     "recipes": {
         "title": "LoRA 레시피",
         "actions": {
-            "sendCheckpoint": "ComfyUI로 보내기"
+            "sendCheckpoint": "ComfyUI로 보내기",
+            "sendRecipe": "ComfyUI로 보내기"
         },
         "controls": {
             "import": {
@@ -920,7 +925,9 @@
                 "dateAsc": "오래된순",
                 "lorasCount": "LoRA 수",
                 "lorasCountDesc": "많은순",
-                "lorasCountAsc": "적은순"
+                "lorasCountAsc": "적은순",
+                "opened": "최근에 연",
+                "openedDesc": "최근에 연"
             },
             "refresh": {
                 "title": "레시피 목록 새로고침",
@@ -931,6 +938,11 @@
             "favorites": {
                 "title": "즐겨찾기만 표시",
                 "action": "즐겨찾기"
+            },
+            "layout": {
+                "title": "레시피 레이아웃",
+                "grid": "그리드 레이아웃",
+                "masonry": "메이슨리 레이아웃 (Pinterest 스타일, 이미지 종횡비 유지)"
             }
         },
         "duplicates": {
@@ -1232,11 +1244,13 @@
             "downloaded": "다운로드됨",
             "downloadedTooltip": "이전에 다운로드했지만 현재 라이브러리에 없습니다.",
             "alreadyInLibrary": "이미 라이브러리에 있음",
+            "partiallyDownloaded": "부분적으로 다운로드됨",
             "autoOrganizedPath": "[경로 템플릿으로 자동 정리됨]",
             "fileSelection": {
                 "title": "파일 형식 선택",
                 "files": "개 파일",
-                "select": "파일 선택"
+                "select": "파일 선택",
+                "inLibrary": "라이브러리에 있음"
             },
             "errors": {
                 "invalidUrl": "잘못된 Civitai URL 형식",
@@ -1521,6 +1535,30 @@
                 "examples": "예시 로딩 중...",
                 "versions": "버전 로딩 중..."
             },
+            "showcase": {
+                "hiddenBySfw": "SFW 전용 설정으로 {count}개 숨겨짐",
+                "showExamples": "예시 보기",
+                "showCount": "예시 보기 ({count})",
+                "hideExamples": "예시 숨기기",
+                "addExamples": "예시 추가",
+                "previousExample": "이전 예시",
+                "nextExample": "다음 예시",
+                "noExamples": "사용 가능한 예시 이미지가 없습니다",
+                "addMoreExamples": "예시 더 추가",
+                "dragDrop": "이미지 또는 비디오를 여기로 끌어다 놓으세요",
+                "or": "또는",
+                "selectFiles": "파일 선택",
+                "supportedFormats": "지원되는 형식: jpg, png, gif, webp, avif, jxl, mp4, webm",
+                "importing": "파일을 가져오는 중...",
+                "noSupportedFiles": "지원되는 파일이 선택되지 않았습니다. 이미지 또는 비디오 파일을 선택하세요.",
+                "allFiltered": "NSFW 콘텐츠 설정으로 인해 모든 예시 이미지가 필터링되었습니다",
+                "sfwOnlyEnabled": "현재 설정이 안전한(SFW) 콘텐츠만 표시하도록 설정되어 있습니다",
+                "changeInSettings": "설정에서 변경할 수 있습니다",
+                "nsfwMature": "성인 콘텐츠",
+                "nsfwR": "R등급 콘텐츠",
+                "nsfwX": "X등급 콘텐츠",
+                "nsfwXxx": "XXX등급 콘텐츠"
+            },
             "versions": {
                 "heading": "모델 버전",
                 "copy": "이 모델의 모든 버전을 한 곳에서 관리하세요.",
@@ -1548,6 +1586,8 @@
                     "newerTooltip": "이 버전은 로컬의 최신 버전보다 더 새롭습니다",
                     "earlyAccess": "얼리 액세스",
                     "earlyAccessTooltip": "이 버전은 현재 Civitai 얼리 액세스가 필요합니다",
+                    "paid": "유료",
+                    "paidTooltip": "이 버전은 다운로드하려면 결제가 필요합니다",
                     "ignored": "무시됨",
                     "ignoredTooltip": "이 버전은 업데이트 알림이 비활성화되어 있습니다",
                     "onSiteOnly": "사이트 내 전용",
@@ -1556,7 +1596,9 @@
                 "actions": {
                     "download": "다운로드",
                     "downloadTooltip": "이 버전 다운로드",
+                    "downloadRemainingTooltip": "이 버전의 나머지 파일 다운로드",
                     "downloadEarlyAccessTooltip": "Civitai에서 이 얼리 액세스 버전 다운로드",
+                    "downloadPaidTooltip": "Civitai에서 이 유료 버전 다운로드",
                     "downloadNotAllowedTooltip": "이 버전은 Civitai 사이트 내에서만 사용 가능하며 다운로드할 수 없습니다",
                     "delete": "삭제",
                     "deleteTooltip": "이 로컬 버전 삭제",
@@ -1726,7 +1768,7 @@
             "recipeReplaced": "레시피가 워크플로에서 교체되었습니다",
             "recipeFailedToSend": "레시피를 워크플로로 전송하지 못했습니다",
             "noMatchingNodes": "현재 워크플로에서 호환되는 노드가 없습니다",
-            "noPromptTargets": "[TODO: Translate] No compatible prompt targets in the workflow.\nRight-click a node in ComfyUI → Mark as → Send Prompt Target",
+            "noPromptTargets": "워크플로우에 호환되는 프롬프트 타겟이 없습니다.\nComfyUI에서 노드를 우클릭 → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "대상 노드가 선택되지 않았습니다",
             "modelUpdated": "모델이 워크플로에서 업데이트되었습니다",
             "modelFailed": "모델 노드 업데이트 실패",
@@ -1903,6 +1945,7 @@
             "downloadPartialSuccess": "{total}개 중 {completed}개 LoRA가 다운로드되었습니다",
             "downloadPartialWithAccess": "{total}개 중 {completed}개 LoRA가 다운로드되었습니다. {accessFailures}개는 액세스 제한으로 실패했습니다. 설정에서 API 키 또는 얼리 액세스 상태를 확인하세요.",
             "pleaseSelectVersion": "버전을 선택해주세요",
+            "pleaseSelectFile": "파일을 하나 이상 선택해주세요",
             "versionExists": "이 버전은 이미 라이브러리에 있습니다",
             "downloadCompleted": "다운로드가 성공적으로 완료되었습니다",
             "downloadSkippedByBaseModel": "기본 모델 {baseModel}이(가) 제외되어 다운로드를 건너뛰었습니다",
@@ -2190,6 +2233,7 @@
             "fileRenameFailed": "파일 이름 변경 실패: {error}",
             "previewUpdated": "미리보기가 성공적으로 업데이트되었습니다",
             "previewUploadFailed": "미리보기 이미지 업로드 실패",
+            "previewDropInvalid": "지원되지 않는 파일 형식: {name}. 이미지 또는 MP4 동영상을 드롭하세요.",
             "refreshComplete": "{action} 완료",
             "refreshFailed": "{type} {action} 실패",
             "metadataRefreshed": "메타데이터가 성공적으로 새로고침되었습니다",
