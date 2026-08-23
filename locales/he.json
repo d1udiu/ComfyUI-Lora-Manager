@@ -222,6 +222,7 @@
                 "modelname": "שם מודל",
                 "tags": "תגיות",
                 "creator": "יוצר",
+                "hash": "האש",
                 "title": "כותרת מתכון",
                 "loraName": "שם קובץ LoRA",
                 "loraModel": "שם מודל LoRA",
@@ -856,18 +857,22 @@
             "sendCheckpoint": "שלח ל-ComfyUI",
             "sendRecipe": "שלח ל-ComfyUI"
         },
+        "workflow": {
+            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
+            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
+            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+        },
         "controls": {
             "import": {
                 "action": "ייבא",
                 "title": "ייבא מתכון מתמונה או כתובת URL",
-                "urlLocalPath": "URL / נתיב מקומי",
-                "uploadImage": "העלה תמונה",
-                "urlSectionDescription": "הזן כתובת URL של תמונה מ-Civitai או נתיב קובץ מקומי לייבוא כמתכון.",
+                "dropZoneLabel": "העלאת תמונה",
+                "dropZoneHint": "גררו ושחררו תמונה כאן, הדביקו מהלוח או לחצו לעיון",
+                "orDivider": "או גררו ושחררו / הדביקו תמונה",
                 "imageUrlOrPath": "URL של תמונה או נתיב קובץ:",
                 "urlPlaceholder": "https://civitai.com/images/... או C:/path/to/image.png",
                 "fetchImage": "אחזר תמונה",
-                "uploadSectionDescription": "העלה תמונה עם מטא-דאטה של LoRA לייבוא כמתכון.",
-                "selectImage": "בחר תמונה",
                 "recipeName": "שם המתכון",
                 "recipeNamePlaceholder": "הזן שם מתכון",
                 "tagsOptional": "תגיות (אופציונלי)",
@@ -912,6 +917,8 @@
                 "errors": {
                     "selectImageFile": "אנא בחר קובץ תמונה",
                     "enterUrlOrPath": "אנא הזן URL או נתיב קובץ",
+                    "invalidUrl": "נא להזין כתובת URL תקינה",
+                    "invalidInputFormat": "נא להזין כתובת URL של תמונה או נתיב קובץ מקומי",
                     "selectLoraRoot": "אנא בחר ספריית שורש של LoRA"
                 }
             },
@@ -1427,7 +1434,8 @@
                 "viewCreatorProfile": "הצג פרופיל יוצר",
                 "openFileLocation": "פתח מיקום קובץ",
                 "sendToWorkflow": "שלח ל-ComfyUI",
-                "sendToWorkflowText": "שלח ל-ComfyUI"
+                "sendToWorkflowText": "שלח ל-ComfyUI",
+                "copyHash": "העתק האש"
             },
             "openFileLocation": {
                 "success": "מיקום הקובץ נפתח בהצלחה",
@@ -1444,6 +1452,7 @@
                 "location": "מיקום",
                 "baseModel": "מודל בסיס",
                 "size": "גודל",
+                "hashes": "האשים",
                 "unknown": "לא ידוע",
                 "usageTips": "טיפים לשימוש",
                 "additionalNotes": "הערות נוספות",
@@ -2031,7 +2040,10 @@
             "reimportBulkComplete": "ייבוא מחדש הושלם: {completed} יובאו, {failed} נכשלו (מתוך {total})",
             "reimportBulkFailed": "ייבוא מחדש של חלק מהמתכונים נכשל",
             "noMissingLorasInSelection": "לא נמצאו LoRAs חסרים במתכונים שנבחרו",
-            "noLoraRootConfigured": "תיקיית השורש של LoRA לא מוגדרת. אנא הגדר תיקיית שורש LoRA ברירת מחדל בהגדרות."
+            "noLoraRootConfigured": "תיקיית השורש של LoRA לא מוגדרת. אנא הגדר תיקיית שורש LoRA ברירת מחדל בהגדרות.",
+            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
+            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
         },
         "models": {
             "noModelsSelected": "לא נבחרו מודלים",

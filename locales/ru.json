@@ -222,6 +222,7 @@
                 "modelname": "Название модели",
                 "tags": "Теги",
                 "creator": "Автор",
+                "hash": "Хэш",
                 "title": "Название рецепта",
                 "loraName": "Имя файла LoRA",
                 "loraModel": "Название модели LoRA",
@@ -856,18 +857,22 @@
             "sendCheckpoint": "Отправить в ComfyUI",
             "sendRecipe": "Отправить в ComfyUI"
         },
+        "workflow": {
+            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
+            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
+            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+        },
         "controls": {
             "import": {
                 "action": "Импортировать",
                 "title": "Импортировать рецепт из изображения или URL",
-                "urlLocalPath": "URL / Локальный путь",
-                "uploadImage": "Загрузить изображение",
-                "urlSectionDescription": "Введите URL изображения Civitai или локальный путь к файлу для импорта в качестве рецепта.",
+                "dropZoneLabel": "Загрузить изображение",
+                "dropZoneHint": "Перетащите изображение сюда, вставьте из буфера обмена или нажмите для выбора",
+                "orDivider": "или перетащите / вставьте изображение",
                 "imageUrlOrPath": "URL изображения или путь к файлу:",
                 "urlPlaceholder": "https://civitai.com/images/... или C:/path/to/image.png",
                 "fetchImage": "Получить изображение",
-                "uploadSectionDescription": "Загрузите изображение с метаданными LoRA для импорта в качестве рецепта.",
-                "selectImage": "Выбрать изображение",
                 "recipeName": "Название рецепта",
                 "recipeNamePlaceholder": "Введите название рецепта",
                 "tagsOptional": "Теги (необязательно)",
@@ -912,6 +917,8 @@
                 "errors": {
                     "selectImageFile": "Пожалуйста, выберите файл изображения",
                     "enterUrlOrPath": "Пожалуйста, введите URL или путь к файлу",
+                    "invalidUrl": "Введите корректный URL",
+                    "invalidInputFormat": "Введите URL изображения или путь к локальному файлу изображения",
                     "selectLoraRoot": "Пожалуйста, выберите корневую папку LoRA"
                 }
             },
@@ -1427,7 +1434,8 @@
                 "viewCreatorProfile": "Посмотреть профиль создателя",
                 "openFileLocation": "Открыть расположение файла",
                 "sendToWorkflow": "Отправить в ComfyUI",
-                "sendToWorkflowText": "Отправить в ComfyUI"
+                "sendToWorkflowText": "Отправить в ComfyUI",
+                "copyHash": "Копировать хэш"
             },
             "openFileLocation": {
                 "success": "Расположение файла успешно открыто",
@@ -1444,6 +1452,7 @@
                 "location": "Расположение",
                 "baseModel": "Базовая модель",
                 "size": "Размер",
+                "hashes": "Хэши",
                 "unknown": "Неизвестно",
                 "usageTips": "Советы по использованию",
                 "additionalNotes": "Дополнительные заметки",
@@ -2031,7 +2040,10 @@
             "reimportBulkComplete": "Переимпорт завершён: {completed} переимпортировано, {failed} ошибок (из {total})",
             "reimportBulkFailed": "Не удалось переимпортировать некоторые рецепты",
             "noMissingLorasInSelection": "В выбранных рецептах не найдены отсутствующие LoRAs",
-            "noLoraRootConfigured": "Корневой каталог LoRA не настроен. Пожалуйста, установите корневой каталог LoRA по умолчанию в настройках."
+            "noLoraRootConfigured": "Корневой каталог LoRA не настроен. Пожалуйста, установите корневой каталог LoRA по умолчанию в настройках.",
+            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
+            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
         },
         "models": {
             "noModelsSelected": "Модели не выбраны",

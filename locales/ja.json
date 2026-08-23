@@ -222,6 +222,7 @@
                 "modelname": "モデル名",
                 "tags": "タグ",
                 "creator": "作成者",
+                "hash": "ハッシュ",
                 "title": "レシピタイトル",
                 "loraName": "LoRAファイル名",
                 "loraModel": "LoRAモデル名",
@@ -856,18 +857,22 @@
             "sendCheckpoint": "ComfyUIへ送信",
             "sendRecipe": "ComfyUIへ送信"
         },
+        "workflow": {
+            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
+            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
+            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+        },
         "controls": {
             "import": {
                 "action": "インポート",
                 "title": "画像またはURLからレシピをインポート",
-                "urlLocalPath": "URL / ローカルパス",
-                "uploadImage": "画像をアップロード",
-                "urlSectionDescription": "Civitai画像URLまたはローカルファイルパスを入力してレシピとしてインポートします。",
+                "dropZoneLabel": "画像をアップロード",
+                "dropZoneHint": "画像をここにドラッグ＆ドロップ、クリップボードから貼り付け、またはクリックして参照",
+                "orDivider": "または画像をドラッグ＆ドロップ / 貼り付け",
                 "imageUrlOrPath": "画像URLまたはファイルパス：",
                 "urlPlaceholder": "https://civitai.com/images/... または C:/path/to/image.png",
                 "fetchImage": "画像を取得",
-                "uploadSectionDescription": "LoRAメタデータを含む画像をアップロードしてレシピとしてインポートします。",
-                "selectImage": "画像を選択",
                 "recipeName": "レシピ名",
                 "recipeNamePlaceholder": "レシピ名を入力",
                 "tagsOptional": "タグ（任意）",
@@ -912,6 +917,8 @@
                 "errors": {
                     "selectImageFile": "画像ファイルを選択してください",
                     "enterUrlOrPath": "URLまたはファイルパスを入力してください",
+                    "invalidUrl": "有効なURLを入力してください",
+                    "invalidInputFormat": "画像のURLまたはローカルの画像ファイルパスを入力してください",
                     "selectLoraRoot": "LoRAルートディレクトリを選択してください"
                 }
             },
@@ -1427,7 +1434,8 @@
                 "viewCreatorProfile": "作成者プロフィールを表示",
                 "openFileLocation": "ファイルの場所を開く",
                 "sendToWorkflow": "ComfyUI に送信",
-                "sendToWorkflowText": "ComfyUI に送信"
+                "sendToWorkflowText": "ComfyUI に送信",
+                "copyHash": "ハッシュをコピー"
             },
             "openFileLocation": {
                 "success": "ファイルの場所を正常に開きました",
@@ -1444,6 +1452,7 @@
                 "location": "場所",
                 "baseModel": "ベースモデル",
                 "size": "サイズ",
+                "hashes": "ハッシュ",
                 "unknown": "不明",
                 "usageTips": "使用のヒント",
                 "additionalNotes": "追加メモ",
@@ -2031,7 +2040,10 @@
             "reimportBulkComplete": "再インポート完了：{completed} 件成功、{failed} 件失敗（合計 {total} 件）",
             "reimportBulkFailed": "一部のレシピの再インポートに失敗しました",
             "noMissingLorasInSelection": "選択したレシピに不足している LoRA が見つかりませんでした",
-            "noLoraRootConfigured": "LoRA ルートディレクトリが設定されていません。設定でデフォルトの LoRA ルートを設定してください。"
+            "noLoraRootConfigured": "LoRA ルートディレクトリが設定されていません。設定でデフォルトの LoRA ルートを設定してください。",
+            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
+            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
         },
         "models": {
             "noModelsSelected": "モデルが選択されていません",

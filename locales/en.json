@@ -222,6 +222,7 @@
         "modelname": "Model Name",
         "tags": "Tags",
         "creator": "Creator",
+        "hash": "Hash",
         "title": "Recipe Title",
         "loraName": "LoRA Filename",
         "loraModel": "LoRA Model Name",
@@ -856,18 +857,22 @@
       "sendCheckpoint": "Send to ComfyUI",
       "sendRecipe": "Send to ComfyUI"
     },
+    "workflow": {
+      "sendWorkflow": "Send Workflow to ComfyUI",
+      "sent": "Workflow sent to ComfyUI",
+      "sendFailed": "Failed to send workflow to ComfyUI",
+      "noWorkflow": "No embedded workflow found in this recipe"
+    },
     "controls": {
       "import": {
         "action": "Import",
         "title": "Import a recipe from image or URL",
-        "urlLocalPath": "URL / Local Path",
-        "uploadImage": "Upload Image",
-        "urlSectionDescription": "Input a Civitai image URL from civitai.com or civitai.red, or a local file path, to import as a recipe.",
+        "dropZoneLabel": "Upload image",
+        "dropZoneHint": "Drag & drop an image here, paste from clipboard, or click to browse",
+        "orDivider": "or drag & drop / paste an image",
         "imageUrlOrPath": "Image URL or File Path:",
         "urlPlaceholder": "https://civitai.com/images/... or https://civitai.red/images/... or C:/path/to/image.png",
         "fetchImage": "Fetch Image",
-        "uploadSectionDescription": "Upload an image with LoRA metadata to import as a recipe.",
-        "selectImage": "Select Image",
         "recipeName": "Recipe Name",
         "recipeNamePlaceholder": "Enter recipe name",
         "tagsOptional": "Tags (optional)",
@@ -912,6 +917,8 @@
         "errors": {
           "selectImageFile": "Please select an image file",
           "enterUrlOrPath": "Please enter a URL or file path",
+          "invalidUrl": "Please enter a valid URL",
+          "invalidInputFormat": "Please enter an image URL or a local image file path",
           "selectLoraRoot": "Please select a LoRA root directory"
         }
       },
@@ -1427,7 +1434,8 @@
         "viewCreatorProfile": "View Creator Profile",
         "openFileLocation": "Open File Location",
         "sendToWorkflow": "Send to ComfyUI",
-        "sendToWorkflowText": "Send to ComfyUI"
+        "sendToWorkflowText": "Send to ComfyUI",
+        "copyHash": "Copy hash"
       },
       "openFileLocation": {
         "success": "File location opened successfully",
@@ -1444,6 +1452,7 @@
         "location": "Location",
         "baseModel": "Base Model",
         "size": "Size",
+        "hashes": "Hashes",
         "unknown": "Unknown",
         "usageTips": "Usage Tips",
         "additionalNotes": "Additional Notes",
@@ -2031,7 +2040,10 @@
       "reimportBulkComplete": "Re-import complete: {completed} re-imported, {failed} failed (of {total})",
       "reimportBulkFailed": "Failed to re-import some recipes",
       "noMissingLorasInSelection": "No missing LoRAs found in selected recipes",
-      "noLoraRootConfigured": "No LoRA root directory configured. Please set a default LoRA root in settings."
+      "noLoraRootConfigured": "No LoRA root directory configured. Please set a default LoRA root in settings.",
+      "workflowSent": "Workflow sent to ComfyUI",
+      "workflowSendFailed": "Failed to send workflow to ComfyUI: {error}",
+      "workflowNoWorkflow": "No embedded workflow found in this recipe"
     },
     "models": {
       "noModelsSelected": "No models selected",

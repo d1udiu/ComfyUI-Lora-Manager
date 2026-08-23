@@ -222,6 +222,7 @@
                 "modelname": "模型名稱",
                 "tags": "標籤",
                 "creator": "創作者",
+                "hash": "雜湊",
                 "title": "配方標題",
                 "loraName": "LoRA 檔案名稱",
                 "loraModel": "LoRA 模型名稱",
@@ -856,18 +857,22 @@
             "sendCheckpoint": "傳送到 ComfyUI",
             "sendRecipe": "傳送到 ComfyUI"
         },
+        "workflow": {
+            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
+            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
+            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+        },
         "controls": {
             "import": {
                 "action": "匯入",
                 "title": "從圖片或網址匯入配方",
-                "urlLocalPath": "網址 / 本機路徑",
-                "uploadImage": "上傳圖片",
-                "urlSectionDescription": "輸入 Civitai 圖片網址或本機檔案路徑以匯入配方。",
+                "dropZoneLabel": "上傳圖片",
+                "dropZoneHint": "將圖片拖曳至此處、從剪貼簿貼上，或點擊瀏覽",
+                "orDivider": "或拖曳 / 貼上圖片",
                 "imageUrlOrPath": "圖片網址或檔案路徑：",
                 "urlPlaceholder": "https://civitai.com/images/... 或 C:/path/to/image.png",
                 "fetchImage": "取得圖片",
-                "uploadSectionDescription": "上傳含 LoRA metadata 的圖片以匯入配方。",
-                "selectImage": "選擇圖片",
                 "recipeName": "配方名稱",
                 "recipeNamePlaceholder": "輸入配方名稱",
                 "tagsOptional": "標籤（選填）",
@@ -912,6 +917,8 @@
                 "errors": {
                     "selectImageFile": "請選擇圖片檔案",
                     "enterUrlOrPath": "請輸入網址或檔案路徑",
+                    "invalidUrl": "請輸入有效的 URL",
+                    "invalidInputFormat": "請輸入圖片 URL 或本機圖片檔案路徑",
                     "selectLoraRoot": "請選擇 LoRA 根目錄"
                 }
             },
@@ -1427,7 +1434,8 @@
                 "viewCreatorProfile": "查看創作者個人檔案",
                 "openFileLocation": "開啟檔案位置",
                 "sendToWorkflow": "傳送到 ComfyUI",
-                "sendToWorkflowText": "傳送到 ComfyUI"
+                "sendToWorkflowText": "傳送到 ComfyUI",
+                "copyHash": "複製雜湊值"
             },
             "openFileLocation": {
                 "success": "檔案位置已成功開啟",
@@ -1444,6 +1452,7 @@
                 "location": "位置",
                 "baseModel": "基礎模型",
                 "size": "大小",
+                "hashes": "雜湊值",
                 "unknown": "未知",
                 "usageTips": "使用提示",
                 "additionalNotes": "附加備註",
@@ -2031,7 +2040,10 @@
             "reimportBulkComplete": "重新匯入完成：{completed} 個已匯入，{failed} 個失敗（共 {total} 個）",
             "reimportBulkFailed": "重新匯入某些配方失敗",
             "noMissingLorasInSelection": "在選取的食譜中未找到缺失的 LoRAs",
-            "noLoraRootConfigured": "未配置 LoRA 根目錄。請在設定中設定預設的 LoRA 根目錄。"
+            "noLoraRootConfigured": "未配置 LoRA 根目錄。請在設定中設定預設的 LoRA 根目錄。",
+            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
+            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
         },
         "models": {
             "noModelsSelected": "未選擇模型",

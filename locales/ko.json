@@ -222,6 +222,7 @@
                 "modelname": "모델명",
                 "tags": "태그",
                 "creator": "제작자",
+                "hash": "해시",
                 "title": "레시피 제목",
                 "loraName": "LoRA 파일명",
                 "loraModel": "LoRA 모델명",
@@ -856,18 +857,22 @@
             "sendCheckpoint": "ComfyUI로 보내기",
             "sendRecipe": "ComfyUI로 보내기"
         },
+        "workflow": {
+            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
+            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
+            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+        },
         "controls": {
             "import": {
                 "action": "가져오기",
                 "title": "이미지 또는 URL에서 레시피 가져오기",
-                "urlLocalPath": "URL / 로컬 경로",
-                "uploadImage": "이미지 업로드",
-                "urlSectionDescription": "Civitai 이미지 URL 또는 로컬 파일 경로를 입력하여 레시피로 가져옵니다.",
+                "dropZoneLabel": "이미지 업로드",
+                "dropZoneHint": "이미지를 여기에 끌어다 놓거나, 클립보드에서 붙여넣거나, 클릭하여 찾아보세요",
+                "orDivider": "또는 이미지를 끌어다 놓기 / 붙여넣기",
                 "imageUrlOrPath": "이미지 URL 또는 파일 경로:",
                 "urlPlaceholder": "https://civitai.com/images/... 또는 C:/path/to/image.png",
                 "fetchImage": "이미지 가져오기",
-                "uploadSectionDescription": "LoRA 메타데이터가 포함된 이미지를 업로드하여 레시피로 가져옵니다.",
-                "selectImage": "이미지 선택",
                 "recipeName": "레시피 이름",
                 "recipeNamePlaceholder": "레시피 이름을 입력하세요",
                 "tagsOptional": "태그 (선택사항)",
@@ -912,6 +917,8 @@
                 "errors": {
                     "selectImageFile": "이미지 파일을 선택해주세요",
                     "enterUrlOrPath": "URL 또는 파일 경로를 입력해주세요",
+                    "invalidUrl": "유효한 URL을 입력하세요",
+                    "invalidInputFormat": "이미지 URL 또는 로컬 이미지 파일 경로를 입력하세요",
                     "selectLoraRoot": "LoRA 루트 디렉토리를 선택해주세요"
                 }
             },
@@ -1427,7 +1434,8 @@
                 "viewCreatorProfile": "제작자 프로필 보기",
                 "openFileLocation": "파일 위치 열기",
                 "sendToWorkflow": "ComfyUI로 보내기",
-                "sendToWorkflowText": "ComfyUI로 보내기"
+                "sendToWorkflowText": "ComfyUI로 보내기",
+                "copyHash": "해시 복사"
             },
             "openFileLocation": {
                 "success": "파일 위치가 성공적으로 열렸습니다",
@@ -1444,6 +1452,7 @@
                 "location": "위치",
                 "baseModel": "베이스 모델",
                 "size": "크기",
+                "hashes": "해시",
                 "unknown": "알 수 없음",
                 "usageTips": "사용 팁",
                 "additionalNotes": "추가 메모",
@@ -2031,7 +2040,10 @@
             "reimportBulkComplete": "다시 가져오기 완료: {completed}개 성공, {failed}개 실패 (총 {total}개)",
             "reimportBulkFailed": "일부 레시피를 다시 가져오지 못했습니다",
             "noMissingLorasInSelection": "선택한 레시피에서 누락된 LoRA를 찾을 수 없습니다",
-            "noLoraRootConfigured": "LoRA 루트 디렉토리가 구성되지 않았습니다. 설정에서 기본 LoRA 루트를 설정하세요."
+            "noLoraRootConfigured": "LoRA 루트 디렉토리가 구성되지 않았습니다. 설정에서 기본 LoRA 루트를 설정하세요.",
+            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
+            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
+            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
         },
         "models": {
             "noModelsSelected": "선택된 모델이 없습니다",
