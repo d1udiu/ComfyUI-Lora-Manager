@@ -176,11 +176,19 @@ class RecipePageView:
             user_language = self._settings.get("language", "en")
             self._server_i18n.set_locale(user_language)
 
+            # While the initial scan is running, show the initialization
+            # screen (same as the model pages) instead of an empty grid; the
+            # page reloads itself when the scanner broadcasts completion.
+            is_initializing = (
+                recipe_scanner._cache is None or recipe_scanner.is_initializing()
+            )
+
             try:
-                await recipe_scanner.get_cached_data(force_refresh=False)
+                if not is_initializing:
+                    await recipe_scanner.get_cached_data(force_refresh=False)
                 rendered = self._template_env.get_template(self._template_name).render(
                     recipes=[],
-                    is_initializing=False,
+                    is_initializing=is_initializing,
                     settings=self._settings,
                     request=request,
                     t=self._server_i18n.get_translation,
@@ -265,6 +273,14 @@ class RecipeListingHandler:
 
             if tag_filters:
                 filters["tags"] = tag_filters
+
+            lora_availability = {
+                status.strip()
+                for status in request.query.get("lora_availability", "").split(",")
+                if status.strip() in ("ready", "missing", "deleted")
+            }
+            if lora_availability:
+                filters["lora_availability"] = lora_availability
 
             lora_hash = request.query.get("lora_hash")
             checkpoint_hash = request.query.get("checkpoint_hash")

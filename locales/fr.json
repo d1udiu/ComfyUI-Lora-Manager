@@ -260,7 +260,11 @@
             "any": "N'importe quel",
             "all": "Tous",
             "tagLogicAny": "Correspondre à n'importe quel tag (OU)",
-            "tagLogicAll": "Correspondre à tous les tags (ET)"
+            "tagLogicAll": "Correspondre à tous les tags (ET)",
+            "loraAvailability": "Disponibilité des LoRAs",
+            "availabilityReady": "Prêts à l'emploi",
+            "availabilityMissing": "Avec LoRAs manquants",
+            "availabilityDeleted": "Avec LoRAs supprimés"
         },
         "theme": {
             "toggle": "Basculer le thème",
@@ -855,13 +859,19 @@
         "title": "LoRA Recipes",
         "actions": {
             "sendCheckpoint": "Envoyer vers ComfyUI",
-            "sendRecipe": "Envoyer vers ComfyUI"
+            "sendRecipe": "Envoyer vers ComfyUI",
+            "deleteRecipeWithShortcut": "Supprimer la recette (Del)"
+        },
+        "navigation": {
+            "label": "Navigation des recettes",
+            "previousWithShortcut": "Recette précédente (←)",
+            "nextWithShortcut": "Recette suivante (→)"
         },
         "workflow": {
-            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
-            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
-            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
-            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+            "sendWorkflow": "Envoyer le workflow vers ComfyUI",
+            "sent": "Workflow envoyé vers ComfyUI",
+            "sendFailed": "Échec de l'envoi du workflow vers ComfyUI",
+            "noWorkflow": "Aucun workflow intégré trouvé dans cette recette"
         },
         "controls": {
             "import": {
@@ -1435,7 +1445,8 @@
                 "openFileLocation": "Ouvrir l'emplacement du fichier",
                 "sendToWorkflow": "Envoyer vers ComfyUI",
                 "sendToWorkflowText": "Envoyer vers ComfyUI",
-                "copyHash": "Copier le hash"
+                "copyHash": "Copier le hash",
+                "deleteModelWithShortcut": "Supprimer le modèle (Del)"
             },
             "openFileLocation": {
                 "success": "Emplacement du fichier ouvert avec succès",
@@ -1605,7 +1616,7 @@
                 "actions": {
                     "download": "Télécharger",
                     "downloadTooltip": "Télécharger cette version",
-                    "downloadRemainingTooltip": "Télécharger les fichiers restants de cette version",
+                    "downloadChooseFilesTooltip": "Choisir les fichiers à télécharger",
                     "downloadEarlyAccessTooltip": "Télécharger cette version en accès anticipé depuis Civitai",
                     "downloadPaidTooltip": "Télécharger cette version payante depuis Civitai",
                     "downloadNotAllowedTooltip": "Cette version n'est disponible que pour la génération sur le site Civitai",
@@ -1988,6 +1999,8 @@
             "createMissingData": "Données requises manquantes pour créer le Recipe",
             "created": "Recipe créé avec succès",
             "noMissingLoras": "Aucun LoRA manquant à télécharger",
+            "noPreviousRecipe": "Aucune recette précédente",
+            "noNextRecipe": "Aucune recette suivante",
             "missingLorasInfoFailed": "Échec de l'obtention des informations pour les LoRAs manquants",
             "preparingForDownloadFailed": "Erreur lors de la préparation des LoRAs pour le téléchargement",
             "enterLoraName": "Veuillez entrer un nom ou une syntaxe LoRA",
@@ -2041,9 +2054,9 @@
             "reimportBulkFailed": "Échec du ré-import de certaines recettes",
             "noMissingLorasInSelection": "Aucun LoRA manquant trouvé dans les recettes sélectionnées",
             "noLoraRootConfigured": "Aucun répertoire racine LoRA configuré. Veuillez définir un répertoire racine LoRA par défaut dans les paramètres.",
-            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
-            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
-            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+            "workflowSent": "Workflow envoyé vers ComfyUI",
+            "workflowSendFailed": "Échec de l'envoi du workflow vers ComfyUI: {error}",
+            "workflowNoWorkflow": "Aucun workflow intégré trouvé dans cette recette"
         },
         "models": {
             "noModelsSelected": "Aucun modèle sélectionné",

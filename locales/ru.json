@@ -260,7 +260,11 @@
             "any": "Любой",
             "all": "Все",
             "tagLogicAny": "Совпадение с любым тегом (ИЛИ)",
-            "tagLogicAll": "Совпадение со всеми тегами (И)"
+            "tagLogicAll": "Совпадение со всеми тегами (И)",
+            "loraAvailability": "Доступность LoRAs",
+            "availabilityReady": "Готовы к использованию",
+            "availabilityMissing": "Есть отсутствующие",
+            "availabilityDeleted": "Есть удалённые"
         },
         "theme": {
             "toggle": "Переключить тему",
@@ -855,13 +859,19 @@
         "title": "Рецепты LoRA",
         "actions": {
             "sendCheckpoint": "Отправить в ComfyUI",
-            "sendRecipe": "Отправить в ComfyUI"
+            "sendRecipe": "Отправить в ComfyUI",
+            "deleteRecipeWithShortcut": "Удалить рецепт (Del)"
+        },
+        "navigation": {
+            "label": "Навигация по рецептам",
+            "previousWithShortcut": "Предыдущий рецепт (←)",
+            "nextWithShortcut": "Следующий рецепт (→)"
         },
         "workflow": {
-            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
-            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
-            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
-            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+            "sendWorkflow": "Отправить workflow в ComfyUI",
+            "sent": "Workflow отправлен в ComfyUI",
+            "sendFailed": "Не удалось отправить workflow в ComfyUI",
+            "noWorkflow": "В этом рецепте не найден встроенный workflow"
         },
         "controls": {
             "import": {
@@ -1435,7 +1445,8 @@
                 "openFileLocation": "Открыть расположение файла",
                 "sendToWorkflow": "Отправить в ComfyUI",
                 "sendToWorkflowText": "Отправить в ComfyUI",
-                "copyHash": "Копировать хэш"
+                "copyHash": "Копировать хэш",
+                "deleteModelWithShortcut": "Удалить модель (Del)"
             },
             "openFileLocation": {
                 "success": "Расположение файла успешно открыто",
@@ -1605,7 +1616,7 @@
                 "actions": {
                     "download": "Скачать",
                     "downloadTooltip": "Скачать эту версию",
-                    "downloadRemainingTooltip": "Скачать оставшиеся файлы этой версии",
+                    "downloadChooseFilesTooltip": "Выбрать файлы для скачивания",
                     "downloadEarlyAccessTooltip": "Скачать эту версию раннего доступа с Civitai",
                     "downloadPaidTooltip": "Скачать эту платную версию с Civitai",
                     "downloadNotAllowedTooltip": "Эта версия доступна только для генерации на сайте Civitai",
@@ -1988,6 +1999,8 @@
             "createMissingData": "Отсутствуют необходимые данные для создания рецепта",
             "created": "Рецепт успешно создан",
             "noMissingLoras": "Нет отсутствующих LoRAs для загрузки",
+            "noPreviousRecipe": "Предыдущий рецепт отсутствует",
+            "noNextRecipe": "Следующий рецепт отсутствует",
             "missingLorasInfoFailed": "Не удалось получить информацию для отсутствующих LoRAs",
             "preparingForDownloadFailed": "Ошибка подготовки LoRAs для загрузки",
             "enterLoraName": "Пожалуйста, введите название LoRA или синтаксис",
@@ -2041,9 +2054,9 @@
             "reimportBulkFailed": "Не удалось переимпортировать некоторые рецепты",
             "noMissingLorasInSelection": "В выбранных рецептах не найдены отсутствующие LoRAs",
             "noLoraRootConfigured": "Корневой каталог LoRA не настроен. Пожалуйста, установите корневой каталог LoRA по умолчанию в настройках.",
-            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
-            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
-            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+            "workflowSent": "Workflow отправлен в ComfyUI",
+            "workflowSendFailed": "Не удалось отправить workflow в ComfyUI: {error}",
+            "workflowNoWorkflow": "В этом рецепте не найден встроенный workflow"
         },
         "models": {
             "noModelsSelected": "Модели не выбраны",

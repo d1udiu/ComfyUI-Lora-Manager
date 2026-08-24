@@ -260,7 +260,11 @@
             "any": "כלשהו",
             "all": "כל התגים",
             "tagLogicAny": "התאם כל תג (או)",
-            "tagLogicAll": "התאם את כל התגים (וגם)"
+            "tagLogicAll": "התאם את כל התגים (וגם)",
+            "loraAvailability": "זמינות LoRA",
+            "availabilityReady": "מוכנים לשימוש",
+            "availabilityMissing": "עם LoRAs חסרים",
+            "availabilityDeleted": "עם LoRAs שנמחקו"
         },
         "theme": {
             "toggle": "החלף ערכת נושא",
@@ -855,13 +859,19 @@
         "title": "מתכוני LoRA",
         "actions": {
             "sendCheckpoint": "שלח ל-ComfyUI",
-            "sendRecipe": "שלח ל-ComfyUI"
+            "sendRecipe": "שלח ל-ComfyUI",
+            "deleteRecipeWithShortcut": "מחק מתכון (Del)"
+        },
+        "navigation": {
+            "label": "ניווט מתכונים",
+            "previousWithShortcut": "המתכון הקודם (←)",
+            "nextWithShortcut": "המתכון הבא (→)"
         },
         "workflow": {
-            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
-            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
-            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
-            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+            "sendWorkflow": "שלח workflow ל-ComfyUI",
+            "sent": "ה-workflow נשלח ל-ComfyUI",
+            "sendFailed": "שליחת ה-workflow ל-ComfyUI נכשלה",
+            "noWorkflow": "לא נמצא workflow מוטבע במתכון זה"
         },
         "controls": {
             "import": {
@@ -1435,7 +1445,8 @@
                 "openFileLocation": "פתח מיקום קובץ",
                 "sendToWorkflow": "שלח ל-ComfyUI",
                 "sendToWorkflowText": "שלח ל-ComfyUI",
-                "copyHash": "העתק האש"
+                "copyHash": "העתק האש",
+                "deleteModelWithShortcut": "מחק מודל (Del)"
             },
             "openFileLocation": {
                 "success": "מיקום הקובץ נפתח בהצלחה",
@@ -1605,7 +1616,7 @@
                 "actions": {
                     "download": "הורדה",
                     "downloadTooltip": "הורד את הגרסה הזו",
-                    "downloadRemainingTooltip": "הורד את הקבצים הנותרים של גרסה זו",
+                    "downloadChooseFilesTooltip": "בחר אילו קבצים להוריד",
                     "downloadEarlyAccessTooltip": "הורד את גרסת ה-Early Access הזו מ-Civitai",
                     "downloadPaidTooltip": "הורד את הגרסה בתשלום הזו מ-Civitai",
                     "downloadNotAllowedTooltip": "גרסה זו זמינה רק ליצירה באתר Civitai",
@@ -1988,6 +1999,8 @@
             "createMissingData": "חסרים נתונים נדרשים ליצירת המתכון",
             "created": "המתכון נוצר בהצלחה",
             "noMissingLoras": "אין LoRAs חסרים להורדה",
+            "noPreviousRecipe": "אין מתכון קודם זמין",
+            "noNextRecipe": "אין מתכון נוסף זמין",
             "missingLorasInfoFailed": "קבלת מידע עבור LoRAs חסרים נכשלה",
             "preparingForDownloadFailed": "שגיאה בהכנת LoRAs להורדה",
             "enterLoraName": "אנא הזן שם LoRA או תחביר",
@@ -2041,9 +2054,9 @@
             "reimportBulkFailed": "ייבוא מחדש של חלק מהמתכונים נכשל",
             "noMissingLorasInSelection": "לא נמצאו LoRAs חסרים במתכונים שנבחרו",
             "noLoraRootConfigured": "תיקיית השורש של LoRA לא מוגדרת. אנא הגדר תיקיית שורש LoRA ברירת מחדל בהגדרות.",
-            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
-            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
-            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+            "workflowSent": "ה-workflow נשלח ל-ComfyUI",
+            "workflowSendFailed": "שליחת ה-workflow ל-ComfyUI נכשלה: {error}",
+            "workflowNoWorkflow": "לא נמצא workflow מוטבע במתכון זה"
         },
         "models": {
             "noModelsSelected": "לא נבחרו מודלים",

@@ -260,7 +260,11 @@
       "any": "Any",
       "all": "All",
       "tagLogicAny": "Match any tag (OR)",
-      "tagLogicAll": "Match all tags (AND)"
+      "tagLogicAll": "Match all tags (AND)",
+      "loraAvailability": "Lora Availability",
+      "availabilityReady": "Ready to use",
+      "availabilityMissing": "Has missing",
+      "availabilityDeleted": "Has deleted"
     },
     "theme": {
       "toggle": "Toggle theme",
@@ -855,7 +859,13 @@
     "title": "LoRA Recipes",
     "actions": {
       "sendCheckpoint": "Send to ComfyUI",
-      "sendRecipe": "Send to ComfyUI"
+      "sendRecipe": "Send to ComfyUI",
+      "deleteRecipeWithShortcut": "Delete recipe (Del)"
+    },
+    "navigation": {
+      "label": "Recipe navigation",
+      "previousWithShortcut": "Previous recipe (\u2190)",
+      "nextWithShortcut": "Next recipe (\u2192)"
     },
     "workflow": {
       "sendWorkflow": "Send Workflow to ComfyUI",
@@ -1435,7 +1445,8 @@
         "openFileLocation": "Open File Location",
         "sendToWorkflow": "Send to ComfyUI",
         "sendToWorkflowText": "Send to ComfyUI",
-        "copyHash": "Copy hash"
+        "copyHash": "Copy hash",
+        "deleteModelWithShortcut": "Delete model (Del)"
       },
       "openFileLocation": {
         "success": "File location opened successfully",
@@ -1605,7 +1616,7 @@
         "actions": {
           "download": "Download",
           "downloadTooltip": "Download this version",
-          "downloadRemainingTooltip": "Download remaining files of this version",
+          "downloadChooseFilesTooltip": "Choose which files to download",
           "downloadEarlyAccessTooltip": "Download this early access version from Civitai",
           "downloadPaidTooltip": "Download this paid version from Civitai",
           "downloadNotAllowedTooltip": "This version is only available for on-site generation on Civitai",
@@ -1988,6 +1999,8 @@
       "createMissingData": "Missing required data to create recipe",
       "created": "Recipe created successfully",
       "noMissingLoras": "No missing LoRAs to download",
+      "noPreviousRecipe": "No previous recipe available",
+      "noNextRecipe": "No next recipe available",
       "missingLorasInfoFailed": "Failed to get information for missing LoRAs",
       "preparingForDownloadFailed": "Error preparing LoRAs for download",
       "enterLoraName": "Please enter a LoRA name or syntax",

@@ -260,7 +260,11 @@
             "any": "任一",
             "all": "全部",
             "tagLogicAny": "匹配任一标签 (或)",
-            "tagLogicAll": "匹配所有标签 (与)"
+            "tagLogicAll": "匹配所有标签 (与)",
+            "loraAvailability": "LoRA 可用性",
+            "availabilityReady": "可直接使用",
+            "availabilityMissing": "包含缺失 LoRA",
+            "availabilityDeleted": "包含已删除 LoRA"
         },
         "theme": {
             "toggle": "切换主题",
@@ -855,13 +859,19 @@
         "title": "LoRA 配方",
         "actions": {
             "sendCheckpoint": "发送到 ComfyUI",
-            "sendRecipe": "发送到 ComfyUI"
+            "sendRecipe": "发送到 ComfyUI",
+            "deleteRecipeWithShortcut": "删除配方（Del）"
+        },
+        "navigation": {
+            "label": "配方导航",
+            "previousWithShortcut": "上一个配方（←）",
+            "nextWithShortcut": "下一个配方（→）"
         },
         "workflow": {
-            "sendWorkflow": "[TODO: Translate] Send Workflow to ComfyUI",
-            "sent": "[TODO: Translate] Workflow sent to ComfyUI",
-            "sendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI",
-            "noWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+            "sendWorkflow": "发送工作流到 ComfyUI",
+            "sent": "工作流已发送到 ComfyUI",
+            "sendFailed": "发送工作流到 ComfyUI 失败",
+            "noWorkflow": "此配方中未找到内嵌工作流"
         },
         "controls": {
             "import": {
@@ -1435,7 +1445,8 @@
                 "openFileLocation": "打开文件位置",
                 "sendToWorkflow": "发送到 ComfyUI",
                 "sendToWorkflowText": "发送到 ComfyUI",
-                "copyHash": "复制哈希值"
+                "copyHash": "复制哈希值",
+                "deleteModelWithShortcut": "删除模型（Del）"
             },
             "openFileLocation": {
                 "success": "文件位置已成功打开",
@@ -1605,7 +1616,7 @@
                 "actions": {
                     "download": "下载",
                     "downloadTooltip": "下载此版本",
-                    "downloadRemainingTooltip": "下载此版本的剩余文件",
+                    "downloadChooseFilesTooltip": "选择要下载的文件",
                     "downloadEarlyAccessTooltip": "从 Civitai 下载此抢先体验版本",
                     "downloadPaidTooltip": "从 Civitai 下载此付费版本",
                     "downloadNotAllowedTooltip": "此版本仅在 Civitai 站内可用，无法下载",
@@ -1988,6 +1999,8 @@
             "createMissingData": "缺少创建配方所需的数据",
             "created": "配方创建成功",
             "noMissingLoras": "没有缺失的 LoRA 可下载",
+            "noPreviousRecipe": "没有上一个配方",
+            "noNextRecipe": "没有下一个配方",
             "missingLorasInfoFailed": "获取缺失 LoRA 信息失败",
             "preparingForDownloadFailed": "准备下载 LoRA 时出错",
             "enterLoraName": "请输入 LoRA 名称或语法",
@@ -2041,9 +2054,9 @@
             "reimportBulkFailed": "重新导入某些配方失败",
             "noMissingLorasInSelection": "在选定的配方中未找到缺失的 LoRAs",
             "noLoraRootConfigured": "未配置 LoRA 根目录。请在设置中设置默认的 LoRA 根目录。",
-            "workflowSent": "[TODO: Translate] Workflow sent to ComfyUI",
-            "workflowSendFailed": "[TODO: Translate] Failed to send workflow to ComfyUI: {error}",
-            "workflowNoWorkflow": "[TODO: Translate] No embedded workflow found in this recipe"
+            "workflowSent": "工作流已发送到 ComfyUI",
+            "workflowSendFailed": "发送工作流到 ComfyUI 失败: {error}",
+            "workflowNoWorkflow": "此配方中未找到内嵌工作流"
         },
         "models": {
             "noModelsSelected": "未选中模型",
