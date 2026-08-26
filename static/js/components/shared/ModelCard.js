@@ -108,7 +108,10 @@ function handleModelCardEvent_internal(event, modelType) {
     }
 
     // If no specific element was clicked, handle the card click (show modal or toggle selection)
-    handleCardClick(card, modelType);
+    if (state.bulkMode && event.shiftKey) {
+        event.preventDefault(); // keep shift+click from extending a text selection
+    }
+    handleCardClick(card, modelType, event.shiftKey);
     return false; // Continue with other handlers (e.g., bulk selection)
 }
 
@@ -288,12 +291,12 @@ function handleViewLocalVersionsFromCard(card, modelType) {
     }
 }
 
-function handleCardClick(card, modelType) {
+function handleCardClick(card, modelType, extendSelection = false) {
     const pageState = getCurrentPageState();
 
     if (state.bulkMode) {
         // Toggle selection using the bulk manager
-        bulkManager.toggleCardSelection(card);
+        bulkManager.toggleCardSelection(card, extendSelection);
     } else if (pageState && pageState.duplicatesMode) {
         // In duplicates mode, don't open modal when clicking cards
         return;
@@ -543,8 +546,9 @@ export function createModelCard(model, modelType) {
         card.classList.add('excluded-model');
     }
 
-    // Apply selection state if in bulk mode and this card is in the selected set (LoRA only)
-    if (modelType === MODEL_TYPES.LORA && state.bulkMode && state.selectedLoras.has(model.file_path)) {
+    // state.selectedModels resolves to the active page's set (selectedLoras
+    // included) - do not narrow this back to selectedLoras/LORA-only.
+    if (state.bulkMode && state.selectedModels.has(model.file_path)) {
         card.classList.add('selected');
     }
 
