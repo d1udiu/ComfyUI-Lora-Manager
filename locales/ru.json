@@ -873,6 +873,34 @@
             "sendFailed": "Не удалось отправить workflow в ComfyUI",
             "noWorkflow": "В этом рецепте не найден встроенный workflow"
         },
+        "status": {
+            "ready": "Готово к использованию",
+            "missingCount": "{count} отсутствует",
+            "deletedCount": "{count} удалено",
+            "downloadMissing": "Скачать {count} отсутствующих LoRAs",
+            "downloadMissingTooltip": "Нажмите, чтобы скачать отсутствующие LoRAs"
+        },
+        "loraStatus": {
+            "none": "В этом рецепте нет LoRAs",
+            "allAvailable": "Все LoRAs доступны - Готово к использованию",
+            "missing": "Отсутствует {missing} из {total} LoRAs"
+        },
+        "resources": {
+            "inLibrary": "В библиотеке",
+            "notInLibrary": "Не в библиотеке",
+            "deleted": "Удалено",
+            "inLibraryTooltip": "Эта модель есть в вашей локальной библиотеке",
+            "notInLibraryTooltip": "Этой модели нет в вашей библиотеке",
+            "deletedTooltip": "Этот LoRA был удалён из источника и больше недоступен для скачивания",
+            "download": "Скачать",
+            "downloadLoraTooltip": "Скачать этот LoRA",
+            "preparingDownload": "Подготовка к скачиванию…",
+            "reconnect": "Переподключить",
+            "reconnectTooltip": "Переподключить к локальному LoRA",
+            "viewOnCivitai": "Открыть на Civitai",
+            "openLoraDetails": "Открыть {name} в библиотеке LoRA",
+            "openCheckpointDetails": "Открыть {name} в библиотеке моделей"
+        },
         "controls": {
             "import": {
                 "action": "Импортировать",
@@ -1033,6 +1061,8 @@
             "start": "Start Import",
             "startImport": "Start Import",
             "importing": "Importing...",
+            "rateLimitedSlowdown": "Ограничение частоты запросов — замедление…",
+            "rateLimitedHint": "Некоторые элементы были пропущены из-за ограничений частоты запросов поставщика метаданных. Повторите импорт позже, чтобы повторить попытку.",
             "progress": "Progress",
             "total": "Total",
             "success": "Success",
@@ -2015,6 +2045,8 @@
             "missingCheckpointPath": "Путь к чекпойнту недоступен",
             "missingCheckpointInfo": "Отсутствуют данные о чекпойнте",
             "downloadCheckpointFailed": "Не удалось скачать чекпойнт: {message}",
+            "missingLoraDownloadInfo": "Нет информации для скачивания этого LoRA",
+            "downloadLoraFailed": "Не удалось скачать LoRA: {message}",
             "cannotDelete": "Невозможно удалить рецепт: отсутствует ID рецепта",
             "deleteConfirmationError": "Ошибка отображения подтверждения удаления",
             "deletedSuccessfully": "Рецепт успешно удален",
@@ -2038,6 +2070,7 @@
             "batchImportCancelFailed": "Failed to cancel batch import: {message}",
             "batchImportNoUrls": "Please enter at least one URL or file path",
             "batchImportNoDirectory": "Please enter a directory path",
+            "batchImportRateLimited": "Достигнуто ограничение частоты запросов поставщика метаданных — запросы замедляются, некоторые элементы могут быть пропущены. Вы можете повторить импорт позже.",
             "batchImportBrowseFailed": "Failed to browse directory: {message}",
             "batchImportDirectorySelected": "Directory selected: {path}",
             "noRecipesSelected": "Рецепты не выбраны",

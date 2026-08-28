@@ -873,6 +873,34 @@
             "sendFailed": "Fehler beim Senden des Workflows an ComfyUI",
             "noWorkflow": "Kein eingebetteter Workflow in diesem Rezept gefunden"
         },
+        "status": {
+            "ready": "Einsatzbereit",
+            "missingCount": "{count} fehlen",
+            "deletedCount": "{count} gelöscht",
+            "downloadMissing": "{count} fehlende LoRAs herunterladen",
+            "downloadMissingTooltip": "Klicken, um fehlende LoRAs herunterzuladen"
+        },
+        "loraStatus": {
+            "none": "Keine LoRAs in diesem Rezept",
+            "allAvailable": "Alle LoRAs verfügbar - Einsatzbereit",
+            "missing": "{missing} von {total} LoRAs fehlen"
+        },
+        "resources": {
+            "inLibrary": "In Bibliothek",
+            "notInLibrary": "Nicht in Bibliothek",
+            "deleted": "Gelöscht",
+            "inLibraryTooltip": "Dieses Modell ist in deiner lokalen Bibliothek vorhanden",
+            "notInLibraryTooltip": "Dieses Modell ist nicht in deiner Bibliothek",
+            "deletedTooltip": "Dieses LoRA wurde an der Quelle gelöscht und kann nicht mehr heruntergeladen werden",
+            "download": "Herunterladen",
+            "downloadLoraTooltip": "Dieses LoRA herunterladen",
+            "preparingDownload": "Download wird vorbereitet…",
+            "reconnect": "Neu verknüpfen",
+            "reconnectTooltip": "Mit einem lokalen LoRA neu verknüpfen",
+            "viewOnCivitai": "Auf Civitai anzeigen",
+            "openLoraDetails": "{name} in der LoRA-Bibliothek anzeigen",
+            "openCheckpointDetails": "{name} in der Modellbibliothek anzeigen"
+        },
         "controls": {
             "import": {
                 "action": "Importieren",
@@ -1033,6 +1061,8 @@
             "start": "Start Import",
             "startImport": "Start Import",
             "importing": "Importing...",
+            "rateLimitedSlowdown": "Ratenlimit — wird verlangsamt…",
+            "rateLimitedHint": "Einige Einträge wurden aufgrund von Ratenlimits des Metadaten-Anbieters übersprungen. Führen Sie den Import später erneut aus, um sie zu wiederholen.",
             "progress": "Progress",
             "total": "Total",
             "success": "Success",
@@ -2015,6 +2045,8 @@
             "missingCheckpointPath": "Checkpoint-Pfad nicht verfügbar",
             "missingCheckpointInfo": "Checkpoint-Informationen fehlen",
             "downloadCheckpointFailed": "Checkpoint-Download fehlgeschlagen: {message}",
+            "missingLoraDownloadInfo": "Download-Informationen für dieses LoRA fehlen",
+            "downloadLoraFailed": "LoRA-Download fehlgeschlagen: {message}",
             "cannotDelete": "Kann Rezept nicht löschen: Fehlende Rezept-ID",
             "deleteConfirmationError": "Fehler beim Anzeigen der Löschbestätigung",
             "deletedSuccessfully": "Rezept erfolgreich gelöscht",
@@ -2038,6 +2070,7 @@
             "batchImportCancelFailed": "Failed to cancel batch import: {message}",
             "batchImportNoUrls": "Please enter at least one URL or file path",
             "batchImportNoDirectory": "Please enter a directory path",
+            "batchImportRateLimited": "Ratenlimit des Metadaten-Anbieters erreicht — Anfragen werden verlangsamt und einige Einträge können übersprungen werden. Sie können den Import später erneut ausführen.",
             "batchImportBrowseFailed": "Failed to browse directory: {message}",
             "batchImportDirectorySelected": "Directory selected: {path}",
             "noRecipesSelected": "Keine Rezepte ausgewählt",

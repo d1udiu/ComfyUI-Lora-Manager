@@ -873,6 +873,34 @@
       "sendFailed": "Failed to send workflow to ComfyUI",
       "noWorkflow": "No embedded workflow found in this recipe"
     },
+    "status": {
+      "ready": "Ready to use",
+      "missingCount": "{count} missing",
+      "deletedCount": "{count} deleted",
+      "downloadMissing": "Download {count} missing LoRAs",
+      "downloadMissingTooltip": "Click to download missing LoRAs"
+    },
+    "loraStatus": {
+      "none": "No LoRAs in this recipe",
+      "allAvailable": "All LoRAs available - Ready to use",
+      "missing": "{missing} of {total} LoRAs missing"
+    },
+    "resources": {
+      "inLibrary": "In Library",
+      "notInLibrary": "Not in Library",
+      "deleted": "Deleted",
+      "inLibraryTooltip": "This model exists in your local library",
+      "notInLibraryTooltip": "This model is not in your library",
+      "deletedTooltip": "This LoRA was deleted from the source and is no longer available for download",
+      "download": "Download",
+      "downloadLoraTooltip": "Download this LoRA",
+      "preparingDownload": "Preparing download...",
+      "reconnect": "Reconnect",
+      "reconnectTooltip": "Reconnect with a local LoRA",
+      "viewOnCivitai": "View on Civitai",
+      "openLoraDetails": "View {name} in the LoRA library",
+      "openCheckpointDetails": "View {name} in the model library"
+    },
     "controls": {
       "import": {
         "action": "Import",
@@ -1033,6 +1061,8 @@
       "start": "Start Import",
       "startImport": "Start Import",
       "importing": "Importing...",
+      "rateLimitedSlowdown": "Rate limited — slowing down...",
+      "rateLimitedHint": "Some items were skipped due to metadata provider rate limits. Re-run the import later to retry them.",
       "progress": "Progress",
       "total": "Total",
       "success": "Success",
@@ -2015,6 +2045,8 @@
       "missingCheckpointPath": "Checkpoint path not available",
       "missingCheckpointInfo": "Missing checkpoint information",
       "downloadCheckpointFailed": "Failed to download checkpoint: {message}",
+      "missingLoraDownloadInfo": "Missing download information for this LoRA",
+      "downloadLoraFailed": "Failed to download LoRA: {message}",
       "cannotDelete": "Cannot delete recipe: Missing recipe ID",
       "deleteConfirmationError": "Error showing delete confirmation",
       "deletedSuccessfully": "Recipe deleted successfully",
@@ -2038,6 +2070,7 @@
       "batchImportCancelFailed": "Failed to cancel batch import: {message}",
       "batchImportNoUrls": "Please enter at least one URL or file path",
       "batchImportNoDirectory": "Please enter a directory path",
+      "batchImportRateLimited": "Metadata provider rate limit reached — requests are being slowed and some items may be skipped. You can re-run the import later.",
       "batchImportBrowseFailed": "Failed to browse directory: {message}",
       "batchImportDirectorySelected": "Directory selected: {path}",
       "noRecipesSelected": "No recipes selected",

@@ -873,6 +873,34 @@
             "sendFailed": "ワークフローをComfyUIへ送信できませんでした",
             "noWorkflow": "このレシピに埋め込まれたワークフローが見つかりません"
         },
+        "status": {
+            "ready": "使用可能",
+            "missingCount": "{count} 件不足",
+            "deletedCount": "{count} 件削除済み",
+            "downloadMissing": "不足している {count} 件のLoRAをダウンロード",
+            "downloadMissingTooltip": "クリックして不足しているLoRAをダウンロード"
+        },
+        "loraStatus": {
+            "none": "このレシピにはLoRAがありません",
+            "allAvailable": "すべてのLoRAが利用可能 - 使用可能",
+            "missing": "{total} 件中 {missing} 件のLoRAが不足"
+        },
+        "resources": {
+            "inLibrary": "ライブラリ内",
+            "notInLibrary": "ライブラリ外",
+            "deleted": "削除済み",
+            "inLibraryTooltip": "このモデルはローカルライブラリに存在します",
+            "notInLibraryTooltip": "このモデルはライブラリにありません",
+            "deletedTooltip": "この LoRA は配信元から削除されたため、ダウンロードできません",
+            "download": "ダウンロード",
+            "downloadLoraTooltip": "この LoRA をダウンロード",
+            "preparingDownload": "ダウンロードを準備中…",
+            "reconnect": "再接続",
+            "reconnectTooltip": "ローカルの LoRA と再接続",
+            "viewOnCivitai": "Civitai で表示",
+            "openLoraDetails": "LoRA ライブラリで {name} を表示",
+            "openCheckpointDetails": "モデルライブラリで {name} を表示"
+        },
         "controls": {
             "import": {
                 "action": "インポート",
@@ -1033,6 +1061,8 @@
             "start": "Start Import",
             "startImport": "Start Import",
             "importing": "Importing...",
+            "rateLimitedSlowdown": "レート制限 — 速度を落としています…",
+            "rateLimitedHint": "メタデータプロバイダーのレート制限により、一部のアイテムがスキップされました。後でインポートを再実行すると再試行できます。",
             "progress": "Progress",
             "total": "Total",
             "success": "Success",
@@ -2015,6 +2045,8 @@
             "missingCheckpointPath": "チェックポイントのパスがありません",
             "missingCheckpointInfo": "チェックポイント情報が不足しています",
             "downloadCheckpointFailed": "チェックポイントのダウンロードに失敗しました: {message}",
+            "missingLoraDownloadInfo": "この LoRA のダウンロード情報がありません",
+            "downloadLoraFailed": "LoRA のダウンロードに失敗しました: {message}",
             "cannotDelete": "レシピを削除できません：レシピIDがありません",
             "deleteConfirmationError": "削除確認の表示中にエラーが発生しました",
             "deletedSuccessfully": "レシピが正常に削除されました",
@@ -2038,6 +2070,7 @@
             "batchImportCancelFailed": "Failed to cancel batch import: {message}",
             "batchImportNoUrls": "Please enter at least one URL or file path",
             "batchImportNoDirectory": "Please enter a directory path",
+            "batchImportRateLimited": "メタデータプロバイダーのレート制限に達しました — リクエストが低速化され、一部のアイテムがスキップされる可能性があります。後でインポートを再実行できます。",
             "batchImportBrowseFailed": "Failed to browse directory: {message}",
             "batchImportDirectorySelected": "Directory selected: {path}",
             "noRecipesSelected": "レシピが選択されていません",

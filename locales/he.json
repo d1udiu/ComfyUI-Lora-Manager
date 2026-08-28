@@ -873,6 +873,34 @@
             "sendFailed": "שליחת ה-workflow ל-ComfyUI נכשלה",
             "noWorkflow": "לא נמצא workflow מוטבע במתכון זה"
         },
+        "status": {
+            "ready": "מוכן לשימוש",
+            "missingCount": "{count} חסרים",
+            "deletedCount": "{count} נמחקו",
+            "downloadMissing": "הורד {count} LoRAs חסרים",
+            "downloadMissingTooltip": "לחץ כדי להוריד LoRAs חסרים"
+        },
+        "loraStatus": {
+            "none": "אין LoRAs במתכון הזה",
+            "allAvailable": "כל ה-LoRAs זמינים - מוכן לשימוש",
+            "missing": "{missing} מתוך {total} LoRAs חסרים"
+        },
+        "resources": {
+            "inLibrary": "בספרייה",
+            "notInLibrary": "לא בספרייה",
+            "deleted": "נמחק",
+            "inLibraryTooltip": "מודל זה קיים בספרייה המקומית שלך",
+            "notInLibraryTooltip": "מודל זה לא נמצא בספרייה שלך",
+            "deletedTooltip": "LoRA זה נמחק מהמקור ואינו זמין יותר להורדה",
+            "download": "הורדה",
+            "downloadLoraTooltip": "הורד את ה-LoRA הזה",
+            "preparingDownload": "מכין את ההורדה…",
+            "reconnect": "חבר מחדש",
+            "reconnectTooltip": "חבר מחדש עם LoRA מקומי",
+            "viewOnCivitai": "הצג ב-Civitai",
+            "openLoraDetails": "הצג את {name} בספריית ה-LoRA",
+            "openCheckpointDetails": "הצג את {name} בספריית המודלים"
+        },
         "controls": {
             "import": {
                 "action": "ייבא",
@@ -1033,6 +1061,8 @@
             "start": "Start Import",
             "startImport": "Start Import",
             "importing": "Importing...",
+            "rateLimitedSlowdown": "הגבלת קצב — מאט…",
+            "rateLimitedHint": "חלק מהפריטים דולגו עקב הגבלות קצב של ספק המטא-נתונים. הפעל שוב את הייבוא מאוחר יותר כדי לנסות שוב.",
             "progress": "Progress",
             "total": "Total",
             "success": "Success",
@@ -2015,6 +2045,8 @@
             "missingCheckpointPath": "נתיב ה-checkpoint אינו זמין",
             "missingCheckpointInfo": "חסרים פרטי checkpoint",
             "downloadCheckpointFailed": "הורדת checkpoint נכשלה: {message}",
+            "missingLoraDownloadInfo": "חסר מידע הורדה עבור LoRA זה",
+            "downloadLoraFailed": "הורדת ה-LoRA נכשלה: {message}",
             "cannotDelete": "לא ניתן למחוק מתכון: חסר מזהה מתכון",
             "deleteConfirmationError": "שגיאה בהצגת אישור המחיקה",
             "deletedSuccessfully": "המתכון נמחק בהצלחה",
@@ -2038,6 +2070,7 @@
             "batchImportCancelFailed": "Failed to cancel batch import: {message}",
             "batchImportNoUrls": "Please enter at least one URL or file path",
             "batchImportNoDirectory": "Please enter a directory path",
+            "batchImportRateLimited": "הושגה הגבלת הקצב של ספק המטא-נתונים — הבקשות מאטות וחלק מהפריטים עשויים להידלג. תוכל להפעיל שוב את הייבוא מאוחר יותר.",
             "batchImportBrowseFailed": "Failed to browse directory: {message}",
             "batchImportDirectorySelected": "Directory selected: {path}",
             "noRecipesSelected": "לא נבחרו מתכונים",

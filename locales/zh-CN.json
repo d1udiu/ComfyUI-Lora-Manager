@@ -873,6 +873,34 @@
             "sendFailed": "发送工作流到 ComfyUI 失败",
             "noWorkflow": "此配方中未找到内嵌工作流"
         },
+        "status": {
+            "ready": "可直接使用",
+            "missingCount": "缺失 {count} 个",
+            "deletedCount": "已删除 {count} 个",
+            "downloadMissing": "下载 {count} 个缺失的 LoRA",
+            "downloadMissingTooltip": "点击下载缺失的 LoRA"
+        },
+        "loraStatus": {
+            "none": "此配方不包含 LoRA",
+            "allAvailable": "所有 LoRA 均已就绪 - 可直接使用",
+            "missing": "{total} 个 LoRA 中缺失 {missing} 个"
+        },
+        "resources": {
+            "inLibrary": "在库中",
+            "notInLibrary": "不在库中",
+            "deleted": "已删除",
+            "inLibraryTooltip": "该模型已存在于本地库中",
+            "notInLibraryTooltip": "该模型不在你的本地库中",
+            "deletedTooltip": "该 LoRA 已从来源站删除，无法下载",
+            "download": "下载",
+            "downloadLoraTooltip": "下载此 LoRA",
+            "preparingDownload": "正在准备下载…",
+            "reconnect": "重新关联",
+            "reconnectTooltip": "与本地 LoRA 重新关联",
+            "viewOnCivitai": "在 Civitai 上查看",
+            "openLoraDetails": "在 LoRA 库中查看 {name}",
+            "openCheckpointDetails": "在模型库中查看 {name}"
+        },
         "controls": {
             "import": {
                 "action": "导入",
@@ -1033,6 +1061,8 @@
             "start": "开始导入",
             "startImport": "开始导入",
             "importing": "正在导入配方...",
+            "rateLimitedSlowdown": "触发速率限制 — 正在减速…",
+            "rateLimitedHint": "部分条目因元数据提供方的速率限制而被跳过。稍后重新运行导入即可重试这些条目。",
             "progress": "进度",
             "total": "总计",
             "success": "成功",
@@ -2015,6 +2045,8 @@
             "missingCheckpointPath": "缺少检查点路径",
             "missingCheckpointInfo": "缺少检查点信息",
             "downloadCheckpointFailed": "下载检查点失败：{message}",
+            "missingLoraDownloadInfo": "缺少此 LoRA 的下载信息",
+            "downloadLoraFailed": "下载 LoRA 失败：{message}",
             "cannotDelete": "无法删除配方：缺少配方 ID",
             "deleteConfirmationError": "显示删除确认出错",
             "deletedSuccessfully": "配方删除成功",
@@ -2038,6 +2070,7 @@
             "batchImportCancelFailed": "取消批量导入失败：{message}",
             "batchImportNoUrls": "请输入至少一个 URL 或文件路径",
             "batchImportNoDirectory": "请输入目录路径",
+            "batchImportRateLimited": "已达到元数据提供方的速率限制 — 请求正在放缓，部分条目可能被跳过。你可以稍后重新运行导入。",
             "batchImportBrowseFailed": "浏览目录失败：{message}",
             "batchImportDirectorySelected": "已选择目录：{path}",
             "noRecipesSelected": "未选择任何配方",

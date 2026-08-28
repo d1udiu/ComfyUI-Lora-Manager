@@ -71,6 +71,9 @@ class BatchImportProgress:
     tags: List[str] = field(default_factory=list)
     skip_no_metadata: bool = False
     skip_duplicates: bool = False
+    # Set once any item is skipped due to vendor rate limiting (#1085); lets
+    # the UI surface a "slowing down / try again later" hint.
+    rate_limited: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -82,6 +85,7 @@ class BatchImportProgress:
             "skipped": self.skipped,
             "current_item": self.current_item,
             "status": self.status,
+            "rate_limited": self.rate_limited,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
             "progress_percent": round((self.completed / self.total) * 100, 1)
@@ -118,6 +122,10 @@ class AdaptiveConcurrencyController:
         self._task_durations: List[float] = []
         self._recent_errors = 0
         self._recent_successes = 0
+        # Batch-wide shared semaphore; created lazily on first use so the
+        # controller can also be constructed outside a running event loop.
+        self._semaphore: Optional[asyncio.Semaphore] = None
+        self._semaphore_capacity = initial_concurrency
 
     def record_result(self, duration: float, success: bool) -> None:
         self._task_durations.append(duration)
@@ -146,7 +154,37 @@ class AdaptiveConcurrencyController:
         self._recent_successes = 0
 
     def get_semaphore(self) -> asyncio.Semaphore:
-        return asyncio.Semaphore(self.current_concurrency)
+        """Return the batch-wide shared semaphore.
+
+        The same semaphore instance is returned for every item of a batch so
+        the configured concurrency bounds are actually enforced. Previously a
+        fresh semaphore was created per call, letting every item run
+        concurrently and hammering remote metadata providers without any
+        limit.
+        """
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.current_concurrency)
+            self._semaphore_capacity = self.current_concurrency
+        return self._semaphore
+
+    async def apply_concurrency(self) -> None:
+        """Synchronize the shared semaphore capacity with ``current_concurrency``.
+
+        Call after ``record_result`` (once per completed item). Growing the
+        capacity is immediate (release). Shrinking requires acquiring a permit
+        and holding it, which is best-effort while other tasks are still
+        running — the capacity converges on subsequent calls.
+        """
+        semaphore = self.get_semaphore()
+        while self._semaphore_capacity < self.current_concurrency:
+            semaphore.release()
+            self._semaphore_capacity += 1
+        while self._semaphore_capacity > self.current_concurrency:
+            try:
+                await asyncio.wait_for(semaphore.acquire(), timeout=0.01)
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                break
+            self._semaphore_capacity -= 1
 
 
 class BatchImportService:
@@ -349,6 +387,13 @@ class BatchImportService:
         ext = os.path.splitext(filename)[1].lower()
         return ext in self.SUPPORTED_EXTENSIONS
 
+    @staticmethod
+    def _is_rate_limit_error(error: Optional[str]) -> bool:
+        """Return True when an error payload represents vendor rate limiting."""
+        if not error:
+            return False
+        return "rate limit" in error.lower()
+
     async def _run_batch_import(
         self,
         *,
@@ -394,6 +439,9 @@ class BatchImportService:
                 self._concurrency_controller.record_result(
                     duration, result.get("success", False)
                 )
+                # Keep the shared batch semaphore in sync with the adaptively
+                # adjusted concurrency so the bounds actually take effect.
+                await self._concurrency_controller.apply_concurrency()
 
                 if result.get("success"):
                     item.status = ImportStatus.SUCCESS
@@ -404,6 +452,17 @@ class BatchImportService:
                     item.status = ImportStatus.SKIPPED
                     item.error_message = result.get("error")
                     progress.skipped += 1
+                elif self._is_rate_limit_error(result.get("error")):
+                    # Vendor rate limit is a transient, external condition —
+                    # do not pollute the failure count with it (#1085). The
+                    # import can simply be re-run later.
+                    item.status = ImportStatus.SKIPPED
+                    item.error_message = (
+                        f"Rate limited by metadata provider; "
+                        f"re-run the import later ({result.get('error')})"
+                    )
+                    progress.skipped += 1
+                    progress.rate_limited = True
                 else:
                     item.status = ImportStatus.FAILED
                     item.error_message = result.get("error")
@@ -411,11 +470,21 @@ class BatchImportService:
 
             except Exception as e:
                 self._logger.error(f"Error importing {item.source}: {e}")
-                item.status = ImportStatus.FAILED
-                item.error_message = str(e)
                 item.duration = time.time() - start_time
-                progress.failed += 1
+                if self._is_rate_limit_error(str(e)):
+                    item.status = ImportStatus.SKIPPED
+                    item.error_message = (
+                        f"Rate limited by metadata provider; "
+                        f"re-run the import later ({e})"
+                    )
+                    progress.skipped += 1
+                    progress.rate_limited = True
+                else:
+                    item.status = ImportStatus.FAILED
+                    item.error_message = str(e)
+                    progress.failed += 1
                 self._concurrency_controller.record_result(item.duration, False)
+                await self._concurrency_controller.apply_concurrency()
 
             progress.completed += 1
             self._logger.info(

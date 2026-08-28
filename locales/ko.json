@@ -873,6 +873,34 @@
             "sendFailed": "워크플로를 ComfyUI로 보내지 못했습니다",
             "noWorkflow": "이 레시피에서 임베드된 워크플로를 찾을 수 없습니다"
         },
+        "status": {
+            "ready": "바로 사용 가능",
+            "missingCount": "{count}개 누락",
+            "deletedCount": "{count}개 삭제됨",
+            "downloadMissing": "누락된 LoRA {count}개 다운로드",
+            "downloadMissingTooltip": "클릭하여 누락된 LoRA 다운로드"
+        },
+        "loraStatus": {
+            "none": "이 레시피에는 LoRA가 없습니다",
+            "allAvailable": "모든 LoRA 사용 가능 - 바로 사용 가능",
+            "missing": "총 {total}개 중 {missing}개 LoRA 누락"
+        },
+        "resources": {
+            "inLibrary": "라이브러리에 있음",
+            "notInLibrary": "라이브러리에 없음",
+            "deleted": "삭제됨",
+            "inLibraryTooltip": "이 모델은 로컬 라이브러리에 있습니다",
+            "notInLibraryTooltip": "이 모델은 라이브러리에 없습니다",
+            "deletedTooltip": "이 LoRA는 소스에서 삭제되어 더 이상 다운로드할 수 없습니다",
+            "download": "다운로드",
+            "downloadLoraTooltip": "이 LoRA 다운로드",
+            "preparingDownload": "다운로드 준비 중…",
+            "reconnect": "다시 연결",
+            "reconnectTooltip": "로컬 LoRA와 다시 연결",
+            "viewOnCivitai": "Civitai에서 보기",
+            "openLoraDetails": "LoRA 라이브러리에서 {name} 보기",
+            "openCheckpointDetails": "모델 라이브러리에서 {name} 보기"
+        },
         "controls": {
             "import": {
                 "action": "가져오기",
@@ -1033,6 +1061,8 @@
             "start": "Start Import",
             "startImport": "Start Import",
             "importing": "Importing...",
+            "rateLimitedSlowdown": "속도 제한 — 속도를 줄이는 중…",
+            "rateLimitedHint": "메타데이터 제공자의 속도 제한으로 일부 항목이 건너뛰어졌습니다. 나중에 가져오기를 다시 실행하여 재시도하세요.",
             "progress": "Progress",
             "total": "Total",
             "success": "Success",
@@ -2015,6 +2045,8 @@
             "missingCheckpointPath": "체크포인트 경로를 사용할 수 없습니다",
             "missingCheckpointInfo": "체크포인트 정보가 부족합니다",
             "downloadCheckpointFailed": "체크포인트 다운로드 실패: {message}",
+            "missingLoraDownloadInfo": "이 LoRA의 다운로드 정보가 없습니다",
+            "downloadLoraFailed": "LoRA 다운로드 실패: {message}",
             "cannotDelete": "레시피를 삭제할 수 없습니다: 레시피 ID 누락",
             "deleteConfirmationError": "삭제 확인 표시 오류",
             "deletedSuccessfully": "레시피가 성공적으로 삭제되었습니다",
@@ -2038,6 +2070,7 @@
             "batchImportCancelFailed": "Failed to cancel batch import: {message}",
             "batchImportNoUrls": "Please enter at least one URL or file path",
             "batchImportNoDirectory": "Please enter a directory path",
+            "batchImportRateLimited": "메타데이터 제공자의 속도 제한에 도달했습니다 — 요청이 느려지고 일부 항목이 건너뛰어질 수 있습니다. 나중에 가져오기를 다시 실행할 수 있습니다.",
             "batchImportBrowseFailed": "Failed to browse directory: {message}",
             "batchImportDirectorySelected": "Directory selected: {path}",
             "noRecipesSelected": "선택한 레시피가 없습니다",
