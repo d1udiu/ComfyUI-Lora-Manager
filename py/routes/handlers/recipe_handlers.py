@@ -26,6 +26,7 @@ from ...services.recipes import (
     RecipeValidationError,
 )
 from ...services.metadata_service import get_default_metadata_provider
+from ...services.recipe_scanner import UNKNOWN_BASE_MODEL_FILTER
 from ...utils.civitai_utils import (
     build_civitai_image_page_url,
     extract_civitai_image_id,
@@ -113,6 +114,13 @@ class RecipeHandlerSet:
             "update_recipe": self.management.update_recipe,
             "record_recipe_open": self.management.record_recipe_open,
             "reconnect_lora": self.management.reconnect_lora,
+            "restore_lora": self.management.restore_lora,
+            "get_reconnect_suggestions": self.management.get_reconnect_suggestions,
+            "mark_lora_hash_invalid": self.management.mark_lora_hash_invalid,
+            "reconnect_checkpoint": self.management.reconnect_checkpoint,
+            "restore_checkpoint": self.management.restore_checkpoint,
+            "get_checkpoint_reconnect_suggestions": self.management.get_checkpoint_reconnect_suggestions,
+            "mark_checkpoint_hash_invalid": self.management.mark_checkpoint_hash_invalid,
             "find_duplicates": self.query.find_duplicates,
             "move_recipes_bulk": self.management.move_recipes_bulk,
             "bulk_delete": self.management.bulk_delete,
@@ -466,17 +474,32 @@ class RecipeQueryHandler:
             cache = await recipe_scanner.get_cached_data()
 
             base_model_counts: Dict[str, int] = {}
+            unknown_count = 0
             for recipe in getattr(cache, "raw_data", []):
                 base_model = recipe.get("base_model")
                 if base_model:
                     base_model_counts[base_model] = (
                         base_model_counts.get(base_model, 0) + 1
                     )
+                else:
+                    unknown_count += 1
 
             sorted_models = [
                 {"name": model, "count": count}
                 for model, count in base_model_counts.items()
             ]
+            if unknown_count:
+                # Synthetic "Unknown" bucket for recipes whose base model could
+                # not be determined. `value` carries the filter marker so the
+                # UI can display "Unknown" without colliding with real base
+                # model strings.
+                sorted_models.append(
+                    {
+                        "name": "Unknown",
+                        "value": UNKNOWN_BASE_MODEL_FILTER,
+                        "count": unknown_count,
+                    }
+                )
             sorted_models.sort(key=lambda entry: entry["count"], reverse=True)
             if limit > 0:
                 sorted_models = sorted_models[:limit]
@@ -1592,6 +1615,204 @@ class RecipeManagementHandler:
             self._logger.error("Error reconnecting LoRA: %s", exc, exc_info=True)
             return web.json_response({"error": str(exc)}, status=500)
 
+    async def restore_lora(self, request: web.Request) -> web.Response:
+        try:
+            await self._ensure_dependencies_ready()
+            recipe_scanner = self._recipe_scanner_getter()
+            if recipe_scanner is None:
+                raise RuntimeError("Recipe scanner unavailable")
+
+            data = await request.json()
+            for field in ("recipe_id", "lora_index"):
+                if field not in data:
+                    raise RecipeValidationError(f"Missing required field: {field}")
+
+            result = await self._persistence_service.restore_lora(
+                recipe_scanner=recipe_scanner,
+                recipe_id=data["recipe_id"],
+                lora_index=int(data["lora_index"]),
+            )
+            return web.json_response(result.payload, status=result.status)
+        except RecipeValidationError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except RecipeNotFoundError as exc:
+            return web.json_response({"error": str(exc)}, status=404)
+        except Exception as exc:
+            self._logger.error("Error restoring LoRA: %s", exc, exc_info=True)
+            return web.json_response({"error": str(exc)}, status=500)
+
+    async def get_reconnect_suggestions(self, request: web.Request) -> web.Response:
+        try:
+            await self._ensure_dependencies_ready()
+            recipe_scanner = self._recipe_scanner_getter()
+            if recipe_scanner is None:
+                raise RuntimeError("Recipe scanner unavailable")
+
+            recipe_id = request.match_info.get("recipe_id")
+            lora_index_raw = request.match_info.get("lora_index")
+            if not recipe_id or lora_index_raw is None:
+                raise RecipeValidationError("recipe_id and lora_index are required")
+            try:
+                lora_index = int(lora_index_raw)
+            except (TypeError, ValueError):
+                raise RecipeValidationError("lora_index must be an integer")
+
+            result = await self._persistence_service.get_reconnect_suggestions(
+                recipe_scanner=recipe_scanner,
+                recipe_id=recipe_id,
+                lora_index=lora_index,
+                query=request.query.get("query") or None,
+            )
+            return web.json_response(result.payload, status=result.status)
+        except RecipeValidationError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except RecipeNotFoundError as exc:
+            return web.json_response({"error": str(exc)}, status=404)
+        except Exception as exc:
+            self._logger.error(
+                "Error suggesting reconnect candidates: %s", exc, exc_info=True
+            )
+            return web.json_response({"error": str(exc)}, status=500)
+
+    async def mark_lora_hash_invalid(self, request: web.Request) -> web.Response:
+        try:
+            await self._ensure_dependencies_ready()
+            recipe_scanner = self._recipe_scanner_getter()
+            if recipe_scanner is None:
+                raise RuntimeError("Recipe scanner unavailable")
+
+            data = await request.json()
+            for field in ("recipe_id", "lora_index"):
+                if field not in data:
+                    raise RecipeValidationError(f"Missing required field: {field}")
+
+            result = await self._persistence_service.mark_lora_hash_invalid(
+                recipe_scanner=recipe_scanner,
+                recipe_id=data["recipe_id"],
+                lora_index=int(data["lora_index"]),
+                hash_invalid=bool(data.get("hash_invalid", True)),
+            )
+            return web.json_response(result.payload, status=result.status)
+        except RecipeValidationError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except RecipeNotFoundError as exc:
+            return web.json_response({"error": str(exc)}, status=404)
+        except Exception as exc:
+            self._logger.error(
+                "Error marking LoRA hash invalid: %s", exc, exc_info=True
+            )
+            return web.json_response({"error": str(exc)}, status=500)
+
+    async def reconnect_checkpoint(self, request: web.Request) -> web.Response:
+        try:
+            await self._ensure_dependencies_ready()
+            recipe_scanner = self._recipe_scanner_getter()
+            if recipe_scanner is None:
+                raise RuntimeError("Recipe scanner unavailable")
+
+            data = await request.json()
+            for field in ("recipe_id", "target_name"):
+                if field not in data:
+                    raise RecipeValidationError(f"Missing required field: {field}")
+
+            result = await self._persistence_service.reconnect_checkpoint(
+                recipe_scanner=recipe_scanner,
+                recipe_id=data["recipe_id"],
+                target_name=data["target_name"],
+            )
+            return web.json_response(result.payload, status=result.status)
+        except RecipeValidationError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except RecipeNotFoundError as exc:
+            return web.json_response({"error": str(exc)}, status=404)
+        except Exception as exc:
+            self._logger.error(
+                "Error reconnecting checkpoint: %s", exc, exc_info=True
+            )
+            return web.json_response({"error": str(exc)}, status=500)
+
+    async def restore_checkpoint(self, request: web.Request) -> web.Response:
+        try:
+            await self._ensure_dependencies_ready()
+            recipe_scanner = self._recipe_scanner_getter()
+            if recipe_scanner is None:
+                raise RuntimeError("Recipe scanner unavailable")
+
+            data = await request.json()
+            if "recipe_id" not in data:
+                raise RecipeValidationError("Missing required field: recipe_id")
+
+            result = await self._persistence_service.restore_checkpoint(
+                recipe_scanner=recipe_scanner,
+                recipe_id=data["recipe_id"],
+            )
+            return web.json_response(result.payload, status=result.status)
+        except RecipeValidationError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except RecipeNotFoundError as exc:
+            return web.json_response({"error": str(exc)}, status=404)
+        except Exception as exc:
+            self._logger.error("Error restoring checkpoint: %s", exc, exc_info=True)
+            return web.json_response({"error": str(exc)}, status=500)
+
+    async def get_checkpoint_reconnect_suggestions(
+        self, request: web.Request
+    ) -> web.Response:
+        try:
+            await self._ensure_dependencies_ready()
+            recipe_scanner = self._recipe_scanner_getter()
+            if recipe_scanner is None:
+                raise RuntimeError("Recipe scanner unavailable")
+
+            recipe_id = request.match_info.get("recipe_id")
+            if not recipe_id:
+                raise RecipeValidationError("recipe_id is required")
+
+            result = await self._persistence_service.get_checkpoint_reconnect_suggestions(
+                recipe_scanner=recipe_scanner,
+                recipe_id=recipe_id,
+                query=request.query.get("query") or None,
+            )
+            return web.json_response(result.payload, status=result.status)
+        except RecipeValidationError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except RecipeNotFoundError as exc:
+            return web.json_response({"error": str(exc)}, status=404)
+        except Exception as exc:
+            self._logger.error(
+                "Error suggesting checkpoint reconnect candidates: %s",
+                exc,
+                exc_info=True,
+            )
+            return web.json_response({"error": str(exc)}, status=500)
+
+    async def mark_checkpoint_hash_invalid(self, request: web.Request) -> web.Response:
+        try:
+            await self._ensure_dependencies_ready()
+            recipe_scanner = self._recipe_scanner_getter()
+            if recipe_scanner is None:
+                raise RuntimeError("Recipe scanner unavailable")
+
+            data = await request.json()
+            if "recipe_id" not in data:
+                raise RecipeValidationError("Missing required field: recipe_id")
+
+            result = await self._persistence_service.mark_checkpoint_hash_invalid(
+                recipe_scanner=recipe_scanner,
+                recipe_id=data["recipe_id"],
+                hash_invalid=bool(data.get("hash_invalid", True)),
+            )
+            return web.json_response(result.payload, status=result.status)
+        except RecipeValidationError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        except RecipeNotFoundError as exc:
+            return web.json_response({"error": str(exc)}, status=404)
+        except Exception as exc:
+            self._logger.error(
+                "Error marking checkpoint hash invalid: %s", exc, exc_info=True
+            )
+            return web.json_response({"error": str(exc)}, status=500)
+
     async def bulk_delete(self, request: web.Request) -> web.Response:
         try:
             await self._ensure_dependencies_ready()
@@ -2024,6 +2245,23 @@ class RecipeManagementHandler:
             await self._download_remote_media(image_url)
         )
 
+        # Diagnostics for the recipe modal's "Why no LoRAs?" panel. This path
+        # always comes from a CivitAI image URL (import_from_url validates the
+        # image id), so civitai_image is True.
+        diagnostics: Dict[str, Any] = {
+            "civitai_image": True,
+            "is_video": extension in (".mp4", ".webm"),
+        }
+        if isinstance(civitai_meta_raw, dict):
+            raw_mvids = civitai_meta_raw.get("modelVersionIds")
+            diagnostics["api_model_version_ids"] = (
+                len(raw_mvids) if isinstance(raw_mvids, list) else 0
+            )
+            inner_meta_for_diag = civitai_meta_raw.get("meta")
+            if isinstance(inner_meta_for_diag, dict):
+                diagnostics["api_meta_present"] = True
+                diagnostics["api_meta_keys"] = sorted(inner_meta_for_diag.keys())
+
         # Build a version-cached map of local model hashes to cache items so
         # CivitaiApiMetadataParser can skip CivitAI API calls for models that
         # exist on disk. Built once and shared by every parse pass below.
@@ -2044,6 +2282,7 @@ class RecipeManagementHandler:
                 raw_embedded = await asyncio.to_thread(
                     ExifUtils.extract_image_metadata, temp_img_path
                 )
+                diagnostics["exif_present"] = bool(raw_embedded)
                 if raw_embedded:
                     parser = (
                         self._analysis_service._recipe_parser_factory.create_parser(
@@ -2051,6 +2290,7 @@ class RecipeManagementHandler:
                         )
                     )
                     if parser:
+                        diagnostics["exif_parser"] = parser.__class__.__name__
                         if isinstance(parser, CivitaiApiMetadataParser):
                             parsed_embedded = await parser.parse_metadata(
                                 raw_embedded,
@@ -2091,6 +2331,7 @@ class RecipeManagementHandler:
                         raw_orig = await asyncio.to_thread(
                             ExifUtils.extract_image_metadata, orig_tmp_path
                         )
+                        diagnostics["exif_present"] = bool(raw_orig)
                         if raw_orig:
                             parser = (
                                 self._analysis_service._recipe_parser_factory.create_parser(
@@ -2098,6 +2339,7 @@ class RecipeManagementHandler:
                                 )
                             )
                             if parser:
+                                diagnostics["exif_parser"] = parser.__class__.__name__
                                 if isinstance(parser, CivitaiApiMetadataParser):
                                     parsed_embedded = await parser.parse_metadata(
                                         raw_orig,
@@ -2183,14 +2425,21 @@ class RecipeManagementHandler:
             civitai_base_model = civitai_parsed.get("base_model")
             if civitai_base_model and not metadata.get("base_model"):
                 metadata["base_model"] = civitai_base_model
-        elif parsed_embedded:
-            parsed_loras = parsed_embedded.get("loras")
-            if parsed_loras and not metadata.get("loras"):
-                metadata["loras"] = parsed_loras
-            parsed_model = parsed_embedded.get("model")
-            if parsed_model and not metadata.get("checkpoint"):
-                metadata["checkpoint"] = parsed_model
-            if parsed_embedded.get("base_model") and not metadata.get("base_model"):
+
+        # EXIF fills whatever the API-only parse left open — when the image
+        # API meta is null (only modelVersionIds present) the API parse
+        # yields a checkpoint but no LoRAs, while the image EXIF carries the
+        # full resource list.
+        if parsed_embedded:
+            if not metadata.get("loras"):
+                parsed_loras = parsed_embedded.get("loras")
+                if parsed_loras:
+                    metadata["loras"] = parsed_loras
+            if not metadata.get("checkpoint"):
+                parsed_model = parsed_embedded.get("model")
+                if parsed_model:
+                    metadata["checkpoint"] = parsed_model
+            if not metadata.get("base_model") and parsed_embedded.get("base_model"):
                 metadata["base_model"] = parsed_embedded["base_model"]
 
         civitai_client = self._civitai_client_getter()
@@ -2211,6 +2460,20 @@ class RecipeManagementHandler:
             name = " ".join(str(prompt).split()[:10])
         else:
             name = f"Civitai Image {image_id}"
+
+        # Record why this import ended up with no LoRAs so the recipe modal
+        # can explain it (collapsed by default).
+        from ...services.recipes.import_info import (
+            CHANNEL_REIMPORT_URL,
+            CHANNEL_URL,
+            build_import_info,
+        )
+
+        metadata["import_info"] = build_import_info(
+            CHANNEL_REIMPORT_URL if recipe_id else CHANNEL_URL,
+            diagnostics,
+            metadata.get("loras"),
+        )
 
         result = await self._persistence_service.save_recipe(
             recipe_scanner=recipe_scanner,
@@ -2270,6 +2533,17 @@ class RecipeManagementHandler:
         }
         if checkpoint:
             metadata["checkpoint"] = checkpoint
+
+        from ...services.recipes.import_info import (
+            CHANNEL_REIMPORT_LOCAL,
+            build_import_info,
+        )
+
+        metadata["import_info"] = build_import_info(
+            CHANNEL_REIMPORT_LOCAL,
+            analysis_payload.get("diagnostics"),
+            loras,
+        )
 
         prompt = (
             gen_params.get("prompt")

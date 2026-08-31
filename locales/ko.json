@@ -67,11 +67,11 @@
         "steps": {
             "fetch": {
                 "title": "모델 메타데이터 가져오기",
-                "content": "<strong>가져오기</strong> 버튼을 클릭하여 Civitai에서 모델 메타데이터와 미리보기 이미지를 다운로드하세요."
+                "content": "<strong>가져오기</strong> 버튼을 클릭하여 CivitAI에서 모델 메타데이터와 미리보기 이미지를 다운로드하세요."
             },
             "download": {
                 "title": "새 모델 다운로드",
-                "content": "<strong>다운로드</strong> 버튼을 사용하여 Civitai URL에서 모델을 직접 다운로드하세요."
+                "content": "<strong>다운로드</strong> 버튼을 사용하여 CivitAI URL에서 모델을 직접 다운로드하세요."
             },
             "bulk": {
                 "title": "일괄 작업",
@@ -103,8 +103,8 @@
         "actions": {
             "addToFavorites": "즐겨찾기에 추가",
             "removeFromFavorites": "즐겨찾기에서 제거",
-            "viewOnCivitai": "Civitai에서 보기",
-            "notAvailableFromCivitai": "Civitai에서 사용할 수 없음",
+            "viewOnCivitai": "CivitAI에서 보기",
+            "notAvailableFromCivitai": "CivitAI에서 사용할 수 없음",
             "viewOnHuggingFace": "Hugging Face에서 보기",
             "sendToWorkflow": "ComfyUI로 전송 (클릭: 추가, Shift+클릭: 교체)",
             "copyLoRASyntax": "LoRA 문법 복사",
@@ -131,13 +131,13 @@
             "updateFailed": "즐겨찾기 상태 업데이트 실패"
         },
         "sendToWorkflow": {
-            "checkpointNotImplemented": "Checkpoint을 워크플로로 전송 - 구현 예정 기능",
+            "checkpointNotImplemented": "Checkpoint를 워크플로로 전송 - 구현 예정 기능",
             "missingPath": "이 카드의 모델 경로를 확인할 수 없습니다"
         },
         "exampleImages": {
             "checkError": "예시 이미지 확인 중 오류",
             "missingHash": "모델 해시 정보가 없습니다.",
-            "noRemoteImagesAvailable": "Civitai에서 이 모델의 원격 예시 이미지를 사용할 수 없습니다"
+            "noRemoteImagesAvailable": "CivitAI에서 이 모델의 원격 예시 이미지를 사용할 수 없습니다"
         },
         "badges": {
             "update": "업데이트",
@@ -173,11 +173,11 @@
             "error": "예시 이미지 폴더 정리에 실패했습니다: {message}"
         },
         "fetchMissingLicenses": {
-            "label": "Refresh license metadata",
-            "loading": "Refreshing license metadata for {typePlural}...",
-            "success": "Updated license metadata for {count} {typePlural}",
-            "none": "All {typePlural} already have license metadata",
-            "error": "Failed to refresh license metadata for {typePlural}: {message}"
+            "label": "라이선스 메타데이터 새로고침",
+            "loading": "{typePlural}의 라이선스 메타데이터를 새로고침하는 중...",
+            "success": "{count}개의 {typePlural} 라이선스 메타데이터를 업데이트했습니다",
+            "none": "모든 {typePlural}에 이미 라이선스 메타데이터가 있습니다",
+            "error": "{typePlural}의 라이선스 메타데이터를 새로고침하지 못했습니다: {message}"
         },
         "repairRecipes": {
             "label": "레시피 데이터 복구",
@@ -259,7 +259,7 @@
             "clearAll": "모든 필터 지우기",
             "any": "아무",
             "all": "모두",
-            "tagLogicAny": "모든 태그 일치 (OR)",
+            "tagLogicAny": "어느 하나의 태그와 일치 (OR)",
             "tagLogicAll": "모든 태그 일치 (AND)",
             "loraAvailability": "LoRA 가용성",
             "availabilityReady": "바로 사용 가능",
@@ -290,15 +290,15 @@
         }
     },
     "settings": {
-        "civitaiApiKey": "Civitai API 키",
-        "civitaiApiKeyPlaceholder": "Civitai API 키를 입력하세요",
-        "civitaiApiKeyHelp": "Civitai에서 모델을 다운로드할 때 인증에 사용됩니다",
+        "civitaiApiKey": "CivitAI API 키",
+        "civitaiApiKeyPlaceholder": "CivitAI API 키를 입력하세요",
+        "civitaiApiKeyHelp": "CivitAI에서 모델을 다운로드할 때 인증에 사용됩니다",
         "civitaiApiKeyConfigured": "설정됨",
         "civitaiApiKeyNotConfigured": "설정되지 않음",
         "civitaiApiKeySet": "설정",
         "civitaiHost": {
-            "label": "Civitai 호스트",
-            "help": "\"View on Civitai\" 링크를 사용할 때 어떤 Civitai 사이트를 열지 선택합니다.",
+            "label": "CivitAI 호스트",
+            "help": "\"View on CivitAI\" 링크를 사용할 때 어떤 CivitAI 사이트를 열지 선택합니다.",
             "options": {
                 "com": "civitai.com(SFW 전용)",
                 "red": "civitai.red(무제한)"
@@ -319,8 +319,8 @@
         },
         "aria2HelpLink": "aria2 다운로드 백엔드 설정 방법 알아보기",
         "civitaiHostBanner": {
-            "title": "Civitai 호스트 기본 설정 사용 가능",
-            "content": "이제 Civitai는 SFW 콘텐츠에 civitai.com을, 무제한 콘텐츠에 civitai.red를 사용합니다. 설정에서 기본으로 열 사이트를 변경할 수 있습니다.",
+            "title": "CivitAI 호스트 기본 설정 사용 가능",
+            "content": "이제 CivitAI는 SFW 콘텐츠에 civitai.com을, 무제한 콘텐츠에 civitai.red를 사용합니다. 설정에서 기본으로 열 사이트를 변경할 수 있습니다.",
             "openSettings": "설정 열기"
         },
         "openSettingsFileLocation": {
@@ -427,10 +427,10 @@
             "noneAvailable": "아직 스냅샷이 없습니다"
         },
         "downloadSkipBaseModels": {
-            "label": "기본 모델 다운로드 건너뛰기",
-            "help": "모든 다운로드 흐름에 적용됩니다. 여기서는 지원되는 기본 모델만 선택할 수 있습니다.",
-            "searchPlaceholder": "기본 모델 필터링...",
-            "empty": "현재 검색과 일치하는 기본 모델이 없습니다.",
+            "label": "베이스 모델 다운로드 건너뛰기",
+            "help": "활성화하면 선택한 베이스 모델을 사용하는 버전은 건너뜁니다.",
+            "searchPlaceholder": "베이스 모델 필터링...",
+            "empty": "현재 검색과 일치하는 베이스 모델이 없습니다.",
             "summary": {
                 "none": "선택 없음",
                 "count": "{count}개 선택됨"
@@ -441,7 +441,7 @@
                 "clear": "지우기"
             },
             "validation": {
-                "saveFailed": "제외된 기본 모델을 저장할 수 없습니다: {message}"
+                "saveFailed": "제외된 베이스 모델을 저장할 수 없습니다: {message}"
             }
         },
         "skipPreviouslyDownloadedModelVersions": {
@@ -450,7 +450,7 @@
         },
         "layoutSettings": {
             "groupByModel": "모델별 그룹화",
-            "groupByModelHelp": "활성화하면 각 Civitai 모델의 최신 버전만 단일 카드로 표시되며, 이전 버전은 숨겨집니다.",
+            "groupByModelHelp": "활성화하면 각 CivitAI 모델의 최신 버전만 단일 카드로 표시되며, 이전 버전은 숨겨집니다.",
             "displayDensity": "표시 밀도",
             "displayDensityOptions": {
                 "default": "기본",
@@ -517,7 +517,7 @@
         "extraFolderPaths": {
             "title": "추가 폴다 경로",
             "description": "LoRA Manager 전용 추가 모델 루트 경로입니다. ComfyUI의 표준 폴더 외부 위치에서 모델을 로드하여 대규모 라이브러리로 인한 성능 저하를 방지합니다.",
-            "restartRequired": "Requires restart to take effect",
+            "restartRequired": "변경 사항을 적용하려면 재시작이 필요합니다",
             "modelTypes": {
                 "lora": "LoRA 경로",
                 "checkpoint": "Checkpoint 경로",
@@ -540,8 +540,8 @@
             "helpLinkLabel": "우선순위 태그 도움말 열기",
             "modelTypes": {
                 "lora": "LoRA",
-                "checkpoint": "체크포인트",
-                "embedding": "임베딩"
+                "checkpoint": "Checkpoint",
+                "embedding": "Embedding"
             },
             "saveSuccess": "우선순위 태그가 업데이트되었습니다.",
             "saveError": "우선순위 태그를 업데이트하지 못했습니다.",
@@ -555,7 +555,7 @@
         },
         "downloadPathTemplates": {
             "title": "다운로드 경로 템플릿",
-            "help": "Civitai에서 다운로드할 때 다양한 모델 유형의 폴더 구조를 구성합니다.",
+            "help": "CivitAI에서 다운로드할 때 다양한 모델 유형의 폴더 구조를 구성합니다.",
             "availablePlaceholders": "사용 가능한 플레이스홀더:",
             "templateOptions": {
                 "flatStructure": "플랫 구조",
@@ -592,7 +592,7 @@
         "exampleImages": {
             "downloadLocation": "다운로드 위치",
             "downloadLocationPlaceholder": "예시 이미지 폴더 경로를 입력하세요",
-            "downloadLocationHelp": "Civitai의 예시 이미지가 저장될 폴더 경로를 입력하세요",
+            "downloadLocationHelp": "CivitAI의 예시 이미지가 저장될 폴더 경로를 입력하세요",
             "autoDownload": "예시 이미지 자동 다운로드",
             "autoDownloadHelp": "예시 이미지가 없는 모델의 예시 이미지를 자동으로 다운로드합니다 (다운로드 위치 설정 필요)",
             "openMode": "예시 이미지 열기 동작",
@@ -625,7 +625,7 @@
         },
         "hideEarlyAccessUpdates": {
             "label": "얼리 액세스 업데이트 숨기기",
-            "help": "얼리 액세스 업데이트만"
+            "help": "활성화하면 얼리 액세스 업데이트만 있는 모델에는 '업데이트 가능' 배지가 표시되지 않습니다."
         },
         "hidePaidUpdates": {
             "label": "유료 업데이트 숨기기",
@@ -647,7 +647,7 @@
         },
         "metadataArchive": {
             "enableArchiveDb": "메타데이터 아카이브 데이터베이스 활성화",
-            "enableArchiveDbHelp": "Civitai에서 삭제된 모델의 메타데이터에 접근하기 위해 로컬 데이터베이스를 사용합니다.",
+            "enableArchiveDbHelp": "CivitAI에서 삭제된 모델의 메타데이터에 접근하기 위해 로컬 데이터베이스를 사용합니다.",
             "status": "상태",
             "statusAvailable": "사용 가능",
             "statusUnavailable": "사용 불가",
@@ -708,7 +708,7 @@
                 "custom": "사용자 정의 (OpenAI 호환)"
             },
             "apiBase": "API 기본 URL",
-            "apiBaseHelp": "LLM API의 기본 URL입니다 (예: https://api.openai.com/v1). 비워두면 제공자 기본값이 사용됩니다.",
+            "apiBaseHelp": "LLM API의 기본 URL입니다. 프리셋을 선택하거나 사용자 정의 URL을 입력하세요. 드롭다운에 지원되는 모든 제공자의 프리셋이 표시됩니다.",
             "apiBasePlaceholder": "https://api.openai.com/v1",
             "apiKey": "API 키",
             "apiKeyHelp": "LLM 제공자의 API 키입니다. 로컬에 저장되며 선택한 LLM 제공자 외의 서버로 전송되지 않습니다.",
@@ -750,7 +750,7 @@
                 "fullTooltip": "메타데이터 파일에서 모든 모델 정보를 다시 불러옵니다. 라이브러리가 오래되어 보이거나 수동 수정 후에 사용하세요."
             },
             "fetch": {
-                "title": "Civitai에서 메타데이터 가져오기",
+                "title": "CivitAI에서 메타데이터 가져오기",
                 "action": "가져오기"
             },
             "download": {
@@ -805,9 +805,9 @@
             "clear": "선택 지우기",
             "skipMetadataRefreshCount": "건너뛰기（{count}개 모델）",
             "resumeMetadataRefreshCount": "재개（{count}개 모델）",
-            "sendToWorkflow": "워크플로우로 보내기",
+            "sendToWorkflow": "워크플로로 보내기",
             "sections": {
-                "workflow": "워크플로우",
+                "workflow": "워크플로",
                 "metadata": "메타데이터",
                 "attributes": "속성",
                 "organize": "정리",
@@ -825,10 +825,10 @@
             "enrichHfAgent": "HF AI로 메타데이터 보강"
         },
         "contextMenu": {
-            "refreshMetadata": "Civitai 데이터 새로고침",
+            "refreshMetadata": "CivitAI 데이터 새로고침",
             "checkUpdates": "업데이트 확인",
             "linkModel": "모델 연결",
-            "linkCivitai": "Civitai에 연결",
+            "linkCivitai": "CivitAI에 연결",
             "linkHuggingFace": "HuggingFace에 연결",
             "copySyntax": "LoRA 문법 복사",
             "copyFilename": "모델 파일명 복사",
@@ -860,6 +860,7 @@
         "actions": {
             "sendCheckpoint": "ComfyUI로 보내기",
             "sendRecipe": "ComfyUI로 보내기",
+            "copyRecipeSyntax": "레시피 문법 복사",
             "deleteRecipeWithShortcut": "레시피 삭제(Del)"
         },
         "navigation": {
@@ -883,23 +884,78 @@
         "loraStatus": {
             "none": "이 레시피에는 LoRA가 없습니다",
             "allAvailable": "모든 LoRA 사용 가능 - 바로 사용 가능",
-            "missing": "총 {total}개 중 {missing}개 LoRA 누락"
+            "missing": "총 {total}개 중 {missing}개 LoRA 누락",
+            "missingAndUnavailable": "총 {total}개 중 {missing}개 LoRA 누락, {unavailable}개 사용 불가(소스에서 삭제되었거나 해시를 확인할 수 없음)",
+            "partial": "총 {total}개 중 {unavailable}개 LoRA 사용 불가(소스에서 삭제되었거나 해시를 확인할 수 없음) - 레시피 사용 시 건너뜁니다",
+            "noneUsable": "사용 가능한 LoRA가 없습니다 - 총 {total}개 중 {unavailable}개가 소스에서 삭제되었거나 해시를 확인할 수 없습니다"
         },
         "resources": {
             "inLibrary": "라이브러리에 있음",
             "notInLibrary": "라이브러리에 없음",
             "deleted": "삭제됨",
+            "hashInvalid": "해석할 수 없는 해시",
             "inLibraryTooltip": "이 모델은 로컬 라이브러리에 있습니다",
             "notInLibraryTooltip": "이 모델은 라이브러리에 없습니다",
             "deletedTooltip": "이 LoRA는 소스에서 삭제되어 더 이상 다운로드할 수 없습니다",
+            "hashInvalidTooltip": "이 LoRA 해시는 CivitAI에서 해석할 수 없습니다 - 모델이 업데이트되었을 수 있습니다",
+            "noLorasAssociated": "이 레시피에 연결된 LoRA가 없습니다",
+            "noLorasWhyToggle": "LoRA가 없는 이유",
+            "noLorasImportMethod": "가져오기 방법",
+            "noLorasInferredNote": "가능한 이유(추정) — 이 레시피는 가져오기 진단이 기록되기 전에 가져온 것입니다.",
+            "noLorasChannels": {
+                "batch_import_url": "일괄 가져오기(이미지 URL)",
+                "batch_import_local": "일괄 가져오기(로컬 파일)",
+                "url": "이미지 URL 가져오기",
+                "local": "로컬 파일 가져오기",
+                "upload": "이미지 업로드",
+                "widget": "워크플로에서 저장",
+                "reimport_url": "다시 가져오기(이미지 URL)",
+                "reimport_local": "다시 가져오기(로컬 파일)"
+            },
+            "noLorasReasons": {
+                "no_loras_used": "생성 메타데이터가 완전하며 LoRA를 참조하지 않습니다.",
+                "api_meta_no_lora_resources": "소스 API가 이 이미지에 대한 LoRA 리소스 데이터를 반환하지 않았습니다. CivitAI 페이지에 표시되는 LoRA는 공개 API가 노출하지 않는 내부 데이터에서 비롯될 수 있습니다.",
+                "api_meta_missing": "소스 API가 이 이미지에 대한 생성 메타데이터를 반환하지 않았습니다.",
+                "no_embedded_metadata": "이미지에 내장된 생성 메타데이터가 없어 LoRA 정보를 복구할 수 없습니다.",
+                "workflow_metadata_limited": "이미지에 내장된 메타데이터는 ComfyUI 워크플로입니다. 워크플로에서 LoRA 정보를 추출하는 것은 제한적입니다.",
+                "video_no_metadata": "동영상 파일에는 내장 생성 메타데이터가 없습니다.",
+                "metadata_unsupported": "이미지에 파싱할 수 없는 형식의 메타데이터가 포함되어 있습니다.",
+                "unknown": "저장된 레시피 데이터에서 이유를 확인할 수 없습니다."
+            },
+            "noLorasDetails": {
+                "apiMetaFields": "API 메타데이터 필드",
+                "modelVersionIds": "보고된 모델 버전 ID 수",
+                "embeddedMetadata": "내장 메타데이터",
+                "present": "있음",
+                "absent": "없음"
+            },
             "download": "다운로드",
             "downloadLoraTooltip": "이 LoRA 다운로드",
-            "preparingDownload": "다운로드 준비 중…",
+            "preparingDownload": "다운로드 준비 중...",
             "reconnect": "다시 연결",
             "reconnectTooltip": "로컬 LoRA와 다시 연결",
-            "viewOnCivitai": "Civitai에서 보기",
+            "reconnectInstructions": "다시 연결할 LoRA 구문 또는 이름을 입력하세요：",
+            "reconnectExample": "예：<lora:name:1> 또는 이름만 입력",
+            "reconnectPlaceholder": "LoRA 이름 또는 구문 입력",
+            "reconnectSuggestionsLoading": "로컬 라이브러리 검색 중...",
+            "reconnectSuggestionsEmpty": "로컬 라이브러리에 일치하는 LoRA가 없습니다",
+            "reconnectMatchSameHash": "동일한 해시",
+            "reconnectMatchSameVersion": "동일한 모델 버전",
+            "reconnectMatchSimilarFilename": "유사한 파일 이름",
+            "reconnectMatchSimilarName": "유사한 이름",
+            "undoReconnect": "실행 취소",
+            "undoReconnectTooltip": "이 항목을 다시 연결 전의 연결 상태로 복원",
+            "undoReconnectTooltipNamed": "이전 연결 상태로 복원: {name}",
+            "viewOnCivitai": "CivitAI에서 보기",
             "openLoraDetails": "LoRA 라이브러리에서 {name} 보기",
-            "openCheckpointDetails": "모델 라이브러리에서 {name} 보기"
+            "openCheckpointDetails": "모델 라이브러리에서 {name} 보기",
+            "checkpointDeletedTooltip": "이 Checkpoint는 소스에서 삭제되어 더 이상 다운로드할 수 없습니다 - 로컬 모델로 다시 연결하세요",
+            "checkpointHashInvalidTooltip": "이 Checkpoint의 해시를 CivitAI에서 확인할 수 없습니다 - 모델이 업데이트되었을 수 있습니다",
+            "reconnectCheckpoint": "다시 연결",
+            "reconnectCheckpointTooltip": "로컬 Checkpoint와 다시 연결",
+            "checkpointReconnectInstructions": "다시 연결할 Checkpoint 이름을 입력하세요：",
+            "checkpointReconnectPlaceholder": "Checkpoint 이름 입력",
+            "checkpointReconnectSuggestionsEmpty": "로컬 라이브러리에 일치하는 Checkpoint가 없습니다"
         },
         "controls": {
             "import": {
@@ -909,7 +965,7 @@
                 "dropZoneHint": "이미지를 여기에 끌어다 놓거나, 클립보드에서 붙여넣거나, 클릭하여 찾아보세요",
                 "orDivider": "또는 이미지를 끌어다 놓기 / 붙여넣기",
                 "imageUrlOrPath": "이미지 URL 또는 파일 경로:",
-                "urlPlaceholder": "https://civitai.com/images/... 또는 C:/path/to/image.png",
+                "urlPlaceholder": "https://civitai.com/images/... 또는 https://civitai.red/images/... 또는 C:/path/to/image.png",
                 "fetchImage": "이미지 가져오기",
                 "recipeName": "레시피 이름",
                 "recipeNamePlaceholder": "레시피 이름을 입력하세요",
@@ -938,7 +994,7 @@
                 "downloadingLoras": "LoRA 다운로드 중...",
                 "savingRecipe": "레시피 저장 중...",
                 "startingDownload": "LoRA {current}/{total} 다운로드 시작",
-                "deletedFromCivitai": "Civitai에서 삭제됨",
+                "deletedFromCivitai": "CivitAI에서 삭제됨",
                 "inLibrary": "라이브러리에 있음",
                 "notInLibrary": "라이브러리에 없음",
                 "earlyAccessRequired": "이 LoRA는 얼리 액세스 결제가 필요합니다.",
@@ -1040,63 +1096,63 @@
             }
         },
         "batchImport": {
-            "title": "Batch Import Recipes",
-            "action": "Batch Import",
-            "urlList": "URL List",
-            "directory": "Directory",
-            "urlDescription": "Enter image URLs or local file paths (one per line). Each will be imported as a recipe.",
-            "directoryDescription": "Enter a directory path to import all images from that folder.",
-            "urlsLabel": "Image URLs or Local Paths",
+            "title": "레시피 일괄 가져오기",
+            "action": "일괄 가져오기",
+            "urlList": "URL 목록",
+            "directory": "폴더",
+            "urlDescription": "이미지 URL 또는 로컬 파일 경로를 입력하세요 (줄당 하나). 각 항목은 레시피로 가져옵니다.",
+            "directoryDescription": "폴더 경로를 입력하면 해당 폴더의 모든 이미지를 가져옵니다.",
+            "urlsLabel": "이미지 URL 또는 로컬 경로",
             "urlsPlaceholder": "https://civitai.com/images/...\nhttps://civitai.com/images/...\nC:/path/to/image.png\n...",
-            "urlsHint": "Enter one URL or path per line",
-            "directoryPath": "Directory Path",
+            "urlsHint": "줄당 URL 또는 경로 하나를 입력하세요",
+            "directoryPath": "폴더 경로",
             "directoryPlaceholder": "/path/to/images/folder",
-            "browse": "Browse",
-            "recursive": "Include subdirectories",
-            "tagsOptional": "Tags (optional, applied to all recipes)",
-            "tagsPlaceholder": "Enter tags separated by commas",
-            "tagsHint": "Tags will be added to all imported recipes",
-            "skipNoMetadata": "Skip images without metadata",
-            "skipNoMetadataHelp": "Images without LoRA metadata will be skipped automatically.",
-            "start": "Start Import",
-            "startImport": "Start Import",
-            "importing": "Importing...",
-            "rateLimitedSlowdown": "속도 제한 — 속도를 줄이는 중…",
+            "browse": "찾아보기",
+            "recursive": "하위 폴더 포함",
+            "tagsOptional": "태그 (선택 사항, 모든 레시피에 적용)",
+            "tagsPlaceholder": "쉼표로 구분된 태그 입력",
+            "tagsHint": "태그가 가져온 모든 레시피에 추가됩니다",
+            "skipNoMetadata": "메타데이터 없는 이미지 건너뛰기",
+            "skipNoMetadataHelp": "LoRA 메타데이터가 없는 이미지는 자동으로 건너뜁니다.",
+            "start": "가져오기 시작",
+            "startImport": "가져오기 시작",
+            "importing": "가져오는 중...",
+            "rateLimitedSlowdown": "속도 제한 — 느려지고 있습니다...",
             "rateLimitedHint": "메타데이터 제공자의 속도 제한으로 일부 항목이 건너뛰어졌습니다. 나중에 가져오기를 다시 실행하여 재시도하세요.",
-            "progress": "Progress",
-            "total": "Total",
-            "success": "Success",
-            "failed": "Failed",
-            "skipped": "Skipped",
-            "current": "Current",
-            "currentItem": "Current",
-            "preparing": "Preparing...",
-            "cancel": "Cancel",
-            "cancelImport": "Cancel",
-            "cancelled": "Import cancelled",
-            "completed": "Import completed",
-            "completedWithErrors": "Completed with errors",
-            "completedSuccess": "Successfully imported {count} recipe(s)",
-            "successCount": "Successful",
-            "failedCount": "Failed",
-            "skippedCount": "Skipped",
-            "totalProcessed": "Total processed",
-            "viewDetails": "View Details",
-            "newImport": "New Import",
-            "manualPathEntry": "Please enter the directory path manually. File browser is not available in this browser.",
-            "batchImportDirectorySelected": "Directory selected: {path}",
-            "batchImportManualEntryRequired": "File browser not available. Please enter the directory path manually.",
-            "backToParent": "Back to parent directory",
-            "folders": "Folders",
-            "folderCount": "{count} folders",
-            "imageFiles": "Image Files",
-            "images": "images",
-            "imageCount": "{count} images",
-            "selectFolder": "Select This Folder",
+            "progress": "진행률",
+            "total": "전체",
+            "success": "성공",
+            "failed": "실패",
+            "skipped": "건너뜀",
+            "current": "현재",
+            "currentItem": "현재",
+            "preparing": "준비 중...",
+            "cancel": "취소",
+            "cancelImport": "취소",
+            "cancelled": "가져오기가 취소되었습니다",
+            "completed": "가져오기가 완료되었습니다",
+            "completedWithErrors": "오류와 함께 완료됨",
+            "completedSuccess": "{count}개의 레시피를 성공적으로 가져왔습니다",
+            "successCount": "성공",
+            "failedCount": "실패",
+            "skippedCount": "건너뜀",
+            "totalProcessed": "처리된 전체",
+            "viewDetails": "세부 정보 보기",
+            "newImport": "새 가져오기",
+            "manualPathEntry": "폴더 경로를 직접 입력하세요. 이 브라우저에서는 파일 브라우저를 사용할 수 없습니다.",
+            "batchImportDirectorySelected": "선택한 폴더: {path}",
+            "batchImportManualEntryRequired": "파일 브라우저를 사용할 수 없습니다. 폴더 경로를 직접 입력하세요.",
+            "backToParent": "상위 폴더로",
+            "folders": "폴더",
+            "folderCount": "폴더 {count}개",
+            "imageFiles": "이미지 파일",
+            "images": "이미지",
+            "imageCount": "이미지 {count}개",
+            "selectFolder": "이 폴더 선택",
             "errors": {
-                "enterUrls": "Please enter at least one URL or path",
-                "enterDirectory": "Please enter a directory path",
-                "startFailed": "Failed to start import: {message}"
+                "enterUrls": "URL 또는 경로를 하나 이상 입력하세요",
+                "enterDirectory": "폴더 경로를 입력하세요",
+                "startFailed": "가져오기를 시작하지 못했습니다: {message}"
             }
         }
     },
@@ -1108,7 +1164,7 @@
         },
         "contextMenu": {
             "moveToOtherTypeFolder": "{otherType} 폴더로 이동",
-            "sendToWorkflow": "워크플로우로 전송"
+            "sendToWorkflow": "워크플로로 전송"
         }
     },
     "embeddings": {
@@ -1266,7 +1322,7 @@
         "download": {
             "title": "URL에서 모델 다운로드",
             "titleWithType": "URL에서 {type} 다운로드",
-            "civitaiUrl": "Civitai URL:",
+            "civitaiUrl": "CivitAI URL:",
             "placeholder": "https://civitai.com/models/...",
             "urlHint": "한 줄에 하나의 CivitAI, CivArchive 또는 Hugging Face URL을 입력하세요. 여러 URL을 일괄 다운로드할 수 있습니다.",
             "selectHfFiles": "이 저장소에서 다운로드할 파일을 선택하세요：",
@@ -1301,7 +1357,7 @@
                 "inLibrary": "라이브러리에 있음"
             },
             "errors": {
-                "invalidUrl": "잘못된 Civitai URL 형식",
+                "invalidUrl": "잘못된 CivitAI URL 형식",
                 "noVersions": "이 모델에 사용 가능한 버전이 없습니다",
                 "mixedSources": "동일한 배치에서 CivitAI와 Hugging Face URL을 혼합할 수 없습니다.",
                 "noModelFiles": "이 저장소에서 모델 파일을 찾을 수 없습니다."
@@ -1380,9 +1436,9 @@
             "action": "모두 삭제"
         },
         "checkUpdates": {
-            "title": "{type} 전체 업데이트를 확인할까요?",
-            "message": "라이브러리에 있는 모든 {type}의 업데이트를 확인합니다. 컬렉션이 클수록 시간이 조금 더 걸릴 수 있습니다.",
-            "tip": "나눠서 진행하고 싶다면 벌크 모드로 전환해 필요한 모델만 선택한 뒤 \"선택 항목 업데이트 확인\"을 사용하세요.",
+            "title": "{typePlural} 전체 업데이트를 확인할까요?",
+            "message": "라이브러리에 있는 모든 {typePlural}의 업데이트를 확인합니다. 컬렉션이 클수록 시간이 조금 더 걸릴 수 있습니다.",
+            "tip": "나눠서 진행하고 싶다면 일괄 모드로 전환해 필요한 모델만 선택한 뒤 \"선택 항목 업데이트 확인\"을 사용하세요.",
             "action": "전체 확인"
         },
         "bulkAddTags": {
@@ -1415,7 +1471,7 @@
             "title": "로컬 예시 이미지",
             "message": "이 모델의 로컬 예시 이미지를 찾을 수 없습니다. 보기 옵션:",
             "downloadOption": {
-                "title": "Civitai에서 다운로드",
+                "title": "CivitAI에서 다운로드",
                 "description": "오프라인 사용 및 빠른 로딩을 위해 원격 예시를 로컬에 저장"
             },
             "importOption": {
@@ -1442,7 +1498,7 @@
             "confirmAction": "저장 및 연결"
         },
         "relinkCivitai": {
-            "title": "Civitai에 다시 연결",
+            "title": "CivitAI에 다시 연결",
             "warning": "경고:",
             "warningText": "이것은 잠재적으로 파괴적인 작업입니다. 다시 연결하면:",
             "warningList": {
@@ -1451,15 +1507,15 @@
                 "unintendedConsequences": "기타 의도하지 않은 결과가 있을 수 있음"
             },
             "proceedText": "원하는 작업이 확실한 경우에만 진행하세요.",
-            "urlLabel": "Civitai 모델 URL:",
-            "urlPlaceholder": "https://civitai.com/models/12345/model-name?modelVersionId=67890",
+            "urlLabel": "CivitAI 모델 URL:",
+            "urlPlaceholder": "https://civitai.com/models/12345/model-name?modelVersionId=67890 또는 https://civitai.red/models/12345/model-name?modelVersionId=67890",
             "helpText": {
-                "title": "Civitai 또는 CivitArchive 모델 URL을 붙여넣으세요. 지원되는 형식:",
+                "title": "CivitAI 또는 CivitArchive 모델 URL을 붙여넣으세요. 지원되는 형식:",
                 "format1": "https://civitai.com/models/12345",
                 "format2": "https://civitai.com/models/12345?modelVersionId=67890",
                 "format3": "https://civitai.com/models/12345/model-name?modelVersionId=67890",
                 "note": "참고: modelVersionId가 제공되지 않으면 최신 버전이 사용됩니다.",
-                "format4": "https://civarchive.com/models/12345 (CivitArchive)"
+                "format4": "https://civarchive.com/models/12345 (CivArchive)"
             },
             "confirmAction": "다시 연결 확인"
         },
@@ -1469,8 +1525,8 @@
                 "editFileName": "파일명 편집",
                 "editBaseModel": "베이스 모델 편집",
                 "editVersionName": "버전명 편집",
-                "viewOnCivitai": "Civitai에서 보기",
-                "viewOnCivitaiText": "Civitai에서 보기",
+                "viewOnCivitai": "CivitAI에서 보기",
+                "viewOnCivitaiText": "CivitAI에서 보기",
                 "viewOnHuggingFace": "Hugging Face에서 보기",
                 "viewOnHuggingFaceText": "Hugging Face에서 보기",
                 "viewCreatorProfile": "제작자 프로필 보기",
@@ -1502,7 +1558,7 @@
                 "notesHint": "Enter로 저장, Shift+Enter로 줄바꿈",
                 "addNotesPlaceholder": "메모를 여기에 추가하세요...",
                 "aboutThisVersion": "이 버전에 대해",
-                "baseModelSearchPlaceholder": "베이스 모델 검색…",
+                "baseModelSearchPlaceholder": "베이스 모델 검색...",
                 "baseModelSuggested": "추천",
                 "baseModelNoMatch": "일치하는 베이스 모델 없음"
             },
@@ -1571,10 +1627,10 @@
                 "noNext": "다음 모델이 없습니다"
             },
             "license": {
-                "noImageSell": "No selling generated content",
-                "noRentCivit": "No Civitai generation",
-                "noRent": "No generation services",
-                "noSell": "No selling models",
+                "noImageSell": "생성 콘텐츠 판매 금지",
+                "noRentCivit": "CivitAI 생성 불가",
+                "noRent": "생성 서비스 불가",
+                "noSell": "모델 판매 금지",
                 "creditRequired": "제작자 크레딧 필요",
                 "noDerivatives": "공유 병합 불가",
                 "noReLicense": "동일한 권한 필요",
@@ -1637,33 +1693,33 @@
                     "newer": "최신 버전",
                     "newerTooltip": "이 버전은 로컬의 최신 버전보다 더 새롭습니다",
                     "earlyAccess": "얼리 액세스",
-                    "earlyAccessTooltip": "이 버전은 현재 Civitai 얼리 액세스가 필요합니다",
+                    "earlyAccessTooltip": "이 버전은 현재 CivitAI 얼리 액세스가 필요합니다",
                     "paid": "유료",
                     "paidTooltip": "이 버전은 다운로드하려면 결제가 필요합니다",
                     "ignored": "무시됨",
                     "ignoredTooltip": "이 버전은 업데이트 알림이 비활성화되어 있습니다",
                     "onSiteOnly": "사이트 내 전용",
-                    "onSiteOnlyTooltip": "이 버전은 Civitai 사이트 내에서만 사용 가능하며 다운로드할 수 없습니다"
+                    "onSiteOnlyTooltip": "이 버전은 CivitAI 사이트 내에서만 사용 가능하며 다운로드할 수 없습니다"
                 },
                 "actions": {
                     "download": "다운로드",
                     "downloadTooltip": "이 버전 다운로드",
                     "downloadChooseFilesTooltip": "다운로드할 파일 선택",
-                    "downloadEarlyAccessTooltip": "Civitai에서 이 얼리 액세스 버전 다운로드",
-                    "downloadPaidTooltip": "Civitai에서 이 유료 버전 다운로드",
-                    "downloadNotAllowedTooltip": "이 버전은 Civitai 사이트 내에서만 사용 가능하며 다운로드할 수 없습니다",
+                    "downloadEarlyAccessTooltip": "CivitAI에서 이 얼리 액세스 버전 다운로드",
+                    "downloadPaidTooltip": "CivitAI에서 이 유료 버전 다운로드",
+                    "downloadNotAllowedTooltip": "이 버전은 CivitAI 사이트 내에서만 사용 가능하며 다운로드할 수 없습니다",
                     "delete": "삭제",
                     "deleteTooltip": "이 로컬 버전 삭제",
                     "ignore": "무시",
                     "unignore": "무시 해제",
                     "ignoreTooltip": "이 버전의 업데이트 알림 무시",
                     "unignoreTooltip": "이 버전의 업데이트 알림 다시 받기",
-                    "viewVersionOnCivitai": "Civitai에서 버전 보기",
+                    "viewVersionOnCivitai": "CivitAI에서 버전 보기",
                     "earlyAccessTooltip": "얼리 액세스 구매 필요",
                     "resumeModelUpdates": "이 모델 업데이트 재개",
                     "ignoreModelUpdates": "이 모델 업데이트 무시",
                     "viewLocalVersions": "로컬 버전 모두 보기",
-                    "viewLocalTooltip": "곧 제공 예정"
+                    "viewLocalTooltip": "이 모델의 모든 로컬 버전을 메인 페이지에 표시"
                 },
                 "filters": {
                     "label": "기본 필터",
@@ -1679,7 +1735,7 @@
                 },
                 "empty": "이 모델에는 아직 버전 기록이 없습니다.",
                 "error": "버전을 불러오지 못했습니다.",
-                "missingModelId": "이 모델에는 Civitai 모델 ID가 없습니다.",
+                "missingModelId": "이 모델에는 CivitAI 모델 ID가 없습니다.",
                 "hfGroupInfo": "HuggingFace 모델 그룹입니다. 라이브러리를 열어 그리드에서 모든 버전을 확인하세요.",
                 "confirm": {
                     "delete": "이 버전을 라이브러리에서 삭제하시겠습니까?"
@@ -1753,7 +1809,7 @@
             "message": "Embedding 캐시를 스캔하고 구축하고 있습니다. 몇 분이 걸릴 수 있습니다..."
         },
         "recipes": {
-            "title": "Recipe Manager 초기화 중",
+            "title": "레시피 매니저 초기화 중",
             "message": "레시피를 로딩하고 처리하고 있습니다. 몇 분이 걸릴 수 있습니다..."
         },
         "statistics": {
@@ -1763,14 +1819,14 @@
         "tips": {
             "title": "팁 & 요령",
             "civitai": {
-                "title": "Civitai 통합",
-                "description": "Civitai 계정 연결: 프로필 아바타 → 설정 → API 키 → API 키 추가를 방문한 후 LoRA Manager 설정에 붙여넣으세요.",
-                "alt": "Civitai API 설정"
+                "title": "CivitAI 통합",
+                "description": "CivitAI 계정 연결: 프로필 아바타 → 설정 → API 키 → API 키 추가를 방문한 후 LoRA Manager 설정에 붙여넣으세요.",
+                "alt": "CivitAI API 설정"
             },
             "download": {
                 "title": "간편 다운로드",
-                "description": "Civitai URL을 사용하여 새로운 모델을 빠르게 다운로드하고 설치하세요.",
-                "alt": "Civitai 다운로드"
+                "description": "CivitAI URL을 사용하여 새로운 모델을 빠르게 다운로드하고 설치하세요.",
+                "alt": "CivitAI 다운로드"
             },
             "recipes": {
                 "title": "레시피 저장",
@@ -1820,7 +1876,7 @@
             "recipeReplaced": "레시피가 워크플로에서 교체되었습니다",
             "recipeFailedToSend": "레시피를 워크플로로 전송하지 못했습니다",
             "noMatchingNodes": "현재 워크플로에서 호환되는 노드가 없습니다",
-            "noPromptTargets": "워크플로우에 호환되는 프롬프트 타겟이 없습니다.\nComfyUI에서 노드를 우클릭 → Mark as → Send Prompt Target",
+            "noPromptTargets": "워크플로에 호환되는 프롬프트 타겟이 없습니다.\nComfyUI에서 노드를 우클릭 → Mark as → Send Prompt Target",
             "noTargetNodeSelected": "대상 노드가 선택되지 않았습니다",
             "modelUpdated": "모델이 워크플로에서 업데이트되었습니다",
             "modelFailed": "모델 노드 업데이트 실패",
@@ -1832,7 +1888,7 @@
         "nodeSelector": {
             "recipe": "레시피",
             "lora": "LoRA",
-            "embedding": "임베딩",
+            "embedding": "Embedding",
             "prompt": "프롬프트",
             "replace": "교체",
             "append": "추가",
@@ -1954,7 +2010,7 @@
             "submitGithubIssue": "GitHub 이슈 제출",
             "joinDiscord": "Discord 참여",
             "youtubeChannel": "YouTube 채널",
-            "civitaiProfile": "Civitai 프로필",
+            "civitaiProfile": "CivitAI 프로필",
             "supportKofi": "Ko-fi에서 지원",
             "supportPatreon": "Patreon에서 지원"
         },
@@ -2000,7 +2056,7 @@
             "pleaseSelectFile": "파일을 하나 이상 선택해주세요",
             "versionExists": "이 버전은 이미 라이브러리에 있습니다",
             "downloadCompleted": "다운로드가 성공적으로 완료되었습니다",
-            "downloadSkippedByBaseModel": "기본 모델 {baseModel}이(가) 제외되어 다운로드를 건너뛰었습니다",
+            "downloadSkippedByBaseModel": "베이스 모델 {baseModel}이(가) 제외되어 다운로드를 건너뛰었습니다",
             "autoOrganizeSuccess": "{count}개의 {type}에 대해 자동 정리가 성공적으로 완료되었습니다",
             "autoOrganizePartialSuccess": "자동 정리 완료: 전체 {total}개 중 {success}개 이동, {failures}개 실패",
             "autoOrganizeFailed": "자동 정리 실패: {error}",
@@ -2024,7 +2080,7 @@
             "negativePromptUpdated": "네거티브 프롬프트가 성공적으로 업데이트되었습니다",
             "promptEditorHint": "Enter 키를 눌러 저장, Shift+Enter로 새 줄",
             "noRecipeId": "사용 가능한 레시피 ID가 없습니다",
-            "sendToWorkflowFailed": "워크플로우에 레시피 보내기 실패: {message}",
+            "sendToWorkflowFailed": "워크플로에 레시피 보내기 실패: {message}",
             "copyFailed": "레시피 문법 복사 오류: {message}",
             "createError": "레시피 생성 중 오류 발생：{message}",
             "createFailed": "레시피 생성 실패：{error}",
@@ -2037,15 +2093,26 @@
             "preparingForDownloadFailed": "LoRA 다운로드 준비 오류",
             "enterLoraName": "LoRA 이름 또는 문법을 입력해주세요",
             "reconnectedSuccessfully": "LoRA가 성공적으로 다시 연결되었습니다",
+            "reconnectBaseModelMismatch": "다시 연결했지만 베이스 모델이 다릅니다(레시피: {recipe}, LoRA: {lora}) — 아키텍처 호환입니다",
             "reconnectFailed": "LoRA 다시 연결 오류: {message}",
+            "loraRestored": "LoRA가 이전 연결 상태로 복원되었습니다",
+            "loraRestoreFailed": "LoRA 복원 오류: {message}",
             "noPromptToSend": "보낼 프롬프트가 없습니다",
             "cannotSend": "레시피를 전송할 수 없습니다: 레시피 ID 누락",
             "sendFailed": "레시피를 워크플로로 전송하는데 실패했습니다",
             "sendError": "레시피를 워크플로로 전송하는 중 오류",
-            "missingCheckpointPath": "체크포인트 경로를 사용할 수 없습니다",
-            "missingCheckpointInfo": "체크포인트 정보가 부족합니다",
-            "downloadCheckpointFailed": "체크포인트 다운로드 실패: {message}",
+            "missingCheckpointPath": "Checkpoint 경로를 사용할 수 없습니다",
+            "missingCheckpointInfo": "Checkpoint 정보가 부족합니다",
+            "downloadCheckpointFailed": "Checkpoint 다운로드 실패: {message}",
+            "enterCheckpointName": "Checkpoint 이름을 입력하세요",
+            "checkpointReconnectedSuccessfully": "Checkpoint가 성공적으로 다시 연결되었습니다",
+            "reconnectCheckpointBaseModelMismatch": "다시 연결했지만 베이스 모델이 다릅니다(레시피: {recipe}, Checkpoint: {checkpoint}) — 아키텍처 호환입니다",
+            "checkpointReconnectFailed": "Checkpoint 다시 연결 오류: {message}",
+            "checkpointRestored": "Checkpoint가 이전 연결 상태로 복원되었습니다",
+            "checkpointRestoreFailed": "Checkpoint 복원 오류: {message}",
+            "checkpointDownloadUnavailable": "CivitAI 식별자가 없어 이 Checkpoint를 다운로드할 수 없습니다 - 로컬 Checkpoint로 다시 연결해 보세요",
             "missingLoraDownloadInfo": "이 LoRA의 다운로드 정보가 없습니다",
+            "hashNotFoundOnCivitai": "이 LoRA 해시는 CivitAI에서 해석할 수 없습니다 - 모델이 업데이트되었거나 해시가 유효하지 않을 수 있습니다",
             "downloadLoraFailed": "LoRA 다운로드 실패: {message}",
             "cannotDelete": "레시피를 삭제할 수 없습니다: 레시피 ID 누락",
             "deleteConfirmationError": "삭제 확인 표시 오류",
@@ -2061,18 +2128,18 @@
             "processingError": "처리 오류: {message}",
             "folderBrowserError": "폴더 브라우저 로딩 오류: {message}",
             "recipeSaveFailed": "레시피 저장 실패: {error}",
-            "recipeSaved": "Recipe saved successfully",
+            "recipeSaved": "레시피가 저장되었습니다",
             "importFailed": "가져오기 실패: {message}",
             "folderTreeFailed": "폴더 트리 로딩 실패",
             "folderTreeError": "폴더 트리 로딩 오류",
-            "batchImportFailed": "Failed to start batch import: {message}",
-            "batchImportCancelling": "Cancelling batch import...",
-            "batchImportCancelFailed": "Failed to cancel batch import: {message}",
-            "batchImportNoUrls": "Please enter at least one URL or file path",
-            "batchImportNoDirectory": "Please enter a directory path",
-            "batchImportRateLimited": "메타데이터 제공자의 속도 제한에 도달했습니다 — 요청이 느려지고 일부 항목이 건너뛰어질 수 있습니다. 나중에 가져오기를 다시 실행할 수 있습니다.",
-            "batchImportBrowseFailed": "Failed to browse directory: {message}",
-            "batchImportDirectorySelected": "Directory selected: {path}",
+            "batchImportFailed": "일괄 가져오기를 시작하지 못했습니다: {message}",
+            "batchImportCancelling": "일괄 가져오기를 취소하는 중...",
+            "batchImportCancelFailed": "일괄 가져오기를 취소하지 못했습니다: {message}",
+            "batchImportNoUrls": "URL 또는 파일 경로를 하나 이상 입력하세요",
+            "batchImportNoDirectory": "폴더 경로를 입력하세요",
+            "batchImportRateLimited": "메타데이터 제공자 속도 제한 도달 — 요청이 느려지고 일부 항목이 건너뛰어질 수 있습니다. 나중에 가져오기를 다시 실행할 수 있습니다.",
+            "batchImportBrowseFailed": "폴더를 찾아보지 못했습니다: {message}",
+            "batchImportDirectorySelected": "선택한 폴더: {path}",
             "noRecipesSelected": "선택한 레시피가 없습니다",
             "repairBulkComplete": "복구 완료: {repaired}개 복구, {skipped}개 건너뜀 (총 {total}개)",
             "repairBulkSkipped": "선택한 {total}개 레시피는 복구가 필요하지 않습니다",
@@ -2128,8 +2195,8 @@
             "bulkUpdatesChecking": "선택한 {type}의 업데이트를 확인하는 중...",
             "bulkUpdatesSuccess": "선택한 {count}개의 {type}에 사용할 수 있는 업데이트가 있습니다",
             "bulkUpdatesNone": "선택한 {type}에 대한 업데이트가 없습니다",
-            "bulkUpdatesMissing": "선택한 {type}이 Civitai 업데이트에 연결되어 있지 않습니다",
-            "bulkUpdatesPartialMissing": "Civitai 링크가 없는 {missing}개의 {type}을 건너뛰었습니다",
+            "bulkUpdatesMissing": "선택한 {type}이 CivitAI 업데이트에 연결되어 있지 않습니다",
+            "bulkUpdatesPartialMissing": "CivitAI 링크가 없는 {missing}개의 {type}을 건너뛰었습니다",
             "bulkUpdatesFailed": "선택한 {type}의 업데이트 확인에 실패했습니다: {message}",
             "invalidCharactersRemoved": "파일명에서 잘못된 문자가 제거되었습니다",
             "filenameCannotBeEmpty": "파일 이름은 비어있을 수 없습니다",
@@ -2169,8 +2236,8 @@
             "compactModeToggled": "컴팩트 모드 {state}",
             "settingSaveFailed": "설정 저장 실패: {message}",
             "displayDensitySet": "표시 밀도가 {density}로 설정되었습니다",
-            "libraryLoadFailed": "Failed to load libraries: {message}",
-            "libraryActivateFailed": "Failed to activate library: {message}",
+            "libraryLoadFailed": "라이브러리를 불러오지 못했습니다: {message}",
+            "libraryActivateFailed": "라이브러리를 활성화하지 못했습니다: {message}",
             "languageChangeFailed": "언어 변경 실패: {message}",
             "cacheCleared": "캐시 파일이 성공적으로 지워졌습니다. 다음 작업 시 캐시가 재구축됩니다.",
             "cacheClearFailed": "캐시 지우기 실패: {error}",
@@ -2255,7 +2322,7 @@
         "contextMenu": {
             "contentRatingSet": "콘텐츠 등급이 {level}로 설정되었습니다",
             "contentRatingFailed": "콘텐츠 등급 설정 실패: {message}",
-            "relinkSuccess": "모델이 Civitai에 성공적으로 다시 연결되었습니다",
+            "relinkSuccess": "모델이 CivitAI에 성공적으로 다시 연결되었습니다",
             "relinkFailed": "오류: {message}",
             "linkHfSuccess": "모델이 HuggingFace에 연결되었습니다",
             "linkHfFailed": "오류: {message}",
@@ -2319,7 +2386,7 @@
             "bulkMoveSuccess": "{successCount}개 {type}이(가) 성공적으로 이동되었습니다",
             "exampleImagesDownloadSuccess": "예시 이미지가 성공적으로 다운로드되었습니다!",
             "exampleImagesDownloadFailed": "예시 이미지 다운로드 실패: {message}",
-            "moveFailed": "Failed to move item: {message}",
+            "moveFailed": "항목을 이동하지 못했습니다: {message}",
             "copiedToClipboard": "클립보드에 복사됨",
             "downloadStarted": "다운로드 시작됨"
         },
@@ -2349,7 +2416,7 @@
         },
         "issues": {
             "civitai_api_key": {
-                "title": "Civitai API 키"
+                "title": "CivitAI API 키"
             },
             "cache_health": {
                 "title": "모델 캐시 상태"
@@ -2387,7 +2454,7 @@
     "conflictConfirm": {
         "title": "파일명 충돌 해결",
         "message": "중복 파일명에 4자리 해시를 추가하여 이름을 변경합니다.",
-        "note": "이 작업은 디스크에 있는 파일의 이름을 변경합니다. A1111 구문 형식을 사용하는 경우 기존 워크플로우의 모델 참조를 업데이트해야 할 수 있습니다.",
+        "note": "이 작업은 디스크에 있는 파일의 이름을 변경합니다. A1111 구문 형식을 사용하는 경우 기존 워크플로의 모델 참조를 업데이트해야 할 수 있습니다.",
         "detail": "예시: <code>filename_v1.2</code> → <code>filename_v1.2-ab3c</code>",
         "impact": "<strong>{groups}</strong>개 중복 그룹에서 <strong>{count}</strong>개 파일 이름을 변경합니다",
         "confirm": "파일 이름 변경",
@@ -2402,10 +2469,10 @@
             "seconds": "초"
         },
         "communitySupport": {
-            "title": "Keep LoRA Manager Thriving with Your Support ❤️",
-            "content": "LoRA Manager is a passion project maintained full-time by a solo developer. Your support on Ko-fi helps cover development costs, keeps new updates coming, and unlocks a license key for the LM Civitai Extension as a thank-you gift. Every contribution truly makes a difference.",
-            "supportCta": "Support on Ko-fi",
-            "learnMore": "LM Civitai Extension Tutorial"
+            "title": "여러분의 지원으로 LoRA Manager가 계속 성장합니다 ❤️",
+            "content": "LoRA Manager는 한 명의 개발자가 전담으로 유지하는 열정적인 프로젝트입니다. Ko-fi에서의 지원은 개발 비용을 충당하고 새로운 업데이트를 제공하는 데 도움이 되며, 감사의 의미로 LM CivitAI 확장 기능의 라이선스 키를 드립니다. 모든 기여가 실질적인 차이를 만듭니다.",
+            "supportCta": "Ko-fi에서 지원하기",
+            "learnMore": "LM CivitAI 확장 기능 튜토리얼"
         },
         "cacheHealth": {
             "corrupted": {

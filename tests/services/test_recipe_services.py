@@ -1313,3 +1313,669 @@ async def test_reconnect_lora_distinguishes_ambiguous_mismatched_and_missing(tmp
         await service.reconnect_lora(
             recipe_scanner=scanner, recipe_id="r1", lora_index=0, target_name="missing"
         )
+
+
+@pytest.mark.asyncio
+async def test_reconnect_lora_family_compatible_succeeds_with_warning(tmp_path):
+    service = RecipePersistenceService(
+        exif_utils=DummyExifUtils(),
+        card_preview_width=512,
+        logger=logging.getLogger("test"),
+    )
+
+    pony_item = {
+        "file_name": "style.safetensors",
+        "folder": "",
+        "file_path": "/models/loras/style.safetensors",
+        "base_model": "Pony",
+        "sha256": "ab" * 32,
+    }
+
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(
+        json.dumps({"id": "r1", "base_model": "Illustrious", "loras": [{}]})
+    )
+
+    class DummyScanner:
+        async def get_recipe_json_path(self, recipe_id):
+            return str(recipe_path)
+
+        async def find_local_loras_by_name(self, name, base_model=None):
+            return [pony_item]
+
+        async def update_lora_entry(self, recipe_id, lora_index, *, target_name, target_lora):
+            assert target_lora is pony_item
+            return ({"id": "r1"}, {"file_name": target_lora["file_name"]})
+
+        async def find_recipes_by_fingerprint(self, fingerprint):
+            return []
+
+    result = await service.reconnect_lora(
+        recipe_scanner=DummyScanner(), recipe_id="r1", lora_index=0, target_name="style"
+    )
+
+    assert result.payload["success"] is True
+    assert result.payload["base_model_mismatch"] == {
+        "recipe_base_model": "Illustrious",
+        "lora_base_model": "Pony",
+    }
+
+
+@pytest.mark.asyncio
+async def test_reconnect_lora_exact_base_model_has_no_warning(tmp_path):
+    service = RecipePersistenceService(
+        exif_utils=DummyExifUtils(),
+        card_preview_width=512,
+        logger=logging.getLogger("test"),
+    )
+
+    item = {
+        "file_name": "style.safetensors",
+        "folder": "",
+        "file_path": "/models/loras/style.safetensors",
+        "base_model": "SDXL 1.0",
+        "sha256": "ab" * 32,
+    }
+
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(
+        json.dumps({"id": "r1", "base_model": "SDXL 1.0", "loras": [{}]})
+    )
+
+    class DummyScanner:
+        async def get_recipe_json_path(self, recipe_id):
+            return str(recipe_path)
+
+        async def find_local_loras_by_name(self, name, base_model=None):
+            return [item]
+
+        async def update_lora_entry(self, recipe_id, lora_index, *, target_name, target_lora):
+            return ({"id": "r1"}, {"file_name": target_lora["file_name"]})
+
+        async def find_recipes_by_fingerprint(self, fingerprint):
+            return []
+
+    result = await service.reconnect_lora(
+        recipe_scanner=DummyScanner(), recipe_id="r1", lora_index=0, target_name="style"
+    )
+
+    assert result.payload["success"] is True
+    assert "base_model_mismatch" not in result.payload
+
+
+@pytest.mark.asyncio
+async def test_get_reconnect_suggestions_loads_entry_and_delegates(tmp_path):
+    service = RecipePersistenceService(
+        exif_utils=DummyExifUtils(),
+        card_preview_width=512,
+        logger=logging.getLogger("test"),
+    )
+
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(
+        json.dumps(
+            {
+                "id": "r1",
+                "base_model": "SD 1.5",
+                "loras": [
+                    {"file_name": "a.safetensors", "hash": "aaa"},
+                    {"file_name": "b.safetensors", "hash": "bbb", "isDeleted": True},
+                ],
+            }
+        )
+    )
+
+    class DummyScanner:
+        def __init__(self):
+            self.calls = []
+
+        async def get_recipe_json_path(self, recipe_id):
+            assert recipe_id == "r1"
+            return str(recipe_path)
+
+        async def suggest_reconnect_candidates(
+            self, *, entry, recipe_base_model, query=None, limit=5
+        ):
+            self.calls.append(
+                {
+                    "entry": entry,
+                    "recipe_base_model": recipe_base_model,
+                    "query": query,
+                }
+            )
+            return [
+                {
+                    "file_name": "b.safetensors",
+                    "score": 1.0,
+                    "match_reason": "same_hash",
+                    "target_name": "b",
+                }
+            ]
+
+    scanner = DummyScanner()
+    result = await service.get_reconnect_suggestions(
+        recipe_scanner=scanner, recipe_id="r1", lora_index=1, query="b"
+    )
+
+    assert result.payload["success"] is True
+    assert result.payload["suggestions"][0]["target_name"] == "b"
+    assert scanner.calls == [
+        {
+            "entry": {"file_name": "b.safetensors", "hash": "bbb", "isDeleted": True},
+            "recipe_base_model": "SD 1.5",
+            "query": "b",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_reconnect_suggestions_validates_recipe_and_index(tmp_path):
+    service = RecipePersistenceService(
+        exif_utils=DummyExifUtils(),
+        card_preview_width=512,
+        logger=logging.getLogger("test"),
+    )
+
+    class MissingScanner:
+        async def get_recipe_json_path(self, recipe_id):
+            return str(tmp_path / "missing.json")
+
+    with pytest.raises(RecipeNotFoundError):
+        await service.get_reconnect_suggestions(
+            recipe_scanner=MissingScanner(), recipe_id="nope", lora_index=0
+        )
+
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(json.dumps({"id": "r1", "loras": []}))
+
+    class EmptyScanner:
+        async def get_recipe_json_path(self, recipe_id):
+            return str(recipe_path)
+
+    with pytest.raises(RecipeValidationError, match="lora_index"):
+        await service.get_reconnect_suggestions(
+            recipe_scanner=EmptyScanner(), recipe_id="r1", lora_index=0
+        )
+
+
+@pytest.mark.asyncio
+async def test_mark_lora_hash_invalid_delegates_and_reports(tmp_path):
+    service = RecipePersistenceService(
+        exif_utils=DummyExifUtils(),
+        card_preview_width=512,
+        logger=logging.getLogger("test"),
+    )
+
+    class DummyScanner:
+        async def set_lora_entry_hash_invalid(self, recipe_id, lora_index, hash_invalid):
+            assert recipe_id == "r1"
+            assert lora_index == 0
+            assert hash_invalid is True
+            return (
+                {"id": "r1", "loras": [{"file_name": "m", "hashInvalid": True}]},
+                {"file_name": "m", "hashInvalid": True},
+            )
+
+    result = await service.mark_lora_hash_invalid(
+        recipe_scanner=DummyScanner(), recipe_id="r1", lora_index=0
+    )
+
+    assert result.payload["success"] is True
+    assert result.payload["recipe_id"] == "r1"
+    assert result.payload["hash_invalid"] is True
+    assert result.payload["updated_lora"]["hashInvalid"] is True
+
+
+@pytest.mark.asyncio
+async def test_mark_lora_hash_invalid_can_clear_flag(tmp_path):
+    service = RecipePersistenceService(
+        exif_utils=DummyExifUtils(),
+        card_preview_width=512,
+        logger=logging.getLogger("test"),
+    )
+
+    class DummyScanner:
+        async def set_lora_entry_hash_invalid(self, recipe_id, lora_index, hash_invalid):
+            assert hash_invalid is False
+            return (
+                {"id": "r1", "loras": [{"file_name": "m", "hashInvalid": False}]},
+                {"file_name": "m", "hashInvalid": False},
+            )
+
+    result = await service.mark_lora_hash_invalid(
+        recipe_scanner=DummyScanner(),
+        recipe_id="r1",
+        lora_index=0,
+        hash_invalid=False,
+    )
+
+    assert result.payload["hash_invalid"] is False
+    assert result.payload["updated_lora"]["hashInvalid"] is False
+
+
+@pytest.mark.asyncio
+async def test_analyze_remote_image_meta_null_keeps_exif_loras(tmp_path, monkeypatch):
+    """When the CivitAI image API meta is null (only modelVersionIds
+    present), the EXIF-parsed LoRAs must be merged into the result — they
+    were previously dropped because the API-only parse yields a checkpoint
+    but no LoRAs."""
+    A1111_METADATA = (
+        "woman, natural blonde hair, ice blue eyes, <lora:Daphne Blake Cosplay_v1:1> daphne blake cosplay, upper body\n"
+        "Negative prompt: low quality\n"
+        "Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 7, Seed: 4140408634, "
+        "Size: 512x768, Model hash: 3c8530cb22, Model: cyberrealistic_v33, "
+        'Lora hashes: "Daphne Blake Cosplay_v1: e67ebd5e315f", '
+        'Hashes: {"lora:Daphne Blake Cosplay_v1": "a2a12bfa01"}'
+    )
+    LORA_SHA256 = "533317d3f7d269f9f504bdc432514774d3ada3738ebd80f3f1a37ff848e88276"
+
+    class FakeExif:
+        def extract_image_metadata(self, path):
+            return A1111_METADATA
+
+    class FakeDownloader:
+        async def download_file(self, url, path, use_auth=False):
+            with open(path, "wb") as fh:
+                fh.write(b"fake-image")
+            return True, None
+
+    async def downloader_factory():
+        return FakeDownloader()
+
+    class FakeCivitaiClient:
+        async def get_image_info(self, image_id, source_url=None):
+            return {
+                "id": 7076441,
+                "url": "https://image.civitai.com/x/original=true/x.jpeg",
+                "type": "image",
+                "meta": None,
+                "modelVersionIds": [138176],
+                "browsingLevel": 1,
+            }
+
+    async def fake_metadata_provider():
+        class Provider:
+            async def get_model_version_info(self, version_id):
+                if version_id == "138176":
+                    return {
+                        "id": 138176,
+                        "modelId": 15003,
+                        "model": {"name": "CyberRealistic", "type": "checkpoint"},
+                        "name": "v3.3",
+                        "baseModel": "SD 1.5",
+                        "files": [
+                            {
+                                "type": "Model",
+                                "primary": True,
+                                "name": "cyberrealistic_v33.safetensors",
+                                "hashes": {"SHA256": "3c8530cb2239b686d23a94627e29883fe44a1605f31a777727b6709f80d11679"},
+                            }
+                        ],
+                    }, None
+                return None, "Model not found"
+
+            async def get_model_by_hash(self, model_hash):
+                if model_hash == "e67ebd5e315f":
+                    return {
+                        "id": 359072,
+                        "modelId": 320224,
+                        "model": {"name": "Daphne Blake Cosplay (Scooby Doo)", "type": "lora"},
+                        "name": "v1.0",
+                        "baseModel": "SD 1.5",
+                        "downloadUrl": "https://civitai.com/api/download/359072",
+                        "files": [
+                            {
+                                "type": "Model",
+                                "primary": True,
+                                "name": "Daphne Blake Cosplay_v1.safetensors",
+                                "hashes": {"SHA256": LORA_SHA256.upper()},
+                            }
+                        ],
+                    }, None
+                return None, "Model not found"
+
+        return Provider()
+
+    monkeypatch.setattr(
+        "py.recipes.parsers.automatic.get_default_metadata_provider",
+        fake_metadata_provider,
+    )
+
+    class DummyScanner:
+        async def build_local_hash_cache(self):
+            return {}
+
+        async def find_recipes_by_fingerprint(self, fp):
+            return []
+
+        async def get_local_lora(self, name, base_model=None):
+            return None
+
+        async def get_local_lora_by_hash(self, hash_value):
+            return None
+
+    from py.recipes.factory import RecipeParserFactory
+
+    service = RecipeAnalysisService(
+        exif_utils=FakeExif(),
+        recipe_parser_factory=RecipeParserFactory(),
+        downloader_factory=downloader_factory,
+        logger=logging.getLogger("test"),
+    )
+
+    result = await service.analyze_remote_image(
+        url="https://civitai.red/images/7076441",
+        recipe_scanner=DummyScanner(),
+        civitai_client=FakeCivitaiClient(),
+    )
+    payload = result.payload
+
+    assert payload.get("error") is None
+    loras = payload.get("loras") or []
+    assert len(loras) == 1
+    assert loras[0]["hash"] == LORA_SHA256
+    assert loras[0].get("isDeleted") in (None, False)
+    assert "Daphne" in str(payload.get("gen_params", {}).get("prompt"))
+
+
+# ---------------------------------------------------------------------------
+# Checkpoint reconnect chain (manual remediation for recipe.checkpoint)
+# ---------------------------------------------------------------------------
+
+
+def _make_persistence_service():
+    return RecipePersistenceService(
+        exif_utils=DummyExifUtils(),
+        card_preview_width=512,
+        logger=logging.getLogger("test"),
+    )
+
+
+@pytest.mark.asyncio
+async def test_reconnect_checkpoint_distinguishes_ambiguous_mismatched_and_missing(tmp_path):
+    service = _make_persistence_service()
+
+    models = [
+        {
+            "file_name": "realistic.safetensors",
+            "folder": "sdxl",
+            "file_path": "/models/checkpoints/sdxl/realistic.safetensors",
+            "base_model": "SDXL 1.0",
+        },
+        {
+            "file_name": "realistic.safetensors",
+            "folder": "sd15",
+            "file_path": "/models/checkpoints/sd15/realistic.safetensors",
+            "base_model": "SD 1.5",
+        },
+    ]
+
+    class DummyScanner:
+        def __init__(self, recipe_path):
+            self._recipe_path = recipe_path
+
+        async def get_recipe_json_path(self, recipe_id):
+            return str(self._recipe_path)
+
+        async def find_local_checkpoints_by_name(self, name, base_model=None):
+            return ModelScanner.find_matching_models(models, name, base_model=base_model)
+
+    def write_recipe(base_model):
+        recipe_path = tmp_path / "recipe.json"
+        recipe_path.write_text(
+            json.dumps({"id": "r1", "base_model": base_model, "checkpoint": {}})
+        )
+        return DummyScanner(recipe_path)
+
+    # Ambiguous bare name: two candidates survive (recipe base model unknown)
+    scanner = write_recipe("")
+    with pytest.raises(RecipeValidationError, match="include the folder path"):
+        await service.reconnect_checkpoint(
+            recipe_scanner=scanner, recipe_id="r1", target_name="realistic"
+        )
+
+    # Confident base-model mismatch: the only candidate belongs to another family
+    scanner = write_recipe("SD 1.5")
+    with pytest.raises(RecipeValidationError, match="different base model"):
+        await service.reconnect_checkpoint(
+            recipe_scanner=scanner, recipe_id="r1", target_name="sdxl/realistic"
+        )
+
+    # No candidate at all
+    scanner = write_recipe("SDXL 1.0")
+    with pytest.raises(RecipeNotFoundError, match="not found"):
+        await service.reconnect_checkpoint(
+            recipe_scanner=scanner, recipe_id="r1", target_name="missing"
+        )
+
+
+@pytest.mark.asyncio
+async def test_reconnect_checkpoint_family_compatible_succeeds_with_warning(tmp_path):
+    service = _make_persistence_service()
+
+    pony_item = {
+        "file_name": "main.safetensors",
+        "folder": "",
+        "file_path": "/models/checkpoints/main.safetensors",
+        "base_model": "Pony",
+        "sha256": "ab" * 32,
+    }
+
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(
+        json.dumps({"id": "r1", "base_model": "Illustrious", "checkpoint": {}})
+    )
+
+    class DummyScanner:
+        async def get_recipe_json_path(self, recipe_id):
+            return str(recipe_path)
+
+        async def find_local_checkpoints_by_name(self, name, base_model=None):
+            return [pony_item]
+
+        async def update_checkpoint_entry(self, recipe_id, *, target_name, target_checkpoint):
+            assert target_checkpoint is pony_item
+            return ({"id": "r1"}, {"file_name": target_checkpoint["file_name"]})
+
+        async def find_recipes_by_fingerprint(self, fingerprint):
+            return []
+
+    result = await service.reconnect_checkpoint(
+        recipe_scanner=DummyScanner(), recipe_id="r1", target_name="main"
+    )
+
+    assert result.payload["success"] is True
+    assert result.payload["base_model_mismatch"] == {
+        "recipe_base_model": "Illustrious",
+        "checkpoint_base_model": "Pony",
+    }
+
+
+@pytest.mark.asyncio
+async def test_reconnect_checkpoint_exact_base_model_has_no_warning(tmp_path):
+    service = _make_persistence_service()
+
+    item = {
+        "file_name": "main.safetensors",
+        "folder": "",
+        "file_path": "/models/checkpoints/main.safetensors",
+        "base_model": "SDXL 1.0",
+        "sha256": "ab" * 32,
+    }
+
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(
+        json.dumps({"id": "r1", "base_model": "SDXL 1.0", "checkpoint": {}})
+    )
+
+    class DummyScanner:
+        async def get_recipe_json_path(self, recipe_id):
+            return str(recipe_path)
+
+        async def find_local_checkpoints_by_name(self, name, base_model=None):
+            return [item]
+
+        async def update_checkpoint_entry(self, recipe_id, *, target_name, target_checkpoint):
+            return ({"id": "r1"}, {"file_name": target_checkpoint["file_name"]})
+
+        async def find_recipes_by_fingerprint(self, fingerprint):
+            return []
+
+    result = await service.reconnect_checkpoint(
+        recipe_scanner=DummyScanner(), recipe_id="r1", target_name="main"
+    )
+
+    assert result.payload["success"] is True
+    assert "base_model_mismatch" not in result.payload
+
+
+@pytest.mark.asyncio
+async def test_restore_checkpoint_delegates_and_reports(tmp_path):
+    service = _make_persistence_service()
+
+    class DummyScanner:
+        async def restore_checkpoint_entry(self, recipe_id):
+            assert recipe_id == "r1"
+            return (
+                {"id": "r1", "checkpoint": {"file_name": "old.safetensors"}},
+                {"file_name": "old.safetensors"},
+            )
+
+        async def find_recipes_by_fingerprint(self, fingerprint):
+            return []
+
+    result = await service.restore_checkpoint(
+        recipe_scanner=DummyScanner(), recipe_id="r1"
+    )
+
+    assert result.payload["success"] is True
+    assert result.payload["updated_checkpoint"]["file_name"] == "old.safetensors"
+
+
+@pytest.mark.asyncio
+async def test_get_checkpoint_reconnect_suggestions_loads_entry_and_delegates(tmp_path):
+    service = _make_persistence_service()
+
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(
+        json.dumps(
+            {
+                "id": "r1",
+                "base_model": "SD 1.5",
+                "checkpoint": {"file_name": "old.safetensors", "hash": "aaa"},
+            }
+        )
+    )
+
+    class DummyScanner:
+        def __init__(self):
+            self.calls = []
+
+        async def get_recipe_json_path(self, recipe_id):
+            assert recipe_id == "r1"
+            return str(recipe_path)
+
+        async def suggest_checkpoint_reconnect_candidates(
+            self, *, entry, recipe_base_model, query=None, limit=5
+        ):
+            self.calls.append(
+                {
+                    "entry": entry,
+                    "recipe_base_model": recipe_base_model,
+                    "query": query,
+                }
+            )
+            return [
+                {
+                    "file_name": "new.safetensors",
+                    "score": 1.0,
+                    "match_reason": "same_hash",
+                    "target_name": "new",
+                }
+            ]
+
+    scanner = DummyScanner()
+    result = await service.get_checkpoint_reconnect_suggestions(
+        recipe_scanner=scanner, recipe_id="r1", query="new"
+    )
+
+    assert result.payload["success"] is True
+    assert result.payload["suggestions"][0]["target_name"] == "new"
+    assert scanner.calls == [
+        {
+            "entry": {"file_name": "old.safetensors", "hash": "aaa"},
+            "recipe_base_model": "SD 1.5",
+            "query": "new",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_checkpoint_reconnect_suggestions_validates_recipe(tmp_path):
+    service = _make_persistence_service()
+
+    class MissingScanner:
+        async def get_recipe_json_path(self, recipe_id):
+            return str(tmp_path / "missing.json")
+
+    with pytest.raises(RecipeNotFoundError):
+        await service.get_checkpoint_reconnect_suggestions(
+            recipe_scanner=MissingScanner(), recipe_id="nope"
+        )
+
+    recipe_path = tmp_path / "recipe.json"
+    recipe_path.write_text(json.dumps({"id": "r1"}))
+
+    class EmptyScanner:
+        async def get_recipe_json_path(self, recipe_id):
+            return str(recipe_path)
+
+    with pytest.raises(RecipeValidationError, match="checkpoint"):
+        await service.get_checkpoint_reconnect_suggestions(
+            recipe_scanner=EmptyScanner(), recipe_id="r1"
+        )
+
+
+@pytest.mark.asyncio
+async def test_mark_checkpoint_hash_invalid_delegates_and_reports(tmp_path):
+    service = _make_persistence_service()
+
+    class DummyScanner:
+        async def set_checkpoint_entry_hash_invalid(self, recipe_id, hash_invalid):
+            assert recipe_id == "r1"
+            assert hash_invalid is True
+            return (
+                {"id": "r1", "checkpoint": {"file_name": "m", "hashInvalid": True}},
+                {"file_name": "m", "hashInvalid": True},
+            )
+
+    result = await service.mark_checkpoint_hash_invalid(
+        recipe_scanner=DummyScanner(), recipe_id="r1"
+    )
+
+    assert result.payload["success"] is True
+    assert result.payload["recipe_id"] == "r1"
+    assert result.payload["hash_invalid"] is True
+    assert result.payload["updated_checkpoint"]["hashInvalid"] is True
+
+
+@pytest.mark.asyncio
+async def test_mark_checkpoint_hash_invalid_can_clear_flag(tmp_path):
+    service = _make_persistence_service()
+
+    class DummyScanner:
+        async def set_checkpoint_entry_hash_invalid(self, recipe_id, hash_invalid):
+            assert hash_invalid is False
+            return (
+                {"id": "r1", "checkpoint": {"file_name": "m", "hashInvalid": False}},
+                {"file_name": "m", "hashInvalid": False},
+            )
+
+    result = await service.mark_checkpoint_hash_invalid(
+        recipe_scanner=DummyScanner(),
+        recipe_id="r1",
+        hash_invalid=False,
+    )
+
+    assert result.payload["hash_invalid"] is False
+    assert result.payload["updated_checkpoint"]["hashInvalid"] is False

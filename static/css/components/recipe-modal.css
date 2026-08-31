@@ -190,6 +190,44 @@
     justify-content: center;
 }
 
+/* Icon-only companion to the Send button: same pill style as its neighbors,
+   just without the text label. */
+.modal-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    background: var(--surface-subtle);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: var(--transition-base);
+}
+
+[data-theme="dark"] .modal-copy-btn {
+    background: var(--surface-subtle);
+    border: 1px solid var(--lora-border);
+}
+
+.modal-copy-btn:hover {
+    background: oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
+    border-color: var(--lora-accent);
+    transform: translateY(-1px);
+}
+
+.modal-copy-btn:active {
+    transform: translateY(0);
+}
+
+.modal-copy-btn i {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 @media (max-height: 860px) {
     .recipe-header-actions {
         padding-bottom: 4px;
@@ -677,6 +715,72 @@
     min-height: 0;
 }
 
+/* Empty LoRA list + collapsible "Why no LoRAs?" explanation */
+.no-loras {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    padding: var(--space-2) 0;
+}
+
+.no-loras-reason {
+    margin: var(--space-1) 0 var(--space-2);
+    border: 1px solid var(--lora-border);
+    border-radius: var(--border-radius-xs);
+    background: var(--lora-surface);
+    font-size: 0.85em;
+}
+
+.no-loras-reason summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    cursor: pointer;
+    color: var(--text-muted);
+    user-select: none;
+    list-style: none;
+}
+
+/* Hide the native disclosure triangle; rotate the icon instead. */
+.no-loras-reason summary::-webkit-details-marker {
+    display: none;
+}
+
+.no-loras-reason summary i {
+    transition: transform 0.15s ease;
+}
+
+.no-loras-reason[open] summary i {
+    transform: rotate(90deg);
+}
+
+.no-loras-reason summary:hover {
+    color: var(--text-color);
+}
+
+.no-loras-reason-body {
+    padding: 0 var(--space-3) var(--space-3);
+    color: var(--text-muted);
+}
+
+.no-loras-reason-body ul {
+    margin: 0;
+    padding-left: var(--space-5);
+}
+
+.no-loras-reason-body li {
+    margin: var(--space-1) 0;
+}
+
+.no-loras-bullet-label {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.no-loras-inferred-note {
+    font-style: italic;
+}
+
 .recipe-checkpoint-container {
     display: flex;
     flex-direction: column;
@@ -691,6 +795,9 @@
 
 .recipe-lora-item {
     display: flex;
+    /* The reconnect panel is a full-width child that wraps below the
+       thumbnail + content row. */
+    flex-wrap: wrap;
     gap: var(--space-2);
     padding: 10px var(--space-2);
     border: 1px solid var(--border-color);
@@ -849,8 +956,36 @@
     color: var(--lora-accent);
 }
 
+/* Restore icon for manually reconnected entries: its presence on the info
+   row doubles as the "was reconnected" marker. Shared by LoRA and
+   checkpoint entries, which use the same info-row flex layout. */
+.lora-undo-reconnect,
+.checkpoint-undo-reconnect {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.55;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: var(--border-radius-xs);
+    font-size: 0.95em;
+    line-height: 1;
+    transition: var(--transition-base);
+}
+
+.lora-undo-reconnect:hover,
+.lora-undo-reconnect:focus-visible,
+.checkpoint-undo-reconnect:hover,
+.checkpoint-undo-reconnect:focus-visible {
+    opacity: 1;
+    color: var(--lora-accent);
+    background: var(--lora-surface);
+}
+
 .local-badge, 
-.missing-badge {
+.missing-badge,
+.invalid-hash-badge {
     position: absolute;
     right: 0;
     top: 0;
@@ -861,7 +996,8 @@
 
 /* Specific styles for recipe modal badges - update z-index */
 .recipe-lora-header .local-badge,
-.recipe-lora-header .missing-badge {
+.recipe-lora-header .missing-badge,
+.recipe-lora-header .invalid-hash-badge {
     z-index: 2; /* Ensure the badge is above other elements */
     backface-visibility: hidden;
 }
@@ -903,18 +1039,42 @@
     font-size: 0.9em;
 }
 
+/* Unresolvable-hash badge: the entry has identity fields, but its hash is
+   not registered on CivitAI (stale or invalid). */
+.invalid-hash-badge {
+    display: inline-flex;
+    align-items: center;
+    background: var(--lora-warning);
+    color: white;
+    padding: 3px 6px;
+    border-radius: var(--border-radius-xs);
+    font-size: 0.75em;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.invalid-hash-badge i {
+    margin-right: 4px;
+    font-size: 0.9em;
+}
+
 /* Deleted badge is a pure status indicator; the reconnect action lives on
    an explicit ghost button in the item's action row. */
 
-/* LoRA reconnect container */
+/* LoRA reconnect container: an inline extension of the item, not a nested
+   card — a dashed separator reads lighter than another bordered box inside
+   an already bordered item. It is a direct child of .recipe-lora-item and
+   spans the full row (thumbnail column included). */
 .lora-reconnect-container {
     display: none;
     flex-direction: column;
-    background: var(--lora-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-xs);
-    padding: 12px;
-    margin-top: 10px;
+    flex-basis: 100%;
+    /* Flex items default to min-width:auto — never let content force the
+       panel wider than the row. */
+    min-width: 0;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 10px;
     gap: 10px;
 }
 
@@ -941,18 +1101,6 @@
     font-size: 0.85em;
 }
 
-.reconnect-instructions code {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-family: var(--font-mono);
-    font-size: 0.9em;
-}
-
-[data-theme="dark"] .reconnect-instructions code {
-    background: rgba(255, 255, 255, 0.1);
-}
-
 .reconnect-form {
     display: flex;
     flex-direction: column;
@@ -960,13 +1108,108 @@
 }
 
 .reconnect-input {
-    width: calc(100% - 20px);
+    box-sizing: border-box;
+    width: 100%;
     padding: 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-xs);
     background: var(--bg-color);
     color: var(--text-color);
+    font-size: 0.95em;
+}
+
+.reconnect-error {
+    display: none;
+    margin: 0;
+    color: var(--lora-error);
+    font-size: 0.85em;
+}
+
+.reconnect-error.active {
+    display: block;
+}
+
+.reconnect-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.reconnect-suggestions:empty {
+    display: none;
+}
+
+.reconnect-suggestions-loading,
+.reconnect-suggestions-empty {
+    font-size: 0.85em;
+    color: var(--text-color);
+    opacity: 0.7;
+    padding: 4px 2px;
+}
+
+.reconnect-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    /* Buttons default to content-box: without this, width:100% + padding +
+       border overflows the panel by 18px and forces a horizontal scrollbar. */
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-xs);
+    background: var(--lora-surface, var(--bg-color));
+    color: var(--text-color);
+    font-size: 0.95em;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.reconnect-suggestion:hover,
+.reconnect-suggestion:focus-visible {
+    border-color: var(--lora-accent);
+}
+
+.reconnect-suggestion-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-xs);
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--bg-color);
+}
+
+.reconnect-suggestion-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.reconnect-suggestion-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reconnect-suggestion-secondary {
     font-size: 0.9em;
+    opacity: 0.7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reconnect-suggestion-reason {
+    flex-shrink: 0;
+    padding: 2px 6px;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--border-color);
+    color: var(--lora-accent);
+    font-size: 0.85em;
+    white-space: nowrap;
 }
 
 .reconnect-actions {
@@ -1124,7 +1367,8 @@
 /* Badges are pure status indicators; actions live in .recipe-lora-actions */
 .badge-container .local-badge, 
 .badge-container .missing-badge,
-.badge-container .deleted-badge {
+.badge-container .deleted-badge,
+.badge-container .invalid-hash-badge {
     position: static; /* Override absolute positioning */
     transform: none; /* Remove the transform */
 }
@@ -1148,6 +1392,25 @@
     background: rgba(127, 127, 127, 0.15);
     color: var(--text-muted);
     border: 1px solid rgba(127, 127, 127, 0.35);
+}
+
+.badge-container .invalid-hash-badge {
+    background: oklch(var(--lora-warning) / 0.14);
+    color: var(--lora-warning);
+    border: 1px solid oklch(var(--lora-warning) / 0.35);
+}
+
+/* Pin the recipe status-badge family (missing / deleted / invalid-hash) to its
+   compact size. import-modal.css defines unscoped .missing-badge/.deleted-badge
+   and is loaded AFTER this file, so without this higher-specificity rule its
+   padding/font-size would clobber recipe modal's, leaving invalid-hash-badge
+   (which has no import counterpart) at a different size. local-badge
+   intentionally keeps the global shared.css size. */
+#recipeModal .badge-container .missing-badge,
+#recipeModal .badge-container .deleted-badge,
+#recipeModal .badge-container .invalid-hash-badge {
+    padding: 3px 6px;
+    font-size: 0.75em;
 }
 
 /* Missing LoRAs status is a real button: the affordance must be visible at

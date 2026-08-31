@@ -67,11 +67,11 @@
         "steps": {
             "fetch": {
                 "title": "获取模型元数据",
-                "content": "点击 <strong>获取</strong> 按钮，从 Civitai 下载模型元数据和预览图片。"
+                "content": "点击 <strong>获取</strong> 按钮，从 CivitAI 下载模型元数据和预览图片。"
             },
             "download": {
                 "title": "下载新模型",
-                "content": "使用 <strong>下载</strong> 按钮，可直接通过 Civitai URL 下载模型。"
+                "content": "使用 <strong>下载</strong> 按钮，可直接通过 CivitAI URL 下载模型。"
             },
             "bulk": {
                 "title": "批量操作",
@@ -103,12 +103,12 @@
         "actions": {
             "addToFavorites": "添加到收藏",
             "removeFromFavorites": "从收藏移除",
-            "viewOnCivitai": "在 Civitai 查看",
-            "notAvailableFromCivitai": "Civitai 上不可用",
+            "viewOnCivitai": "在 CivitAI 查看",
+            "notAvailableFromCivitai": "CivitAI 上不可用",
             "viewOnHuggingFace": "在 Hugging Face 查看",
             "sendToWorkflow": "发送到 ComfyUI（点击：追加，Shift+点击：替换）",
             "copyLoRASyntax": "复制 LoRA 语法",
-            "checkpointNameCopied": "检查点名称已复制",
+            "checkpointNameCopied": "Checkpoint 名称已复制",
             "toggleBlur": "切换模糊",
             "show": "显示",
             "openExampleImages": "打开示例图片文件夹",
@@ -131,13 +131,13 @@
             "updateFailed": "收藏状态更新失败"
         },
         "sendToWorkflow": {
-            "checkpointNotImplemented": "发送检查点到工作流 - 功能待实现",
+            "checkpointNotImplemented": "发送Checkpoint到工作流 - 功能待实现",
             "missingPath": "无法确定此卡片的模型路径"
         },
         "exampleImages": {
             "checkError": "检查示例图片时出错",
             "missingHash": "缺少模型哈希信息。",
-            "noRemoteImagesAvailable": "此模型在 Civitai 上没有远程示例图片"
+            "noRemoteImagesAvailable": "此模型在 CivitAI 上没有远程示例图片"
         },
         "badges": {
             "update": "更新",
@@ -187,14 +187,14 @@
             "error": "配方修复失败：{message}"
         },
         "rematchRecipes": {
-            "label": "将食谱重新匹配到本地模型",
-            "loading": "正在将食谱重新匹配到本地模型...",
-            "success": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱",
-            "successErrors": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱，{failures} 个失败",
-            "allFailed": "{failures}/{total} 个食谱重新匹配失败",
-            "noMatch": "在 {recipes} 个食谱中未找到 {entries} 个条目的本地匹配",
-            "cancelled": "已取消重新匹配。{recipes} 个食谱已更新（{entries} 个条目）。",
-            "error": "食谱重新匹配失败：{message}"
+            "label": "将配方重新匹配到本地模型",
+            "loading": "正在将配方重新匹配到本地模型...",
+            "success": "已匹配 {entries} 个条目，涉及 {recipes} 个配方",
+            "successErrors": "已匹配 {entries} 个条目，涉及 {recipes} 个配方，{failures} 个失败",
+            "allFailed": "{failures}/{total} 个配方重新匹配失败",
+            "noMatch": "在 {recipes} 个配方中未找到 {entries} 个条目的本地匹配",
+            "cancelled": "已取消重新匹配。{recipes} 个配方已更新（{entries} 个条目）。",
+            "error": "配方重新匹配失败：{message}"
         },
         "manageExcludedModels": {
             "label": "管理已排除的模型"
@@ -290,15 +290,15 @@
         }
     },
     "settings": {
-        "civitaiApiKey": "Civitai API 密钥",
-        "civitaiApiKeyPlaceholder": "请输入你的 Civitai API 密钥",
-        "civitaiApiKeyHelp": "用于从 Civitai 下载模型时的身份验证",
+        "civitaiApiKey": "CivitAI API 密钥",
+        "civitaiApiKeyPlaceholder": "请输入你的 CivitAI API 密钥",
+        "civitaiApiKeyHelp": "用于从 CivitAI 下载模型时的身份验证",
         "civitaiApiKeyConfigured": "已配置",
         "civitaiApiKeyNotConfigured": "未配置",
         "civitaiApiKeySet": "设置",
         "civitaiHost": {
-            "label": "Civitai 站点",
-            "help": "选择使用“在 Civitai 中查看”时默认打开的 Civitai 站点。",
+            "label": "CivitAI 站点",
+            "help": "选择使用“在 CivitAI 中查看”时默认打开的 CivitAI 站点。",
             "options": {
                 "com": "civitai.com（仅 SFW）",
                 "red": "civitai.red（无限制）"
@@ -319,8 +319,8 @@
         },
         "aria2HelpLink": "了解如何配置 aria2 下载后端",
         "civitaiHostBanner": {
-            "title": "已提供 Civitai 站点偏好设置",
-            "content": "Civitai 现在使用 civitai.com 提供 SFW 内容，使用 civitai.red 提供无限制内容。你可以在设置中更改默认打开的站点。",
+            "title": "已提供 CivitAI 站点偏好设置",
+            "content": "CivitAI 现在使用 civitai.com 提供 SFW 内容，使用 civitai.red 提供无限制内容。你可以在设置中更改默认打开的站点。",
             "openSettings": "打开设置"
         },
         "openSettingsFileLocation": {
@@ -428,7 +428,7 @@
         },
         "downloadSkipBaseModels": {
             "label": "跳过这些基础模型的下载",
-            "help": "适用于所有下载流程。这里只能选择受支持的基础模型。",
+            "help": "启用后，使用所选基础模型的版本将被跳过。",
             "searchPlaceholder": "筛选基础模型...",
             "empty": "没有与当前搜索匹配的基础模型。",
             "summary": {
@@ -450,7 +450,7 @@
         },
         "layoutSettings": {
             "groupByModel": "按模型分组",
-            "groupByModelHelp": "开启后，每个 Civitai 模型仅显示最新版本的单张卡片，旧版本将被隐藏。",
+            "groupByModelHelp": "开启后，每个 CivitAI 模型仅显示最新版本的单张卡片，旧版本将被隐藏。",
             "displayDensity": "显示密度",
             "displayDensityOptions": {
                 "default": "默认",
@@ -555,7 +555,7 @@
         },
         "downloadPathTemplates": {
             "title": "下载路径模板",
-            "help": "配置从 Civitai 下载不同模型类型的文件夹结构。",
+            "help": "配置从 CivitAI 下载不同模型类型的文件夹结构。",
             "availablePlaceholders": "可用占位符：",
             "templateOptions": {
                 "flatStructure": "扁平结构",
@@ -592,7 +592,7 @@
         "exampleImages": {
             "downloadLocation": "下载位置",
             "downloadLocationPlaceholder": "输入示例图片文件夹路径",
-            "downloadLocationHelp": "输入保存从 Civitai 下载的示例图片的文件夹路径",
+            "downloadLocationHelp": "输入保存从 CivitAI 下载的示例图片的文件夹路径",
             "autoDownload": "自动下载示例图片",
             "autoDownloadHelp": "自动为没有示例图片的模型下载示例图片（需设置下载位置）",
             "openMode": "打开示例图片操作",
@@ -625,7 +625,7 @@
         },
         "hideEarlyAccessUpdates": {
             "label": "隐藏抢先体验更新",
-            "help": "抢先体验更新"
+            "help": "启用后，仅有抢先体验更新的模型将不显示“可更新”徽章。"
         },
         "hidePaidUpdates": {
             "label": "隐藏付费更新",
@@ -647,7 +647,7 @@
         },
         "metadataArchive": {
             "enableArchiveDb": "启用元数据归档数据库",
-            "enableArchiveDbHelp": "使用本地数据库访问已从 Civitai 删除的模型元数据。",
+            "enableArchiveDbHelp": "使用本地数据库访问已从 CivitAI 删除的模型元数据。",
             "status": "状态",
             "statusAvailable": "可用",
             "statusUnavailable": "不可用",
@@ -696,7 +696,7 @@
         "aiProvider": {
             "title": "AI 提供商",
             "provider": "提供商",
-            "providerHelp": "选择您的 LLM 提供商。OpenAI 和 Ollama 使用预设的 API 端点。自定义允许您指定任何兼容 OpenAI 的端点。",
+            "providerHelp": "选择你的 LLM 提供商。OpenAI 和 Ollama 使用预设的 API 端点。自定义允许你指定任何兼容 OpenAI 的端点。",
             "providerOptions": {
                 "openai": "OpenAI",
                 "ollama": "Ollama（本地）",
@@ -711,7 +711,7 @@
             "apiBaseHelp": "LLM API 的基础地址。选择预设或输入自定义地址，下拉框显示所有支持的提供商预设。",
             "apiBasePlaceholder": "https://api.openai.com/v1",
             "apiKey": "API 密钥",
-            "apiKeyHelp": "LLM 提供商的 API 密钥。本地存储，除您选择的 LLM 提供商外不会发送到任何服务器。",
+            "apiKeyHelp": "LLM 提供商的 API 密钥。本地存储，除你选择的 LLM 提供商外不会发送到任何服务器。",
             "apiKeyPlaceholder": "sk-...",
             "apiKeyNotSet": "未设置",
             "apiKeyConfigured": "已配置",
@@ -750,7 +750,7 @@
                 "fullTooltip": "从元数据文件重新加载所有模型信息；用于列表过时或手动编辑后。"
             },
             "fetch": {
-                "title": "从 Civitai 获取元数据",
+                "title": "从 CivitAI 获取元数据",
                 "action": "获取"
             },
             "download": {
@@ -825,10 +825,10 @@
             "enrichHfAgent": "AI HF 元数据增强"
         },
         "contextMenu": {
-            "refreshMetadata": "刷新 Civitai 数据",
+            "refreshMetadata": "刷新 CivitAI 数据",
             "checkUpdates": "检查更新",
             "linkModel": "链接模型",
-            "linkCivitai": "链接到 Civitai",
+            "linkCivitai": "链接到 CivitAI",
             "linkHuggingFace": "链接到 HuggingFace",
             "copySyntax": "复制 LoRA 语法",
             "copyFilename": "复制模型文件名",
@@ -860,6 +860,7 @@
         "actions": {
             "sendCheckpoint": "发送到 ComfyUI",
             "sendRecipe": "发送到 ComfyUI",
+            "copyRecipeSyntax": "复制配方语法",
             "deleteRecipeWithShortcut": "删除配方（Del）"
         },
         "navigation": {
@@ -883,23 +884,78 @@
         "loraStatus": {
             "none": "此配方不包含 LoRA",
             "allAvailable": "所有 LoRA 均已就绪 - 可直接使用",
-            "missing": "{total} 个 LoRA 中缺失 {missing} 个"
+            "missing": "{total} 个 LoRA 中缺失 {missing} 个",
+            "missingAndUnavailable": "{total} 个 LoRA 中缺失 {missing} 个，{unavailable} 个不可用（已从源站删除或哈希无法解析）",
+            "partial": "{total} 个 LoRA 中 {unavailable} 个不可用（已从源站删除或哈希无法解析）- 使用配方时将被跳过",
+            "noneUsable": "没有可用的 LoRA - {total} 个中 {unavailable} 个已从源站删除或哈希无法解析"
         },
         "resources": {
             "inLibrary": "在库中",
             "notInLibrary": "不在库中",
             "deleted": "已删除",
+            "hashInvalid": "无法解析的哈希",
             "inLibraryTooltip": "该模型已存在于本地库中",
             "notInLibraryTooltip": "该模型不在你的本地库中",
             "deletedTooltip": "该 LoRA 已从来源站删除，无法下载",
+            "hashInvalidTooltip": "此 LoRA 哈希无法在 CivitAI 上解析——模型可能已更新",
+            "noLorasAssociated": "此配方没有关联任何 LoRA",
+            "noLorasWhyToggle": "为什么没有 LoRA？",
+            "noLorasImportMethod": "导入方式",
+            "noLorasInferredNote": "可能的原因（推断）——该配方是在记录导入诊断信息之前导入的。",
+            "noLorasChannels": {
+                "batch_import_url": "批量导入（图片 URL）",
+                "batch_import_local": "批量导入（本地文件）",
+                "url": "图片 URL 导入",
+                "local": "本地文件导入",
+                "upload": "图片上传",
+                "widget": "从工作流保存",
+                "reimport_url": "重新导入（图片 URL）",
+                "reimport_local": "重新导入（本地文件）"
+            },
+            "noLorasReasons": {
+                "no_loras_used": "生成元数据完整，且未引用任何 LoRA。",
+                "api_meta_no_lora_resources": "来源 API 未返回此图片的 LoRA 资源数据。CivitAI 页面上显示的 LoRA 可能来自公开 API 未开放的内部数据。",
+                "api_meta_missing": "来源 API 未返回此图片的生成元数据。",
+                "no_embedded_metadata": "图片没有内嵌生成元数据，因此无法恢复 LoRA 信息。",
+                "workflow_metadata_limited": "图片内嵌的元数据是 ComfyUI 工作流；从工作流中提取 LoRA 信息的能力有限。",
+                "video_no_metadata": "视频文件不携带内嵌生成元数据。",
+                "metadata_unsupported": "图片包含的元数据格式无法解析。",
+                "unknown": "无法从存储的配方数据中确定原因。"
+            },
+            "noLorasDetails": {
+                "apiMetaFields": "API 元数据字段",
+                "modelVersionIds": "报告的模型版本 ID 数",
+                "embeddedMetadata": "内嵌元数据",
+                "present": "已找到",
+                "absent": "无"
+            },
             "download": "下载",
             "downloadLoraTooltip": "下载此 LoRA",
-            "preparingDownload": "正在准备下载…",
+            "preparingDownload": "正在准备下载...",
             "reconnect": "重新关联",
             "reconnectTooltip": "与本地 LoRA 重新关联",
-            "viewOnCivitai": "在 Civitai 上查看",
+            "reconnectInstructions": "输入 LoRA 语法或名称以重新关联：",
+            "reconnectExample": "示例：<lora:name:1> 或只填名称",
+            "reconnectPlaceholder": "输入 LoRA 名称或语法",
+            "reconnectSuggestionsLoading": "正在搜索本地库...",
+            "reconnectSuggestionsEmpty": "本地库中没有匹配的 LoRA",
+            "reconnectMatchSameHash": "相同哈希",
+            "reconnectMatchSameVersion": "相同模型版本",
+            "reconnectMatchSimilarFilename": "相似文件名",
+            "reconnectMatchSimilarName": "相似名称",
+            "undoReconnect": "撤销",
+            "undoReconnectTooltip": "恢复此条目在重新关联前的关联",
+            "undoReconnectTooltipNamed": "恢复为 {name}（重新关联前的关联）",
+            "viewOnCivitai": "在 CivitAI 上查看",
             "openLoraDetails": "在 LoRA 库中查看 {name}",
-            "openCheckpointDetails": "在模型库中查看 {name}"
+            "openCheckpointDetails": "在模型库中查看 {name}",
+            "checkpointDeletedTooltip": "此 Checkpoint 已从来源删除，无法再下载 - 请使用本地模型重新关联",
+            "checkpointHashInvalidTooltip": "此 Checkpoint 的哈希无法在 CivitAI 上解析 - 模型可能已更新",
+            "reconnectCheckpoint": "重新关联",
+            "reconnectCheckpointTooltip": "与本地 Checkpoint 重新关联",
+            "checkpointReconnectInstructions": "输入 Checkpoint 名称以重新关联：",
+            "checkpointReconnectPlaceholder": "输入 Checkpoint 名称",
+            "checkpointReconnectSuggestionsEmpty": "本地库中没有匹配的 Checkpoint"
         },
         "controls": {
             "import": {
@@ -918,7 +974,7 @@
                 "addTag": "添加",
                 "noTagsAdded": "未添加标签",
                 "lorasInRecipe": "此配方中的 LoRA",
-                "downloadLocationPreview": "下载位置预览：{path}",
+                "downloadLocationPreview": "下载位置预览：",
                 "useDefaultPath": "使用默认路径",
                 "useDefaultPathTooltip": "启用后，文件将自动使用配置的路径模板进行组织",
                 "selectLoraRoot": "选择 LoRA 根目录",
@@ -932,20 +988,20 @@
                 "importAndDownload": "导入并下载",
                 "downloadMissingLoras": "下载缺失的 LoRA",
                 "saveRecipe": "保存配方",
-                "loraCountInfo": "({existing}/{total} in library)",
+                "loraCountInfo": "（库中 {existing}/{total}）",
                 "processingInput": "处理输入...",
                 "analyzingMetadata": "分析图像元数据...",
                 "downloadingLoras": "下载 LoRA...",
                 "savingRecipe": "保存配方...",
                 "startingDownload": "开始下载 LoRA {current}/{total}",
-                "deletedFromCivitai": "从 Civitai 中删除",
+                "deletedFromCivitai": "从 CivitAI 中删除",
                 "inLibrary": "在库中",
                 "notInLibrary": "不在库中",
                 "earlyAccessRequired": "此 LoRA 需要提前访问权限才能下载。",
                 "earlyAccessEnds": "提前访问权限将于 {date} 结束。",
                 "earlyAccess": "提前访问",
-                "verifyEarlyAccess": "在下载之前，请验证您是否已购买提前访问权限。",
-                "duplicateRecipesFound": "在您的库中找到 {count} 个相同的配方。",
+                "verifyEarlyAccess": "在下载之前，请确认你已购买提前访问权限。",
+                "duplicateRecipesFound": "在你的库中找到 {count} 个相同的配方。",
                 "duplicateRecipesDescription": "这些配方包含相同的 LoRA，权重完全相同。",
                 "showDuplicates": "显示重复项",
                 "hideDuplicates": "隐藏重复项",
@@ -1061,7 +1117,7 @@
             "start": "开始导入",
             "startImport": "开始导入",
             "importing": "正在导入配方...",
-            "rateLimitedSlowdown": "触发速率限制 — 正在减速…",
+            "rateLimitedSlowdown": "触发速率限制 — 正在减速...",
             "rateLimitedHint": "部分条目因元数据提供方的速率限制而被跳过。稍后重新运行导入即可重试这些条目。",
             "progress": "进度",
             "total": "总计",
@@ -1104,7 +1160,7 @@
         "title": "Checkpoint 模型",
         "modelTypes": {
             "checkpoint": "Checkpoint",
-            "diffusion_model": "Diffusion Model"
+            "diffusion_model": "扩散模型"
         },
         "contextMenu": {
             "moveToOtherTypeFolder": "移动到 {otherType} 文件夹",
@@ -1128,7 +1184,7 @@
         "collapseAllDisabled": "列表视图下不可用",
         "dragDrop": {
             "unableToResolveRoot": "无法确定移动的目标路径。",
-            "moveUnsupported": "Move is not supported for this item.",
+            "moveUnsupported": "此条目不支持移动。",
             "createFolderHint": "释放以创建新文件夹",
             "newFolderName": "新文件夹名称",
             "folderNameHint": "按 Enter 确认，Escape 取消",
@@ -1266,7 +1322,7 @@
         "download": {
             "title": "从 URL 下载模型",
             "titleWithType": "从 URL 下载 {type}",
-            "civitaiUrl": "Civitai URL:",
+            "civitaiUrl": "CivitAI URL:",
             "placeholder": "https://civitai.com/models/...",
             "urlHint": "每行输入一个 CivitAI、CivArchive 或 Hugging Face URL。支持批量下载多个 URL。",
             "selectHfFiles": "选择从此仓库下载的文件：",
@@ -1301,7 +1357,7 @@
                 "inLibrary": "已在库中"
             },
             "errors": {
-                "invalidUrl": "无效的 Civitai URL 格式",
+                "invalidUrl": "无效的 CivitAI URL 格式",
                 "noVersions": "此模型没有可用版本",
                 "mixedSources": "无法在同一批次中混合使用 CivitAI 和 Hugging Face URL。",
                 "noModelFiles": "在此仓库中未找到模型文件。"
@@ -1380,8 +1436,8 @@
             "action": "全部删除"
         },
         "checkUpdates": {
-            "title": "检查所有 {type} 的更新？",
-            "message": "这会为库中的每个 {type} 检查更新，大型集合可能需要一些时间。",
+            "title": "检查所有 {typePlural} 的更新？",
+            "message": "这会检查库中的每个 {typePlural} 的更新，大型集合可能需要一些时间。",
             "tip": "想分批进行？切换到批量模式，选中需要的模型，然后使用“检查所选更新”。",
             "action": "检查全部"
         },
@@ -1415,7 +1471,7 @@
             "title": "本地示例图片",
             "message": "未找到此模型的本地示例图片。可选操作：",
             "downloadOption": {
-                "title": "从 Civitai 下载",
+                "title": "从 CivitAI 下载",
                 "description": "将远程示例保存到本地，便于离线使用和更快加载"
             },
             "importOption": {
@@ -1442,7 +1498,7 @@
             "confirmAction": "保存并链接"
         },
         "relinkCivitai": {
-            "title": "重新关联到 Civitai",
+            "title": "重新关联到 CivitAI",
             "warning": "警告：",
             "warningText": "这是一个有潜在风险的操作。重新关联将：",
             "warningList": {
@@ -1451,15 +1507,15 @@
                 "unintendedConsequences": "可能有其他不可预期的后果"
             },
             "proceedText": "仅在你确定需要此操作时继续。",
-            "urlLabel": "Civitai 模型 URL：",
+            "urlLabel": "CivitAI 模型 URL：",
             "urlPlaceholder": "https://civitai.com/models/12345/model-name?modelVersionId=67890 或 https://civitai.red/models/12345/model-name?modelVersionId=67890",
             "helpText": {
-                "title": "粘贴任意 Civitai 或 CivitArchive 模型 URL。支持格式：",
+                "title": "粘贴任意 CivitAI 或 CivitArchive 模型 URL。支持格式：",
                 "format1": "https://civitai.com/models/12345",
                 "format2": "https://civitai.com/models/12345?modelVersionId=67890",
                 "format3": "https://civitai.com/models/12345/model-name?modelVersionId=67890",
                 "note": "注意：如果未提供 modelVersionId，将使用最新版本。",
-                "format4": "https://civarchive.com/models/12345 (CivitArchive)"
+                "format4": "https://civarchive.com/models/12345 (CivArchive)"
             },
             "confirmAction": "确认重新关联"
         },
@@ -1469,8 +1525,8 @@
                 "editFileName": "编辑文件名",
                 "editBaseModel": "编辑基础模型",
                 "editVersionName": "编辑版本名称",
-                "viewOnCivitai": "在 Civitai 查看",
-                "viewOnCivitaiText": "在 Civitai 查看",
+                "viewOnCivitai": "在 CivitAI 查看",
+                "viewOnCivitaiText": "在 CivitAI 查看",
                 "viewOnHuggingFace": "在 Hugging Face 查看",
                 "viewOnHuggingFaceText": "在 Hugging Face 查看",
                 "viewCreatorProfile": "查看创作者主页",
@@ -1502,7 +1558,7 @@
                 "notesHint": "回车保存，Shift+回车换行",
                 "addNotesPlaceholder": "在此添加你的备注...",
                 "aboutThisVersion": "关于此版本",
-                "baseModelSearchPlaceholder": "搜索基础模型…",
+                "baseModelSearchPlaceholder": "搜索基础模型...",
                 "baseModelSuggested": "推荐",
                 "baseModelNoMatch": "没有匹配的基础模型"
             },
@@ -1571,10 +1627,10 @@
                 "noNext": "没有下一个模型"
             },
             "license": {
-                "noImageSell": "No selling generated content",
-                "noRentCivit": "No Civitai generation",
-                "noRent": "No generation services",
-                "noSell": "No selling models",
+                "noImageSell": "禁止出售生成的图片",
+                "noRentCivit": "禁止在 CivitAI 上生成",
+                "noRent": "禁止生成服务",
+                "noSell": "禁止出售模型",
                 "creditRequired": "需要创作者署名",
                 "noDerivatives": "禁止分享合并作品",
                 "noReLicense": "需要相同权限",
@@ -1637,49 +1693,49 @@
                     "newer": "较新的版本",
                     "newerTooltip": "此版本比你本地的最新版本更新",
                     "earlyAccess": "抢先体验",
-                    "earlyAccessTooltip": "此版本当前需要 Civitai 抢先体验权限",
+                    "earlyAccessTooltip": "此版本当前需要 CivitAI 抢先体验权限",
                     "paid": "付费",
                     "paidTooltip": "此版本需要付费后才能下载",
                     "ignored": "已忽略",
                     "ignoredTooltip": "此版本已关闭更新通知",
                     "onSiteOnly": "仅站内生成",
-                    "onSiteOnlyTooltip": "此版本仅在 Civitai 站内可用，无法下载"
+                    "onSiteOnlyTooltip": "此版本仅在 CivitAI 站内可用，无法下载"
                 },
                 "actions": {
                     "download": "下载",
                     "downloadTooltip": "下载此版本",
                     "downloadChooseFilesTooltip": "选择要下载的文件",
-                    "downloadEarlyAccessTooltip": "从 Civitai 下载此抢先体验版本",
-                    "downloadPaidTooltip": "从 Civitai 下载此付费版本",
-                    "downloadNotAllowedTooltip": "此版本仅在 Civitai 站内可用，无法下载",
+                    "downloadEarlyAccessTooltip": "从 CivitAI 下载此抢先体验版本",
+                    "downloadPaidTooltip": "从 CivitAI 下载此付费版本",
+                    "downloadNotAllowedTooltip": "此版本仅在 CivitAI 站内可用，无法下载",
                     "delete": "删除",
                     "deleteTooltip": "删除此本地版本",
                     "ignore": "忽略",
                     "unignore": "取消忽略",
                     "ignoreTooltip": "忽略此版本的更新通知",
                     "unignoreTooltip": "恢复此版本的更新通知",
-                    "viewVersionOnCivitai": "在 Civitai 上查看版本",
+                    "viewVersionOnCivitai": "在 CivitAI 上查看版本",
                     "earlyAccessTooltip": "需要购买抢先体验",
                     "resumeModelUpdates": "继续跟踪该模型的更新",
                     "ignoreModelUpdates": "忽略该模型的更新",
                     "viewLocalVersions": "查看所有本地版本",
-                    "viewLocalTooltip": "敬请期待"
+                    "viewLocalTooltip": "在主页面上显示该模型的所有本地版本"
                 },
                 "filters": {
                     "label": "基础筛选",
                     "state": {
                         "showAll": "全部版本",
-                        "showSameBase": "相同基模型"
+                        "showSameBase": "相同基础模型"
                     },
                     "tooltip": {
                         "showAllVersions": "切换为显示所有版本",
-                        "showSameBaseVersions": "仅显示与当前基模型匹配的版本"
+                        "showSameBaseVersions": "仅显示与当前基础模型匹配的版本"
                     },
-                    "empty": "没有与当前基模型筛选匹配的版本。"
+                    "empty": "没有与当前基础模型筛选匹配的版本。"
                 },
                 "empty": "该模型还没有版本历史。",
                 "error": "加载版本失败。",
-                "missingModelId": "该模型缺少 Civitai 模型 ID。",
+                "missingModelId": "该模型缺少 CivitAI 模型 ID。",
                 "hfGroupInfo": "这是一个 HuggingFace 模型组。打开库页面即可在网格中查看所有版本。",
                 "confirm": {
                     "delete": "从库中删除此版本？"
@@ -1763,14 +1819,14 @@
         "tips": {
             "title": "技巧与提示",
             "civitai": {
-                "title": "Civitai 集成",
-                "description": "连接你的 Civitai 账号：访问头像 → 设置 → API 密钥 → 添加密钥，然后粘贴到 LoRA 管理器设置中。",
-                "alt": "Civitai API 设置"
+                "title": "CivitAI 集成",
+                "description": "连接你的 CivitAI 账号：访问头像 → 设置 → API 密钥 → 添加密钥，然后粘贴到 LoRA 管理器设置中。",
+                "alt": "CivitAI API 设置"
             },
             "download": {
                 "title": "便捷下载",
-                "description": "使用 Civitai URL 快速下载和安装新模型。",
-                "alt": "Civitai 下载"
+                "description": "使用 CivitAI URL 快速下载和安装新模型。",
+                "alt": "CivitAI 下载"
             },
             "recipes": {
                 "title": "保存配方",
@@ -1848,7 +1904,7 @@
             "copiedUri": "链接已复制到剪贴板：{{uri}}",
             "uriClipboardFallback": "链接：{{uri}}",
             "setupRequired": "示例图片存储",
-            "setupDescription": "要添加自定义示例图片，您需要先设置下载位置。",
+            "setupDescription": "要添加自定义示例图片，你需要先设置下载位置。",
             "setupUsage": "此路径用于存储下载的示例图片和自定义图片。",
             "openSettings": "打开设置"
         }
@@ -1954,7 +2010,7 @@
             "submitGithubIssue": "提交 GitHub 问题",
             "joinDiscord": "加入 Discord",
             "youtubeChannel": "YouTube 频道",
-            "civitaiProfile": "Civitai 个人资料",
+            "civitaiProfile": "CivitAI 个人资料",
             "supportKofi": "支持 Ko-fi",
             "supportPatreon": "支持 Patreon"
         },
@@ -2037,15 +2093,26 @@
             "preparingForDownloadFailed": "准备下载 LoRA 时出错",
             "enterLoraName": "请输入 LoRA 名称或语法",
             "reconnectedSuccessfully": "LoRA 重新连接成功",
+            "reconnectBaseModelMismatch": "已重新关联，但基础模型不同（配方：{recipe}，LoRA：{lora}）——两者架构兼容",
             "reconnectFailed": "LoRA 重新连接出错：{message}",
+            "loraRestored": "LoRA 已恢复为重新关联前的关联",
+            "loraRestoreFailed": "LoRA 恢复出错：{message}",
             "noPromptToSend": "没有可发送的提示词",
             "cannotSend": "无法发送配方：缺少配方 ID",
             "sendFailed": "发送配方到工作流失败",
             "sendError": "发送配方到工作流出错",
-            "missingCheckpointPath": "缺少检查点路径",
-            "missingCheckpointInfo": "缺少检查点信息",
-            "downloadCheckpointFailed": "下载检查点失败：{message}",
+            "missingCheckpointPath": "缺少Checkpoint路径",
+            "missingCheckpointInfo": "缺少Checkpoint信息",
+            "downloadCheckpointFailed": "下载Checkpoint失败：{message}",
+            "enterCheckpointName": "请输入 Checkpoint 名称",
+            "checkpointReconnectedSuccessfully": "Checkpoint 重新连接成功",
+            "reconnectCheckpointBaseModelMismatch": "已重新关联，但基础模型不同（配方：{recipe}，Checkpoint：{checkpoint}）——两者架构兼容",
+            "checkpointReconnectFailed": "Checkpoint 重新连接出错：{message}",
+            "checkpointRestored": "Checkpoint 已恢复为重新关联前的关联",
+            "checkpointRestoreFailed": "Checkpoint 恢复出错：{message}",
+            "checkpointDownloadUnavailable": "缺少 CivitAI 标识，无法下载此 Checkpoint - 请尝试使用本地 Checkpoint 重新关联",
             "missingLoraDownloadInfo": "缺少此 LoRA 的下载信息",
+            "hashNotFoundOnCivitai": "此 LoRA 哈希无法在 CivitAI 上解析——模型可能已更新或哈希无效",
             "downloadLoraFailed": "下载 LoRA 失败：{message}",
             "cannotDelete": "无法删除配方：缺少配方 ID",
             "deleteConfirmationError": "显示删除确认出错",
@@ -2077,12 +2144,12 @@
             "repairBulkComplete": "修复完成：{repaired} 个已修复，{skipped} 个已跳过（共 {total} 个）",
             "repairBulkSkipped": "所选 {total} 个配方无需修复",
             "repairBulkFailed": "修复所选配方失败：{message}",
-            "rematchComplete": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱",
-            "rematchCompleteErrors": "已匹配 {entries} 个条目，涉及 {recipes} 个食谱，{failures} 个失败",
-            "rematchAllFailed": "{failures}/{total} 个所选食谱重新匹配失败",
-            "rematchUnmatched": "在 {recipes} 个食谱中未找到 {entries} 个条目的本地匹配",
-            "rematchSkipped": "{total} 个所选食谱均无需重新匹配",
-            "rematchFailed": "重新匹配所选食谱失败：{message}",
+            "rematchComplete": "已匹配 {entries} 个条目，涉及 {recipes} 个配方",
+            "rematchCompleteErrors": "已匹配 {entries} 个条目，涉及 {recipes} 个配方，{failures} 个失败",
+            "rematchAllFailed": "{failures}/{total} 个所选配方重新匹配失败",
+            "rematchUnmatched": "在 {recipes} 个配方中未找到 {entries} 个条目的本地匹配",
+            "rematchSkipped": "{total} 个所选配方均无需重新匹配",
+            "rematchFailed": "重新匹配所选配方失败：{message}",
             "reimporting": "正在从源重新导入配方...",
             "reimportSuccess": "配方已从源重新导入成功",
             "reimportBulkComplete": "重新导入完成：{completed} 个已导入，{failed} 个失败（共 {total} 个）",
@@ -2128,8 +2195,8 @@
             "bulkUpdatesChecking": "正在检查所选 {type} 的更新...",
             "bulkUpdatesSuccess": "{count} 个所选 {type} 有可用更新",
             "bulkUpdatesNone": "所选 {type} 未发现更新",
-            "bulkUpdatesMissing": "所选 {type} 未关联 Civitai 更新",
-            "bulkUpdatesPartialMissing": "已跳过 {missing} 个未关联 Civitai 的所选 {type}",
+            "bulkUpdatesMissing": "所选 {type} 未关联 CivitAI 更新",
+            "bulkUpdatesPartialMissing": "已跳过 {missing} 个未关联 CivitAI 的所选 {type}",
             "bulkUpdatesFailed": "检查所选 {type} 的更新失败：{message}",
             "invalidCharactersRemoved": "文件名中的无效字符已移除",
             "filenameCannotBeEmpty": "文件名不能为空",
@@ -2158,7 +2225,7 @@
             "checkpointRootsFailed": "加载 Checkpoint 根目录失败：{message}",
             "unetRootsFailed": "加载 Diffusion Model 根目录失败：{message}",
             "embeddingRootsFailed": "加载 Embedding 根目录失败：{message}",
-            "mappingsUpdated": "基础模型路径映射已更新（{count} 条映射{plural}）",
+            "mappingsUpdated": "基础模型路径映射已更新（{count} 条映射）",
             "mappingsCleared": "基础模型路径映射已清除",
             "mappingSaveFailed": "保存基础模型映射失败：{message}",
             "downloadTemplatesUpdated": "下载路径模板已更新",
@@ -2169,8 +2236,8 @@
             "compactModeToggled": "紧凑模式 {state}",
             "settingSaveFailed": "保存设置失败：{message}",
             "displayDensitySet": "显示密度已设置为 {density}",
-            "libraryLoadFailed": "Failed to load libraries: {message}",
-            "libraryActivateFailed": "Failed to activate library: {message}",
+            "libraryLoadFailed": "加载模型库失败：{message}",
+            "libraryActivateFailed": "激活模型库失败：{message}",
             "languageChangeFailed": "切换语言失败：{message}",
             "cacheCleared": "缓存文件已成功清除。下次操作将重建缓存。",
             "cacheClearFailed": "清除缓存失败：{error}",
@@ -2255,7 +2322,7 @@
         "contextMenu": {
             "contentRatingSet": "内容评级已设置为 {level}",
             "contentRatingFailed": "设置内容评级失败：{message}",
-            "relinkSuccess": "模型已成功重新关联到 Civitai",
+            "relinkSuccess": "模型已成功重新关联到 CivitAI",
             "relinkFailed": "错误：{message}",
             "linkHfSuccess": "模型已成功链接到 HuggingFace",
             "linkHfFailed": "错误：{message}",
@@ -2319,7 +2386,7 @@
             "bulkMoveSuccess": "成功移动 {successCount} 个 {type}",
             "exampleImagesDownloadSuccess": "示例图片下载成功！",
             "exampleImagesDownloadFailed": "示例图片下载失败：{message}",
-            "moveFailed": "Failed to move item: {message}",
+            "moveFailed": "移动条目失败：{message}",
             "copiedToClipboard": "已复制到剪贴板",
             "downloadStarted": "下载已开始"
         },
@@ -2349,7 +2416,7 @@
         },
         "issues": {
             "civitai_api_key": {
-                "title": "Civitai API 密钥"
+                "title": "CivitAI API 密钥"
             },
             "cache_health": {
                 "title": "模型缓存健康状态"

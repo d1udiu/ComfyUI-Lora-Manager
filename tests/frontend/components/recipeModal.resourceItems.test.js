@@ -92,10 +92,13 @@ vi.mock('../../../static/js/api/apiConfig.js', () => ({
   },
 }));
 
+const downloadManagerMock = {
+  downloadVersionWithDefaults: downloadVersionWithDefaultsMock,
+  _lastDownloadError: '',
+};
+
 vi.mock('../../../static/js/managers/DownloadManager.js', () => ({
-  downloadManager: {
-    downloadVersionWithDefaults: downloadVersionWithDefaultsMock,
-  },
+  downloadManager: downloadManagerMock,
 }));
 
 function recipeModalFixture() {
@@ -142,6 +145,14 @@ const hashOnlyLora = {
   hash: 'deadbeefcafe',
 };
 
+const hashInvalidLora = {
+  name: 'invalid-hash-lora',
+  modelName: 'Invalid Hash LoRA',
+  inLibrary: false,
+  hash: 'a2a12bfa01',
+  hashInvalid: true,
+};
+
 const recipeWithResources = {
   id: 'recipe-resources',
   file_path: '/recipes/resources.json',
@@ -157,6 +168,7 @@ const recipeWithResources = {
     { name: 'present-lora', modelName: 'Present LoRA', inLibrary: true, hash: 'ABC123' },
     missingLora,
     { name: 'deleted-lora', modelName: 'Deleted LoRA', inLibrary: false, isDeleted: true },
+    hashInvalidLora,
     { name: 'mystery-lora', modelName: 'Mystery LoRA', inLibrary: false },
     hashOnlyLora,
   ],
@@ -183,6 +195,7 @@ describe('RecipeModal resource item interactions', () => {
     // the shared mocks to their defaults explicitly.
     downloadVersionWithDefaultsMock.mockReset();
     downloadVersionWithDefaultsMock.mockResolvedValue(undefined);
+    downloadManagerMock._lastDownloadError = '';
     fetchRecipeDetailsMock.mockReset();
     // Hydration re-fetches the recipe right after render; resolving an empty
     // object would delete currentRecipe.loras and wipe the list, so resolve
@@ -321,19 +334,198 @@ describe('RecipeModal resource item interactions', () => {
     expect(container.classList.contains('active')).toBe(true);
   });
 
-  it('renders no action row when neither identifiers nor hash are available', async () => {
+  it('shows reconnect failures inline in the panel instead of a toast', async () => {
+    const recipeModal = await createRecipeModal();
+    global.fetch = vi.fn(async (url) => {
+      if (String(url).includes('/recipe/lora/reconnect')) {
+        return { ok: true, json: async () => ({ success: false, error: 'LoRA not found locally' }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+    recipeModal.showRecipeDetails(recipeWithResources);
+    await flushWiring();
+
+    const deletedItem = document.querySelector('.recipe-lora-item.is-deleted');
+    deletedItem.querySelector('.lora-reconnect').click();
+    const container = deletedItem.querySelector('.lora-reconnect-container');
+    const input = container.querySelector('.reconnect-input');
+    const error = container.querySelector('.reconnect-error');
+    expect(error).not.toBeNull();
+
+    input.value = 'nonexistent-lora';
+    container.querySelector('.reconnect-confirm-btn').click();
+
+    await vi.waitFor(() => {
+      expect(error.classList.contains('active')).toBe(true);
+    });
+    expect(error.textContent).toContain('LoRA not found locally');
+    expect(showToastMock).not.toHaveBeenCalledWith(
+      'toast.recipes.reconnectFailed',
+      expect.anything(),
+      'error'
+    );
+
+    // Typing again clears the inline error
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(error.classList.contains('active')).toBe(false);
+    expect(error.textContent).toBe('');
+  });
+  it('renders hash-invalid LoRAs with a dedicated badge and reconnect instead of download', async () => {
     const recipeModal = await createRecipeModal();
     recipeModal.showRecipeDetails(recipeWithResources);
+    await flushWiring();
 
-    const mysteryItem = document.querySelector('[data-lora-index="3"]');
+    const invalidItem = document.querySelector('[data-lora-index="3"]');
+    const badge = invalidItem.querySelector('.invalid-hash-badge');
+    expect(badge).not.toBeNull();
+    expect(badge.title).toContain('cannot be resolved on CivitAI');
+    expect(badge.textContent).toContain('Unresolvable Hash');
+
+    expect(invalidItem.querySelector('.lora-download')).toBeNull();
+    const reconnectButton = invalidItem.querySelector('.lora-reconnect');
+    expect(reconnectButton).not.toBeNull();
+
+    reconnectButton.click();
+    const container = invalidItem.querySelector('.lora-reconnect-container');
+    expect(container).not.toBeNull();
+    expect(container.classList.contains('active')).toBe(true);
+  });
+
+  it('marks the entry hash-invalid when hash resolution returns Model not found', async () => {
+    const recipeModal = await createRecipeModal();
+    const requests = [];
+    // Deep copy so the mark step mutating loras[5].hashInvalid does not
+    // leak into the shared fixture used by later tests.
+    const isolatedRecipe = JSON.parse(JSON.stringify(recipeWithResources));
+    fetchRecipeDetailsMock.mockResolvedValue(isolatedRecipe);
+    global.fetch = vi.fn(async (url, options) => {
+      requests.push({ url: String(url), options });
+      const urlStr = String(url);
+      if (urlStr.includes('/civitai/model/hash/')) {
+        return { ok: false, json: async () => ({ success: false, error: 'Model not found' }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+    recipeModal.showRecipeDetails(isolatedRecipe);
+    await flushWiring();
+
+    const hashItem = document.querySelector('[data-lora-index="5"]');
+    const downloadButton = hashItem.querySelector('.lora-download');
+    downloadButton.click();
+
+    await vi.waitFor(() => {
+      expect(
+        requests.some(r => r.url.includes('/recipe/lora/mark-hash-invalid'))
+      ).toBe(true);
+    });
+
+    const markRequest = requests.find(r => r.url.includes('/mark-hash-invalid'));
+    expect(JSON.parse(markRequest.options.body)).toEqual({
+      recipe_id: 'recipe-resources',
+      lora_index: 5,
+    });
+    expect(showToastMock).toHaveBeenCalledWith(
+      'toast.recipes.hashNotFoundOnCivitai',
+      {},
+      'error'
+    );
+    expect(downloadVersionWithDefaultsMock).not.toHaveBeenCalled();
+  });
+
+  it('offers reconnect for name-only LoRAs with no CivitAI identifiers', async () => {
+    const recipeModal = await createRecipeModal();
+    recipeModal.showRecipeDetails(recipeWithResources);
+    await flushWiring();
+
+    const mysteryItem = document.querySelector('[data-lora-index="4"]');
     expect(mysteryItem.querySelector('.lora-download')).toBeNull();
-    // No actions at all -> no empty action row taking vertical space
-    expect(mysteryItem.querySelector('.recipe-lora-actions')).toBeNull();
+    const reconnectButton = mysteryItem.querySelector('.lora-reconnect');
+    expect(reconnectButton).not.toBeNull();
+
+    reconnectButton.click();
+    const container = mysteryItem.querySelector('.lora-reconnect-container');
+    expect(container).not.toBeNull();
+    expect(container.classList.contains('active')).toBe(true);
 
     // The name-fallback search link still sits inline in the title
     const link = mysteryItem.querySelector('.recipe-lora-title a.recipe-civitai-link');
     expect(link).not.toBeNull();
     expect(link.href).toContain('query=Mystery%20LoRA');
+  });
+
+  it('marks the entry hash-invalid when a direct download fails with an unresolvable error', async () => {
+    const recipeModal = await createRecipeModal();
+    const requests = [];
+    // Deep copy so the mark step mutating loras[1].hashInvalid does not
+    // leak into the shared fixture used by later tests.
+    const isolatedRecipe = JSON.parse(JSON.stringify(recipeWithResources));
+    fetchRecipeDetailsMock.mockResolvedValue(isolatedRecipe);
+    downloadManagerMock._lastDownloadError = 'Model not found';
+    downloadVersionWithDefaultsMock.mockResolvedValue(false);
+    global.fetch = vi.fn(async (url, options) => {
+      requests.push({ url: String(url), options });
+      return { ok: true, json: async () => ({}) };
+    });
+    recipeModal.showRecipeDetails(isolatedRecipe);
+    await flushWiring();
+
+    // missingLora carries direct identifiers, so no hash-resolution round
+    // trip happens before the download attempt.
+    const missingItem = document.querySelector('[data-lora-index="1"]');
+    missingItem.querySelector('.lora-download').click();
+
+    await vi.waitFor(() => {
+      expect(downloadVersionWithDefaultsMock).toHaveBeenCalledTimes(1);
+    });
+    await vi.waitFor(() => {
+      expect(
+        requests.some(r => r.url.includes('/recipe/lora/mark-hash-invalid'))
+      ).toBe(true);
+    });
+
+    const markRequest = requests.find(r => r.url.includes('/mark-hash-invalid'));
+    expect(JSON.parse(markRequest.options.body)).toEqual({
+      recipe_id: 'recipe-resources',
+      lora_index: 1,
+    });
+
+    // The re-rendered entry swaps the download action for the reconnect one
+    await vi.waitFor(() => {
+      const item = document.querySelector('[data-lora-index="1"]');
+      expect(item.querySelector('.lora-reconnect')).not.toBeNull();
+      expect(item.querySelector('.lora-download')).toBeNull();
+      expect(item.querySelector('.invalid-hash-badge')).not.toBeNull();
+    });
+  });
+
+  it('leaves the entry untouched when a direct download fails transiently', async () => {
+    const recipeModal = await createRecipeModal();
+    const requests = [];
+    const isolatedRecipe = JSON.parse(JSON.stringify(recipeWithResources));
+    fetchRecipeDetailsMock.mockResolvedValue(isolatedRecipe);
+    downloadManagerMock._lastDownloadError = 'Connection timed out';
+    downloadVersionWithDefaultsMock.mockResolvedValue(false);
+    global.fetch = vi.fn(async (url, options) => {
+      requests.push({ url: String(url), options });
+      return { ok: true, json: async () => ({}) };
+    });
+    recipeModal.showRecipeDetails(isolatedRecipe);
+    await flushWiring();
+
+    const missingItem = document.querySelector('[data-lora-index="1"]');
+    missingItem.querySelector('.lora-download').click();
+
+    await vi.waitFor(() => {
+      expect(downloadVersionWithDefaultsMock).toHaveBeenCalledTimes(1);
+    });
+    // Give any (unexpected) mark request a chance to fire
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(requests.some(r => r.url.includes('mark-hash-invalid'))).toBe(false);
+
+    // The entry keeps the download action and never flips to reconnect
+    const item = document.querySelector('[data-lora-index="1"]');
+    expect(item.querySelector('.lora-download')).not.toBeNull();
+    expect(item.querySelector('.lora-reconnect')).toBeNull();
   });
 
   it('offers download for hash-only LoRAs and resolves identifiers on demand', async () => {
@@ -348,7 +540,7 @@ describe('RecipeModal resource item interactions', () => {
     recipeModal.showRecipeDetails(recipeWithResources);
     await flushWiring();
 
-    const hashItem = document.querySelector('[data-lora-index="4"]');
+    const hashItem = document.querySelector('[data-lora-index="5"]');
     const downloadButton = hashItem.querySelector('.lora-download');
     expect(downloadButton).not.toBeNull();
 
@@ -431,5 +623,559 @@ describe('RecipeModal resource item interactions', () => {
 
     checkpointItem.click();
     expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  describe('reconnect suggestions', () => {
+    const suggestionsPayload = {
+      success: true,
+      suggestions: [
+        {
+          file_name: 'deleted-lora-v1.safetensors',
+          file_path: '/models/loras/deleted-lora-v1.safetensors',
+          model_name: 'Deleted LoRA v1',
+          base_model: 'SD 1.5',
+          preview_url: '/preview/deleted.png',
+          hash: 'abc123',
+          score: 0.95,
+          match_reason: 'same_version',
+          target_name: 'deleted-lora-v1',
+        },
+      ],
+    };
+
+    function mockSuggestionsFetch(payload) {
+      const requests = [];
+      global.fetch = vi.fn(async (url, options) => {
+        requests.push({ url: String(url), options });
+        if (String(url).includes('/reconnect-suggestions')) {
+          return { ok: true, json: async () => payload };
+        }
+        if (String(url).includes('/recipe/lora/reconnect')) {
+          return {
+            ok: true,
+            json: async () => ({
+              success: true,
+              updated_lora: { name: 'deleted-lora-v1', modelName: 'Deleted LoRA v1', inLibrary: true },
+            }),
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      });
+      return requests;
+    }
+
+    async function openReconnectPanel(recipeModal, loraIndex) {
+      recipeModal.showRecipeDetails(recipeWithResources);
+      await flushWiring();
+      const item = document.querySelector(`[data-lora-index="${loraIndex}"]`);
+      item.querySelector('.lora-reconnect').click();
+      return item.querySelector('.lora-reconnect-container');
+    }
+
+    it('fetches suggestions when the panel opens and renders them as rows', async () => {
+      const recipeModal = await createRecipeModal();
+      mockSuggestionsFetch(suggestionsPayload);
+
+      const container = await openReconnectPanel(recipeModal, 2);
+
+      // The loading state shows synchronously while the fetch is in flight
+      expect(container.querySelector('.reconnect-suggestions-loading')).not.toBeNull();
+
+      await vi.waitFor(() => {
+        expect(container.querySelectorAll('.reconnect-suggestion').length).toBe(1);
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/lm/recipe/recipe-resources/lora/2/reconnect-suggestions'
+      );
+
+      const row = container.querySelector('.reconnect-suggestion');
+      // Primary label is the file stem (what the match scored on and what
+      // gets submitted); the secondary line shows only the base model — the
+      // model name is noise and intentionally omitted.
+      expect(row.querySelector('.reconnect-suggestion-name').textContent).toBe('deleted-lora-v1');
+      expect(row.querySelector('.reconnect-suggestion-secondary').textContent).toBe('SD 1.5');
+      expect(row.querySelector('.reconnect-suggestion-reason').textContent).toBe('Same model version');
+      expect(row.title).toBe('deleted-lora-v1');
+      const preview = row.querySelector('.reconnect-suggestion-preview');
+      expect(preview.getAttribute('src')).toBe('/preview/deleted.png');
+    });
+
+    it('reconnects with the suggestion target_name when a row is clicked', async () => {
+      const recipeModal = await createRecipeModal();
+      const requests = mockSuggestionsFetch(suggestionsPayload);
+
+      const container = await openReconnectPanel(recipeModal, 2);
+      await vi.waitFor(() => {
+        expect(container.querySelectorAll('.reconnect-suggestion').length).toBe(1);
+      });
+
+      container.querySelector('.reconnect-suggestion').click();
+
+      await vi.waitFor(() => {
+        expect(requests.some(r => r.url === '/api/lm/recipe/lora/reconnect')).toBe(true);
+      });
+
+      const reconnectRequest = requests.find(r => r.url === '/api/lm/recipe/lora/reconnect');
+      expect(reconnectRequest.options.method).toBe('POST');
+      // lora_index rides as the DOM attribute string, same as the manual form
+      expect(JSON.parse(reconnectRequest.options.body)).toEqual({
+        recipe_id: 'recipe-resources',
+        lora_index: '2',
+        target_name: 'deleted-lora-v1',
+      });
+    });
+
+    it('warns when the reconnect crossed base-model families', async () => {
+      const recipeModal = await createRecipeModal();
+      global.fetch = vi.fn(async (url) => {
+        if (String(url).includes('/reconnect-suggestions')) {
+          return { ok: true, json: async () => suggestionsPayload };
+        }
+        if (String(url).includes('/recipe/lora/reconnect')) {
+          return {
+            ok: true,
+            json: async () => ({
+              success: true,
+              updated_lora: { name: 'deleted-lora-v1', modelName: 'Deleted LoRA v1', inLibrary: true },
+              base_model_mismatch: { recipe_base_model: 'Illustrious', lora_base_model: 'Pony' },
+            }),
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      });
+
+      const container = await openReconnectPanel(recipeModal, 2);
+      await vi.waitFor(() => {
+        expect(container.querySelectorAll('.reconnect-suggestion').length).toBe(1);
+      });
+
+      container.querySelector('.reconnect-suggestion').click();
+
+      await vi.waitFor(() => {
+        expect(showToastMock).toHaveBeenCalledWith(
+          'toast.recipes.reconnectBaseModelMismatch',
+          { recipe: 'Illustrious', lora: 'Pony' },
+          'warning'
+        );
+      });
+    });
+
+    it('shows an empty state when no suggestions are available', async () => {
+      const recipeModal = await createRecipeModal();
+      mockSuggestionsFetch({ success: true, suggestions: [] });
+
+      const container = await openReconnectPanel(recipeModal, 3);
+
+      await vi.waitFor(() => {
+        expect(container.querySelector('.reconnect-suggestions-empty')).not.toBeNull();
+      });
+      expect(container.querySelector('.reconnect-suggestions-empty').textContent)
+        .toBe('No matching LoRAs in your local library');
+      expect(container.querySelectorAll('.reconnect-suggestion').length).toBe(0);
+    });
+
+    it('submits free text via the combobox onCommit when Enter is pressed', async () => {
+      const recipeModal = await createRecipeModal();
+      const requests = mockSuggestionsFetch({ success: true, suggestions: [] });
+
+      const container = await openReconnectPanel(recipeModal, 2);
+      const input = container.querySelector('.reconnect-input');
+      input.value = 'typed-lora-name';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+      await vi.waitFor(() => {
+        expect(requests.some(r => r.url === '/api/lm/recipe/lora/reconnect')).toBe(true);
+      });
+      const reconnectRequest = requests.find(r => r.url === '/api/lm/recipe/lora/reconnect');
+      expect(JSON.parse(reconnectRequest.options.body)).toEqual({
+        recipe_id: 'recipe-resources',
+        lora_index: '2',
+        target_name: 'typed-lora-name',
+      });
+    });
+
+    it('keeps the panel open when the combobox dropdown is clicked', async () => {
+      const recipeModal = await createRecipeModal();
+      mockSuggestionsFetch({ success: true, suggestions: [] });
+
+      recipeModal.showRecipeDetails(recipeWithResources);
+      await flushWiring();
+      // Open the panel directly — button wiring races the hydration re-render,
+      // and this test is about the document click handler, not the button.
+      recipeModal.showReconnectInput('2');
+      const container = document.querySelector('.lora-reconnect-container[data-lora-index="2"]');
+      expect(container.classList.contains('active')).toBe(true);
+
+      // The dropdown panel lives on document.body; clicking an option there is
+      // part of the reconnect interaction, not an outside click.
+      const panel = document.createElement('div');
+      panel.className = 'lm-combobox-panel';
+      document.body.appendChild(panel);
+      panel.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(container.classList.contains('active')).toBe(true);
+      panel.remove();
+
+      // A genuine outside click still closes the panel
+      document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(container.classList.contains('active')).toBe(false);
+    });
+  });
+
+  it('offers undo for reconnected entries and restores via the API', async () => {
+    const recipeModal = await createRecipeModal();
+    const isolatedRecipe = JSON.parse(JSON.stringify(recipeWithResources));
+    isolatedRecipe.loras[0].reconnectSnapshot = { file_name: 'gone', isDeleted: true };
+    fetchRecipeDetailsMock.mockResolvedValue(isolatedRecipe);
+    const requests = [];
+    global.fetch = vi.fn(async (url, options) => {
+      requests.push({ url: String(url), options });
+      if (String(url).includes('/recipe/lora/restore')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            updated_lora: { name: 'gone', modelName: 'Gone', inLibrary: false, isDeleted: true },
+          }),
+        };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+    recipeModal.showRecipeDetails(isolatedRecipe);
+    await flushWiring();
+
+    const item = document.querySelector('[data-lora-index="0"]');
+    const undoButton = item.querySelector('.lora-undo-reconnect');
+    expect(undoButton).not.toBeNull();
+
+    undoButton.click();
+    // Wait for the whole restore chain (fetch -> json -> toast), not just the
+    // request itself.
+    await vi.waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith('toast.recipes.loraRestored', {}, 'success');
+    });
+    const restoreRequest = requests.find(r => r.url === '/api/lm/recipe/lora/restore');
+    expect(restoreRequest.options.method).toBe('POST');
+    expect(JSON.parse(restoreRequest.options.body)).toEqual({
+      recipe_id: 'recipe-resources',
+      lora_index: '0',
+    });
+  });
+
+  describe('checkpoint reconnect', () => {
+    const brokenCheckpoint = {
+      name: 'gone-checkpoint',
+      file_name: 'gone',
+      inLibrary: false,
+      isDeleted: true,
+      hash: 'a2a12bfa01',
+    };
+    const hashInvalidCheckpoint = {
+      name: 'invalid-checkpoint',
+      file_name: 'invalid',
+      inLibrary: false,
+      hashInvalid: true,
+      hash: 'deadbeefcafe',
+    };
+
+    function recipeWithCheckpoint(checkpoint) {
+      return {
+        ...JSON.parse(JSON.stringify(recipeWithResources)),
+        checkpoint: { ...checkpoint },
+      };
+    }
+
+    // Hydration re-fetches the recipe right after render and re-renders the
+    // modal, so the mock must resolve the SAME broken-checkpoint recipe —
+    // otherwise the fetch wipes isDeleted/hashInvalid back to the fixture.
+    async function renderBrokenCheckpoint(recipeModal, checkpoint) {
+      const isolated = recipeWithCheckpoint(checkpoint);
+      fetchRecipeDetailsMock.mockResolvedValue(isolated);
+      recipeModal.showRecipeDetails(isolated);
+      await flushWiring();
+    }
+
+    function mockCheckpointSuggestionsFetch(payload) {
+      const requests = [];
+      global.fetch = vi.fn(async (url, options) => {
+        requests.push({ url: String(url), options });
+        if (String(url).includes('/checkpoint/reconnect-suggestions')) {
+          return { ok: true, json: async () => payload };
+        }
+        if (String(url).includes('/recipe/checkpoint/reconnect')) {
+          return {
+            ok: true,
+            json: async () => ({
+              success: true,
+              updated_checkpoint: {
+                name: 'main-checkpoint',
+                file_name: 'main',
+                inLibrary: true,
+              },
+            }),
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      });
+      return requests;
+    }
+
+    it('renders a deleted checkpoint with a badge and reconnect affordance', async () => {
+      const recipeModal = await createRecipeModal();
+      await renderBrokenCheckpoint(recipeModal, brokenCheckpoint);
+
+      const item = document.querySelector('.checkpoint-item');
+      expect(item.classList.contains('is-deleted')).toBe(true);
+      expect(item.querySelector('.deleted-badge')).not.toBeNull();
+      const reconnectButton = item.querySelector('.checkpoint-reconnect');
+      expect(reconnectButton).not.toBeNull();
+      // Deleted checkpoints lose the civitai link (their source page is gone)
+      expect(item.querySelector('.recipe-lora-title a.recipe-civitai-link')).toBeNull();
+      // The inline form is present but hidden until the button is pressed
+      const container = item.querySelector('.lora-reconnect-container[data-lora-index="checkpoint"]');
+      expect(container).not.toBeNull();
+      expect(container.classList.contains('active')).toBe(false);
+    });
+
+    it('renders a hash-invalid checkpoint with the unresolvable hash badge', async () => {
+      const recipeModal = await createRecipeModal();
+      await renderBrokenCheckpoint(recipeModal, hashInvalidCheckpoint);
+
+      const item = document.querySelector('.checkpoint-item');
+      expect(item.querySelector('.invalid-hash-badge')).not.toBeNull();
+      expect(item.querySelector('.checkpoint-reconnect')).not.toBeNull();
+    });
+
+    it('renders reconnect for a name-only checkpoint with no download identifiers', async () => {
+      // Importers can leave a checkpoint entry with nothing but a model name
+      // (no hash / version id, so nothing was ever queryable on CivitAI).
+      // It cannot be downloaded and is not marked deleted — reconnect is the
+      // only remediation, so it must still surface.
+      const recipeModal = await createRecipeModal();
+      await renderBrokenCheckpoint(recipeModal, {
+        type: 'checkpoint',
+        modelName: 'meichidarkMix_meichidarkanimxlV1',
+        inLibrary: false,
+      });
+
+      const item = document.querySelector('.checkpoint-item');
+      expect(item.querySelector('.checkpoint-download')).toBeNull();
+      const reconnectButton = item.querySelector('.checkpoint-reconnect');
+      expect(reconnectButton).not.toBeNull();
+      const container = item.querySelector('.lora-reconnect-container[data-lora-index="checkpoint"]');
+      expect(container).not.toBeNull();
+
+      reconnectButton.click();
+      expect(container.classList.contains('active')).toBe(true);
+    });
+
+    it('fetches checkpoint suggestions against the checkpoint endpoint', async () => {
+      const recipeModal = await createRecipeModal();
+      const suggestionsPayload = {
+        success: true,
+        suggestions: [
+          {
+            file_name: 'main-checkpoint.safetensors',
+            base_model: 'SD 1.5',
+            preview_url: '/preview/main.png',
+            score: 0.95,
+            match_reason: 'same_version',
+            target_name: 'main-checkpoint',
+          },
+        ],
+      };
+      mockCheckpointSuggestionsFetch(suggestionsPayload);
+
+      await renderBrokenCheckpoint(recipeModal, brokenCheckpoint);
+      document.querySelector('.checkpoint-reconnect').click();
+      const container = document.querySelector('.lora-reconnect-container[data-lora-index="checkpoint"]');
+
+      expect(container.classList.contains('active')).toBe(true);
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/lm/recipe/recipe-resources/checkpoint/reconnect-suggestions'
+      );
+
+      await vi.waitFor(() => {
+        expect(container.querySelectorAll('.reconnect-suggestion').length).toBe(1);
+      });
+      expect(container.querySelector('.reconnect-suggestion-name').textContent)
+        .toBe('main-checkpoint');
+    });
+
+    it('reconnects the checkpoint via its own endpoint when a suggestion is clicked', async () => {
+      const recipeModal = await createRecipeModal();
+      const requests = mockCheckpointSuggestionsFetch({
+        success: true,
+        suggestions: [
+          {
+            file_name: 'main-checkpoint.safetensors',
+            target_name: 'main-checkpoint',
+            match_reason: 'same_version',
+            score: 0.95,
+          },
+        ],
+      });
+
+      await renderBrokenCheckpoint(recipeModal, brokenCheckpoint);
+      document.querySelector('.checkpoint-reconnect').click();
+      const container = document.querySelector('.lora-reconnect-container[data-lora-index="checkpoint"]');
+
+      await vi.waitFor(() => {
+        expect(container.querySelectorAll('.reconnect-suggestion').length).toBe(1);
+      });
+      container.querySelector('.reconnect-suggestion').click();
+
+      await vi.waitFor(() => {
+        expect(requests.some(r => r.url === '/api/lm/recipe/checkpoint/reconnect')).toBe(true);
+      });
+      const reconnectRequest = requests.find(r => r.url === '/api/lm/recipe/checkpoint/reconnect');
+      expect(reconnectRequest.options.method).toBe('POST');
+      expect(JSON.parse(reconnectRequest.options.body)).toEqual({
+        recipe_id: 'recipe-resources',
+        target_name: 'main-checkpoint',
+      });
+      await vi.waitFor(() => {
+        expect(showToastMock).toHaveBeenCalledWith(
+          'toast.recipes.checkpointReconnectedSuccessfully',
+          {},
+          'success'
+        );
+      });
+      expect(recipeModal.currentRecipe.checkpoint.inLibrary).toBe(true);
+    });
+
+    it('warns when the checkpoint reconnect crossed base-model families', async () => {
+      const recipeModal = await createRecipeModal();
+      global.fetch = vi.fn(async (url) => {
+        if (String(url).includes('/checkpoint/reconnect-suggestions')) {
+          return { ok: true, json: async () => ({ success: true, suggestions: [] }) };
+        }
+        if (String(url).includes('/recipe/checkpoint/reconnect')) {
+          return {
+            ok: true,
+            json: async () => ({
+              success: true,
+              updated_checkpoint: { name: 'main', inLibrary: true },
+              base_model_mismatch: { recipe_base_model: 'Illustrious', checkpoint_base_model: 'Pony' },
+            }),
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      });
+
+      await renderBrokenCheckpoint(recipeModal, brokenCheckpoint);
+      document.querySelector('.checkpoint-reconnect').click();
+      const container = document.querySelector('.lora-reconnect-container[data-lora-index="checkpoint"]');
+      const input = container.querySelector('.reconnect-input');
+      input.value = 'main';
+      container.querySelector('.reconnect-confirm-btn').click();
+
+      await vi.waitFor(() => {
+        expect(showToastMock).toHaveBeenCalledWith(
+          'toast.recipes.reconnectCheckpointBaseModelMismatch',
+          { recipe: 'Illustrious', checkpoint: 'Pony' },
+          'warning'
+        );
+      });
+    });
+
+    it('offers undo for a reconnected checkpoint and restores via the API', async () => {
+      const recipeModal = await createRecipeModal();
+      const isolatedRecipe = recipeWithCheckpoint(brokenCheckpoint);
+      isolatedRecipe.checkpoint = {
+        name: 'main-checkpoint',
+        file_name: 'main',
+        inLibrary: true,
+        reconnectSnapshot: { name: 'gone-checkpoint', file_name: 'gone', isDeleted: true },
+      };
+      fetchRecipeDetailsMock.mockResolvedValue(isolatedRecipe);
+      const requests = [];
+      global.fetch = vi.fn(async (url, options) => {
+        requests.push({ url: String(url), options });
+        if (String(url).includes('/recipe/checkpoint/restore')) {
+          return {
+            ok: true,
+            json: async () => ({
+              success: true,
+              updated_checkpoint: { name: 'gone', inLibrary: false, isDeleted: true },
+            }),
+          };
+        }
+        return { ok: true, json: async () => ({}) };
+      });
+      recipeModal.showRecipeDetails(isolatedRecipe);
+      await flushWiring();
+
+      const item = document.querySelector('.checkpoint-item');
+      const undoButton = item.querySelector('.checkpoint-undo-reconnect');
+      expect(undoButton).not.toBeNull();
+
+      undoButton.click();
+      await vi.waitFor(() => {
+        expect(showToastMock).toHaveBeenCalledWith('toast.recipes.checkpointRestored', {}, 'success');
+      });
+      const restoreRequest = requests.find(r => r.url === '/api/lm/recipe/checkpoint/restore');
+      expect(restoreRequest.options.method).toBe('POST');
+      expect(JSON.parse(restoreRequest.options.body)).toEqual({
+        recipe_id: 'recipe-resources',
+      });
+    });
+
+    it('marks the checkpoint hash invalid only when the failure is unresolvable', async () => {
+      const recipeModal = await createRecipeModal();
+      const { downloadManager } = await import('../../../static/js/managers/DownloadManager.js');
+      const requests = [];
+      global.fetch = vi.fn(async (url, options) => {
+        requests.push({ url: String(url), options });
+        return { ok: true, json: async () => ({ success: true }) };
+      });
+
+      // Explicit "model removed" signal: the entry becomes a rematch/
+      // reconnect candidate (same rule as the LoRA resolve "not found").
+      // Use an isolated copy so the hashInvalid mutation does not leak into
+      // the shared recipeWithResources fixture used by later tests.
+      const isolatedRecipe = JSON.parse(JSON.stringify(recipeWithResources));
+      fetchRecipeDetailsMock.mockResolvedValue(isolatedRecipe);
+      downloadVersionWithDefaultsMock.mockResolvedValue(false);
+      downloadManager._lastDownloadError = 'Model not found';
+      recipeModal.showRecipeDetails(isolatedRecipe);
+      await flushWiring();
+      document.querySelector('.checkpoint-download').click();
+
+      await vi.waitFor(() => {
+        expect(requests.some(r => r.url === '/api/lm/recipe/checkpoint/mark-hash-invalid')).toBe(true);
+      });
+      const markRequest = requests.find(r => r.url === '/api/lm/recipe/checkpoint/mark-hash-invalid');
+      expect(markRequest.options.method).toBe('POST');
+      expect(JSON.parse(markRequest.options.body)).toEqual({ recipe_id: 'recipe-resources' });
+      expect(recipeModal.currentRecipe.checkpoint.hashInvalid).toBe(true);
+    });
+
+    it('does not mark the checkpoint hash invalid on transient download failures', async () => {
+      const recipeModal = await createRecipeModal();
+      const { downloadManager } = await import('../../../static/js/managers/DownloadManager.js');
+      const requests = [];
+      global.fetch = vi.fn(async (url, options) => {
+        requests.push({ url: String(url), options });
+        return { ok: true, json: async () => ({ success: true }) };
+      });
+
+      // Transport/API exceptions must NOT enroll the entry in the
+      // remediation flow — transient failures are not evidence the model is
+      // unrecoverable (mirrors the LoRA path).
+      downloadVersionWithDefaultsMock.mockRejectedValue(new Error('Network timeout'));
+      recipeModal.showRecipeDetails(recipeWithResources);
+      await flushWiring();
+      document.querySelector('.checkpoint-download').click();
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+      expect(requests.some(r => r.url === '/api/lm/recipe/checkpoint/mark-hash-invalid')).toBe(false);
+
+      // Business failure without an unresolvable signal also stays untouched.
+      downloadVersionWithDefaultsMock.mockResolvedValue(false);
+      downloadManager._lastDownloadError = 'Connection refused';
+      await recipeModal.downloadCheckpoint(recipeModal.currentRecipe.checkpoint);
+      expect(requests.some(r => r.url === '/api/lm/recipe/checkpoint/mark-hash-invalid')).toBe(false);
+    });
   });
 });

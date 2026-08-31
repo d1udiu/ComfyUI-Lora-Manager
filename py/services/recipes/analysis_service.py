@@ -72,15 +72,28 @@ class RecipeAnalysisService:
             metadata = self._exif_utils.extract_image_metadata(temp_path)
             if not metadata:
                 return AnalysisResult(
-                    {"error": "No metadata found in this image", "loras": []}
+                    {
+                        "error": "No metadata found in this image",
+                        "loras": [],
+                        "diagnostics": {
+                            "channel": "upload",
+                            "exif_present": False,
+                        },
+                    }
                 )
 
-            return await self._parse_metadata(
+            result = await self._parse_metadata(
                 metadata,
                 recipe_scanner=recipe_scanner,
                 image_path=None,
                 include_image_base64=False,
             )
+            result.payload["diagnostics"] = {
+                "channel": "upload",
+                "exif_present": True,
+                "exif_parser": result.payload.get("parser"),
+            }
+            return result
         finally:
             self._safe_cleanup(temp_path)
 
@@ -104,9 +117,13 @@ class RecipeAnalysisService:
         image_info: Optional[dict[str, Any]] = None
         is_video = False
         extension = ".jpg"  # Default
+        # Diagnostics collected during analysis; surfaced in the payload so
+        # callers can persist an import_info block explaining empty LoRA lists.
+        diagnostics: dict[str, Any] = {"channel": "url"}
 
         try:
             civitai_image_id = extract_civitai_image_id(url)
+            diagnostics["civitai_image"] = bool(civitai_image_id)
             if civitai_image_id:
                 image_info = await civitai_client.get_image_info(
                     civitai_image_id, source_url=url
@@ -147,11 +164,23 @@ class RecipeAnalysisService:
                 ):
                     metadata = metadata["meta"]
 
+                # Diagnostics: capture the API meta shape before injecting
+                # modelVersionIds / browsingLevel so the recipe modal can
+                # explain why an import ended up without LoRAs.
+                diagnostics["api_meta_present"] = isinstance(metadata, dict)
+                if isinstance(metadata, dict):
+                    diagnostics["api_meta_keys"] = sorted(metadata.keys())
+
                 # Include modelVersionIds from root level if available.
                 # CivitAI API returns modelVersionIds at root level, not in meta.
                 # When meta is null (None), create a minimal dict so downstream
                 # parsers can still discover LoRAs and checkpoints.
                 model_version_ids = image_info.get("modelVersionIds")
+                diagnostics["api_model_version_ids"] = (
+                    len(model_version_ids)
+                    if isinstance(model_version_ids, list)
+                    else 0
+                )
                 if model_version_ids:
                     if isinstance(metadata, dict):
                         metadata["modelVersionIds"] = model_version_ids
@@ -229,6 +258,8 @@ class RecipeAnalysisService:
                     finally:
                         self._safe_cleanup(orig_temp_path)
 
+            diagnostics["exif_present"] = bool(exif_metadata)
+
             # Parse EXIF data (typically a string like parameters/prompt/workflow)
             # and API metadata (dict with modelVersionIds, browsingLevel) separately,
             # then merge: API loras/checkpoint override, EXIF gen_params fill in gaps.
@@ -237,6 +268,7 @@ class RecipeAnalysisService:
             if isinstance(exif_metadata, str):
                 exif_parser = self._recipe_parser_factory.create_parser(exif_metadata)
                 if exif_parser:
+                    diagnostics["exif_parser"] = exif_parser.__class__.__name__
                     exif_data = await exif_parser.parse_metadata(
                         exif_metadata, recipe_scanner=recipe_scanner,
                     )
@@ -269,6 +301,22 @@ class RecipeAnalysisService:
                 merged_gp = {**exif_gp, **result_gp}
                 if merged_gp:
                     result.payload["gen_params"] = merged_gp
+
+                # The API-only parse (meta=null with only modelVersionIds)
+                # yields a checkpoint but no LoRAs; the image EXIF carries the
+                # full resource list. Fill the gaps the API parse left open.
+                if not result.payload.get("loras"):
+                    exif_loras = exif_parsed_result.get("loras") or []
+                    if exif_loras:
+                        result.payload["loras"] = exif_loras
+                if not result.payload.get("checkpoint") and not result.payload.get("model"):
+                    exif_checkpoint = exif_parsed_result.get("model") or exif_parsed_result.get(
+                        "checkpoint"
+                    )
+                    if exif_checkpoint:
+                        result.payload["checkpoint"] = exif_checkpoint
+                if not result.payload.get("base_model") and exif_parsed_result.get("base_model"):
+                    result.payload["base_model"] = exif_parsed_result["base_model"]
 
             if civitai_image_id and image_info and not result.payload.get("error"):
                 # Use the metadata dict we built (may contain modelVersionIds
@@ -308,6 +356,8 @@ class RecipeAnalysisService:
                     if isinstance(bl, int) and bl > 0:
                         result.payload["preview_nsfw_level"] = bl
 
+            diagnostics["is_video"] = is_video
+            result.payload["diagnostics"] = diagnostics
             return result
         finally:
             if temp_path:
@@ -332,14 +382,25 @@ class RecipeAnalysisService:
             self._exif_utils.extract_image_metadata, normalized_path
         )
         if not metadata:
-            return self._metadata_not_found_response(normalized_path)
+            result = self._metadata_not_found_response(normalized_path)
+            result.payload["diagnostics"] = {
+                "channel": "local",
+                "exif_present": False,
+            }
+            return result
 
-        return await self._parse_metadata(
+        result = await self._parse_metadata(
             metadata,
             recipe_scanner=recipe_scanner,
             image_path=normalized_path,
             include_image_base64=True,
         )
+        result.payload["diagnostics"] = {
+            "channel": "local",
+            "exif_present": True,
+            "exif_parser": result.payload.get("parser"),
+        }
+        return result
 
     async def analyze_widget_metadata(self, *, recipe_scanner) -> AnalysisResult:
         """Analyse the most recent generation metadata for widget saves."""
@@ -435,6 +496,10 @@ class RecipeAnalysisService:
             result = await parser.parse_metadata(
                 metadata, recipe_scanner=recipe_scanner
             )
+
+        # Record which parser handled the metadata so import diagnostics
+        # can distinguish e.g. ComfyUI workflow sources.
+        result["parser"] = parser.__class__.__name__
 
         if include_image_base64 and image_path:
             result["image_base64"] = self._encode_file(image_path)

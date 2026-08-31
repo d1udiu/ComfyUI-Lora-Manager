@@ -13,9 +13,15 @@ from typing import Any, Awaitable, Dict, Iterable, Optional, cast
 
 from ...config import config
 from ...recipes.constants import GEN_PARAM_KEYS
+from ...utils.base_model import (
+    RELATION_COMPATIBLE,
+    RELATION_INCOMPATIBLE,
+    base_model_relation,
+)
 from ...utils.utils import calculate_recipe_fingerprint
 from ..pending_delete_service import get_pending_delete_service
 from .errors import RecipeNotFoundError, RecipeValidationError
+from .import_info import CHANNEL_UPLOAD, CHANNEL_WIDGET, build_import_info
 
 
 @dataclass(frozen=True)
@@ -128,6 +134,22 @@ class RecipePersistenceService:
 
         if metadata.get("source_path"):
             recipe_data["source_path"] = metadata.get("source_path")
+
+        # Persist import provenance. Batch import / re-import paths pass a
+        # prebuilt import_info; frontend-driven saves (upload, single URL,
+        # local path) carry the analysis payload's diagnostics, from which
+        # import_info is derived here.
+        import_info = metadata.get("import_info")
+        if not isinstance(import_info, dict):
+            diagnostics = metadata.get("diagnostics")
+            if isinstance(diagnostics, dict):
+                import_info = build_import_info(
+                    diagnostics.get("channel") or CHANNEL_UPLOAD,
+                    diagnostics,
+                    loras_data,
+                )
+        if isinstance(import_info, dict) and import_info:
+            recipe_data["import_info"] = import_info
 
         nsfw_level = metadata.get("preview_nsfw_level")
         if nsfw_level is not None and isinstance(nsfw_level, int):
@@ -430,19 +452,30 @@ class RecipePersistenceService:
         with open(recipe_path, "r", encoding="utf-8") as file_obj:
             recipe_base_model = json.load(file_obj).get("base_model", "")
 
-        target_lora = await recipe_scanner.get_local_lora(target_name, recipe_base_model)
-        if not target_lora:
-            matches = await recipe_scanner.find_local_loras_by_name(target_name)
-            if len(matches) > 1:
-                raise RecipeValidationError(
-                    f"Multiple local LoRAs match '{target_name}'; "
-                    "include the folder path to disambiguate"
-                )
-            if len(matches) == 1:
-                raise RecipeValidationError(
-                    f"Local LoRA '{target_name}' has a different base model than the recipe"
-                )
+        matches = await recipe_scanner.find_local_loras_by_name(target_name)
+        if not matches:
             raise RecipeNotFoundError(f"Local LoRA not found with name: {target_name}")
+
+        # Three-tier base-model guard: exact/unknown labels pass silently;
+        # labels from the same architecture family (e.g. Pony ↔ Illustrious)
+        # pass but are reported so the UI can warn; confident architecture
+        # mismatches stay hard-rejected because they can never load.
+        eligible: list[tuple[dict, str]] = []
+        for match in matches:
+            relation = base_model_relation(recipe_base_model, match.get("base_model"))
+            if relation != RELATION_INCOMPATIBLE:
+                eligible.append((match, relation))
+
+        if not eligible:
+            raise RecipeValidationError(
+                f"Local LoRA '{target_name}' has a different base model than the recipe"
+            )
+        if len(eligible) > 1:
+            raise RecipeValidationError(
+                f"Multiple local LoRAs match '{target_name}'; "
+                "include the folder path to disambiguate"
+            )
+        target_lora, target_relation = eligible[0]
 
         recipe_data, updated_lora = await recipe_scanner.update_lora_entry(
             recipe_id,
@@ -461,12 +494,274 @@ class RecipePersistenceService:
             if recipe_id in matching_recipes:
                 matching_recipes.remove(recipe_id)
 
+        payload: dict[str, Any] = {
+            "success": True,
+            "recipe_id": recipe_id,
+            "updated_lora": updated_lora,
+            "matching_recipes": matching_recipes,
+        }
+        if target_relation == RELATION_COMPATIBLE:
+            # Structured data, not prose — the frontend localizes the warning.
+            payload["base_model_mismatch"] = {
+                "recipe_base_model": recipe_base_model,
+                "lora_base_model": target_lora.get("base_model") or "",
+            }
+        return PersistenceResult(payload)
+
+    async def restore_lora(
+        self,
+        *,
+        recipe_scanner,
+        recipe_id: str,
+        lora_index: int,
+    ) -> PersistenceResult:
+        """Restore a LoRA entry to the state captured before its reconnect."""
+
+        recipe_data, updated_lora = await recipe_scanner.restore_lora_entry(
+            recipe_id, lora_index
+        )
+
+        image_path = recipe_data.get("file_path")
+        if image_path and os.path.exists(image_path):
+            self._exif_utils.append_recipe_metadata(image_path, recipe_data)
+
+        matching_recipes = []
+        if "fingerprint" in recipe_data:
+            matching_recipes = await recipe_scanner.find_recipes_by_fingerprint(recipe_data["fingerprint"])
+            if recipe_id in matching_recipes:
+                matching_recipes.remove(recipe_id)
+
         return PersistenceResult(
             {
                 "success": True,
                 "recipe_id": recipe_id,
                 "updated_lora": updated_lora,
                 "matching_recipes": matching_recipes,
+            }
+        )
+
+    async def get_reconnect_suggestions(
+        self,
+        *,
+        recipe_scanner,
+        recipe_id: str,
+        lora_index: int,
+        query: str | None = None,
+    ) -> PersistenceResult:
+        """Return ranked local LoRA candidates for reconnecting a recipe entry."""
+
+        recipe_path = await recipe_scanner.get_recipe_json_path(recipe_id)
+        if not recipe_path or not os.path.exists(recipe_path):
+            raise RecipeNotFoundError("Recipe not found")
+
+        with open(recipe_path, "r", encoding="utf-8") as file_obj:
+            recipe_data = json.load(file_obj)
+
+        loras = recipe_data.get("loras") or []
+        if lora_index < 0 or lora_index >= len(loras):
+            raise RecipeValidationError(f"Invalid lora_index: {lora_index}")
+
+        suggestions = await recipe_scanner.suggest_reconnect_candidates(
+            entry=loras[lora_index],
+            recipe_base_model=recipe_data.get("base_model"),
+            query=query,
+        )
+
+        return PersistenceResult({"success": True, "suggestions": suggestions})
+
+    async def mark_lora_hash_invalid(
+        self,
+        *,
+        recipe_scanner,
+        recipe_id: str,
+        lora_index: int,
+        hash_invalid: bool = True,
+    ) -> PersistenceResult:
+        """Mark a recipe LoRA entry's hash as unresolvable on CivitAI.
+
+        Called when a download attempt by hash returned "Model not found".
+        The flag makes the entry an unresolved rematch candidate without
+        altering its stored hash/file_name.
+        """
+
+        recipe_data, updated_lora = await recipe_scanner.set_lora_entry_hash_invalid(
+            recipe_id,
+            lora_index,
+            hash_invalid=hash_invalid,
+        )
+
+        return PersistenceResult(
+            {
+                "success": True,
+                "recipe_id": recipe_id,
+                "hash_invalid": bool(hash_invalid),
+                "updated_lora": updated_lora,
+            }
+        )
+
+    async def reconnect_checkpoint(
+        self,
+        *,
+        recipe_scanner,
+        recipe_id: str,
+        target_name: str,
+    ) -> PersistenceResult:
+        """Reconnect the checkpoint entry within an existing recipe."""
+
+        recipe_path = await recipe_scanner.get_recipe_json_path(recipe_id)
+        if not recipe_path or not os.path.exists(recipe_path):
+            raise RecipeNotFoundError("Recipe not found")
+
+        with open(recipe_path, "r", encoding="utf-8") as file_obj:
+            recipe_base_model = json.load(file_obj).get("base_model", "")
+
+        matches = await recipe_scanner.find_local_checkpoints_by_name(target_name)
+        if not matches:
+            raise RecipeNotFoundError(
+                f"Local checkpoint not found with name: {target_name}"
+            )
+
+        # Same three-tier base-model guard as reconnect_lora: exact/unknown
+        # labels pass silently; same-architecture-family labels pass but are
+        # reported so the UI can warn; confident mismatches stay hard-rejected.
+        eligible: list[tuple[dict, str]] = []
+        for match in matches:
+            relation = base_model_relation(recipe_base_model, match.get("base_model"))
+            if relation != RELATION_INCOMPATIBLE:
+                eligible.append((match, relation))
+
+        if not eligible:
+            raise RecipeValidationError(
+                f"Local checkpoint '{target_name}' has a different base model "
+                "than the recipe"
+            )
+        if len(eligible) > 1:
+            raise RecipeValidationError(
+                f"Multiple local checkpoints match '{target_name}'; "
+                "include the folder path to disambiguate"
+            )
+        target_checkpoint, target_relation = eligible[0]
+
+        recipe_data, updated_checkpoint = await recipe_scanner.update_checkpoint_entry(
+            recipe_id,
+            target_name=target_name,
+            target_checkpoint=target_checkpoint,
+        )
+
+        image_path = recipe_data.get("file_path")
+        if image_path and os.path.exists(image_path):
+            self._exif_utils.append_recipe_metadata(image_path, recipe_data)
+
+        matching_recipes = []
+        if "fingerprint" in recipe_data:
+            matching_recipes = await recipe_scanner.find_recipes_by_fingerprint(
+                recipe_data["fingerprint"]
+            )
+            if recipe_id in matching_recipes:
+                matching_recipes.remove(recipe_id)
+
+        payload: dict[str, Any] = {
+            "success": True,
+            "recipe_id": recipe_id,
+            "updated_checkpoint": updated_checkpoint,
+            "matching_recipes": matching_recipes,
+        }
+        if target_relation == RELATION_COMPATIBLE:
+            # Structured data, not prose — the frontend localizes the warning.
+            payload["base_model_mismatch"] = {
+                "recipe_base_model": recipe_base_model,
+                "checkpoint_base_model": target_checkpoint.get("base_model") or "",
+            }
+        return PersistenceResult(payload)
+
+    async def restore_checkpoint(
+        self,
+        *,
+        recipe_scanner,
+        recipe_id: str,
+    ) -> PersistenceResult:
+        """Restore the checkpoint entry to the state captured before its reconnect."""
+
+        recipe_data, updated_checkpoint = await recipe_scanner.restore_checkpoint_entry(
+            recipe_id
+        )
+
+        image_path = recipe_data.get("file_path")
+        if image_path and os.path.exists(image_path):
+            self._exif_utils.append_recipe_metadata(image_path, recipe_data)
+
+        matching_recipes = []
+        if "fingerprint" in recipe_data:
+            matching_recipes = await recipe_scanner.find_recipes_by_fingerprint(
+                recipe_data["fingerprint"]
+            )
+            if recipe_id in matching_recipes:
+                matching_recipes.remove(recipe_id)
+
+        return PersistenceResult(
+            {
+                "success": True,
+                "recipe_id": recipe_id,
+                "updated_checkpoint": updated_checkpoint,
+                "matching_recipes": matching_recipes,
+            }
+        )
+
+    async def get_checkpoint_reconnect_suggestions(
+        self,
+        *,
+        recipe_scanner,
+        recipe_id: str,
+        query: str | None = None,
+    ) -> PersistenceResult:
+        """Return ranked local checkpoint candidates for reconnecting a recipe entry."""
+
+        recipe_path = await recipe_scanner.get_recipe_json_path(recipe_id)
+        if not recipe_path or not os.path.exists(recipe_path):
+            raise RecipeNotFoundError("Recipe not found")
+
+        with open(recipe_path, "r", encoding="utf-8") as file_obj:
+            recipe_data = json.load(file_obj)
+
+        checkpoint = recipe_data.get("checkpoint")
+        if not isinstance(checkpoint, dict):
+            raise RecipeValidationError("Recipe has no checkpoint entry")
+
+        suggestions = await recipe_scanner.suggest_checkpoint_reconnect_candidates(
+            entry=checkpoint,
+            recipe_base_model=recipe_data.get("base_model"),
+            query=query,
+        )
+
+        return PersistenceResult({"success": True, "suggestions": suggestions})
+
+    async def mark_checkpoint_hash_invalid(
+        self,
+        *,
+        recipe_scanner,
+        recipe_id: str,
+        hash_invalid: bool = True,
+    ) -> PersistenceResult:
+        """Mark the recipe checkpoint entry's hash as unresolvable on CivitAI.
+
+        Called when a download attempt by hash returned "Model not found".
+        The flag makes the entry an unresolved rematch candidate without
+        altering its stored hash/file_name.
+        """
+
+        recipe_data, updated_checkpoint = (
+            await recipe_scanner.set_checkpoint_entry_hash_invalid(
+                recipe_id,
+                hash_invalid=hash_invalid,
+            )
+        )
+
+        return PersistenceResult(
+            {
+                "success": True,
+                "recipe_id": recipe_id,
+                "hash_invalid": bool(hash_invalid),
+                "updated_checkpoint": updated_checkpoint,
             }
         )
 
@@ -619,6 +914,9 @@ class RecipePersistenceService:
             # Widget saves re-encode an in-memory tensor to PNG/WebP with no
             # embedded metadata chunks, so a workflow can never be present.
             "has_workflow": False,
+            # Widget saves read LoRAs straight from the current workflow; an
+            # empty list means the workflow used no LoRAs.
+            "import_info": build_import_info(CHANNEL_WIDGET, None, loras_data),
         }
         if checkpoint_entry:
             recipe_data["checkpoint"] = checkpoint_entry
@@ -793,6 +1091,7 @@ class RecipePersistenceService:
             "modelName": lora.get("name", ""),
             "modelVersionName": lora.get("version", ""),
             "isDeleted": lora.get("isDeleted", False),
+            "hashInvalid": lora.get("hashInvalid", False),
             "exclude": lora.get("exclude", False),
         }
 

@@ -67,11 +67,11 @@
         "steps": {
             "fetch": {
                 "title": "Получить метаданные моделей",
-                "content": "Нажмите кнопку <strong>Получить</strong>, чтобы загрузить метаданные моделей и изображения превью с Civitai."
+                "content": "Нажмите кнопку <strong>Получить</strong>, чтобы загрузить метаданные моделей и изображения превью с CivitAI."
             },
             "download": {
                 "title": "Загрузить новые модели",
-                "content": "Используйте кнопку <strong>Загрузить</strong> для скачивания моделей напрямую по URL Civitai."
+                "content": "Используйте кнопку <strong>Загрузить</strong> для скачивания моделей напрямую по URL CivitAI."
             },
             "bulk": {
                 "title": "Массовые операции",
@@ -103,8 +103,8 @@
         "actions": {
             "addToFavorites": "Добавить в избранное",
             "removeFromFavorites": "Удалить из избранного",
-            "viewOnCivitai": "Посмотреть на Civitai",
-            "notAvailableFromCivitai": "Недоступно на Civitai",
+            "viewOnCivitai": "Посмотреть на CivitAI",
+            "notAvailableFromCivitai": "Недоступно на CivitAI",
             "viewOnHuggingFace": "Открыть Hugging Face",
             "sendToWorkflow": "Отправить в ComfyUI (Клик: Добавить, Shift+Клик: Заменить)",
             "copyLoRASyntax": "Копировать синтаксис LoRA",
@@ -137,7 +137,7 @@
         "exampleImages": {
             "checkError": "Ошибка проверки примеров изображений",
             "missingHash": "Отсутствует хеш модели.",
-            "noRemoteImagesAvailable": "Нет удаленных примеров изображений для этой модели на Civitai"
+            "noRemoteImagesAvailable": "Нет удаленных примеров изображений для этой модели на CivitAI"
         },
         "badges": {
             "update": "Обновление",
@@ -173,11 +173,11 @@
             "error": "Не удалось очистить папки с примерами изображений: {message}"
         },
         "fetchMissingLicenses": {
-            "label": "Refresh license metadata",
-            "loading": "Refreshing license metadata for {typePlural}...",
-            "success": "Updated license metadata for {count} {typePlural}",
-            "none": "All {typePlural} already have license metadata",
-            "error": "Failed to refresh license metadata for {typePlural}: {message}"
+            "label": "Обновить метаданные лицензии",
+            "loading": "Обновление метаданных лицензии для {typePlural}...",
+            "success": "Обновлены метаданные лицензии для {count} {typePlural}",
+            "none": "У всех {typePlural} уже есть метаданные лицензии",
+            "error": "Не удалось обновить метаданные лицензии для {typePlural}: {message}"
         },
         "repairRecipes": {
             "label": "Восстановить данные рецептов",
@@ -226,7 +226,7 @@
                 "title": "Название рецепта",
                 "loraName": "Имя файла LoRA",
                 "loraModel": "Название модели LoRA",
-                "prompt": "Запрос"
+                "prompt": "Промпт"
             }
         },
         "filter": {
@@ -271,7 +271,7 @@
             "switchToLight": "Переключить на светлую тему",
             "switchToDark": "Переключить на тёмную тему",
             "switchToAuto": "Переключить на автоматическую тему",
-            "presets": "Предустановки тем",
+            "presets": "Пресеты тем",
             "default": "По умолчанию",
             "nord": "Nord",
             "midnight": "Midnight",
@@ -290,15 +290,15 @@
         }
     },
     "settings": {
-        "civitaiApiKey": "Ключ API Civitai",
-        "civitaiApiKeyPlaceholder": "Введите ваш ключ API Civitai",
-        "civitaiApiKeyHelp": "Используется для аутентификации при загрузке моделей с Civitai",
+        "civitaiApiKey": "Ключ API CivitAI",
+        "civitaiApiKeyPlaceholder": "Введите ваш ключ API CivitAI",
+        "civitaiApiKeyHelp": "Используется для аутентификации при загрузке моделей с CivitAI",
         "civitaiApiKeyConfigured": "Настроен",
         "civitaiApiKeyNotConfigured": "Не настроен",
         "civitaiApiKeySet": "Настроить",
         "civitaiHost": {
-            "label": "Хост Civitai",
-            "help": "Выберите, какой сайт Civitai будет открываться при использовании ссылок «View on Civitai».",
+            "label": "Хост CivitAI",
+            "help": "Выберите, какой сайт CivitAI будет открываться при использовании ссылок «View on CivitAI».",
             "options": {
                 "com": "civitai.com (только SFW)",
                 "red": "civitai.red (без ограничений)"
@@ -319,8 +319,8 @@
         },
         "aria2HelpLink": "Узнайте, как настроить сервер загрузки aria2",
         "civitaiHostBanner": {
-            "title": "Доступна настройка хоста Civitai",
-            "content": "Теперь Civitai использует civitai.com для контента SFW и civitai.red для контента без ограничений. В настройках можно изменить, какой сайт открывать по умолчанию.",
+            "title": "Доступна настройка хоста CivitAI",
+            "content": "Теперь CivitAI использует civitai.com для контента SFW и civitai.red для контента без ограничений. В настройках можно изменить, какой сайт открывать по умолчанию.",
             "openSettings": "Открыть настройки"
         },
         "openSettingsFileLocation": {
@@ -428,7 +428,7 @@
         },
         "downloadSkipBaseModels": {
             "label": "Пропускать загрузки для базовых моделей",
-            "help": "Применяется ко всем сценариям загрузки. Здесь можно выбрать только поддерживаемые базовые модели.",
+            "help": "При включении версии, использующие выбранные базовые модели, будут пропущены.",
             "searchPlaceholder": "Фильтровать базовые модели...",
             "empty": "Нет базовых моделей, соответствующих текущему поиску.",
             "summary": {
@@ -450,7 +450,7 @@
         },
         "layoutSettings": {
             "groupByModel": "Группировать по модели",
-            "groupByModelHelp": "При включении отображается только последняя версия каждой модели Civitai в виде одной карточки. Старые версии скрыты.",
+            "groupByModelHelp": "При включении отображается только последняя версия каждой модели CivitAI в виде одной карточки. Старые версии скрыты.",
             "displayDensity": "Плотность отображения",
             "displayDensityOptions": {
                 "default": "По умолчанию",
@@ -517,7 +517,7 @@
         "extraFolderPaths": {
             "title": "Дополнительные пути к папкам",
             "description": "Дополнительные корневые пути моделей, эксклюзивные для LoRA Manager. Загружайте модели из расположений за пределами стандартных папок ComfyUI — идеально подходит для больших библиотек, которые иначе замедлили бы ComfyUI.",
-            "restartRequired": "Requires restart to take effect",
+            "restartRequired": "Требуется перезапуск, чтобы изменения вступили в силу",
             "modelTypes": {
                 "lora": "Пути LoRA",
                 "checkpoint": "Пути Checkpoint",
@@ -540,8 +540,8 @@
             "helpLinkLabel": "Открыть справку по приоритетным тегам",
             "modelTypes": {
                 "lora": "LoRA",
-                "checkpoint": "Чекпойнт",
-                "embedding": "Эмбеддинг"
+                "checkpoint": "Checkpoint",
+                "embedding": "Embedding"
             },
             "saveSuccess": "Приоритетные теги обновлены.",
             "saveError": "Не удалось обновить приоритетные теги.",
@@ -555,7 +555,7 @@
         },
         "downloadPathTemplates": {
             "title": "Шаблоны путей загрузки",
-            "help": "Настройте структуру папок для разных типов моделей при загрузке с Civitai.",
+            "help": "Настройте структуру папок для разных типов моделей при загрузке с CivitAI.",
             "availablePlaceholders": "Доступные заполнители:",
             "templateOptions": {
                 "flatStructure": "Плоская структура",
@@ -592,7 +592,7 @@
         "exampleImages": {
             "downloadLocation": "Место загрузки",
             "downloadLocationPlaceholder": "Введите путь к папке для примеров изображений",
-            "downloadLocationHelp": "Введите путь к папке, где будут сохраняться примеры изображений с Civitai",
+            "downloadLocationHelp": "Введите путь к папке, где будут сохраняться примеры изображений с CivitAI",
             "autoDownload": "Автозагрузка примеров изображений",
             "autoDownloadHelp": "Автоматически загружать примеры изображений для моделей, у которых их нет (требует настройки места загрузки)",
             "openMode": "Действие открытия примеров изображений",
@@ -625,7 +625,7 @@
         },
         "hideEarlyAccessUpdates": {
             "label": "Скрыть обновления раннего доступа",
-            "help": "Только обновления раннего доступа"
+            "help": "При включении модели, у которых есть только обновления раннего доступа, не будут показывать значок «Доступно обновление»."
         },
         "hidePaidUpdates": {
             "label": "Скрывать платные обновления",
@@ -639,7 +639,7 @@
             "includeTriggerWords": "Включать триггерные слова в синтаксис LoRA",
             "includeTriggerWordsHelp": "Включать обученные триггерные слова при копировании синтаксиса LoRA в буфер обмена",
             "loraSyntaxFormat": "Формат синтаксиса LoRA",
-            "loraSyntaxFormatHelp": "Формат синтаксиса LoRA. Полный путь включает подпапку (<lora:style/anime/x:1.0>) для безпотерьного разрешения модели. Устаревший использует только имя файла (<lora:x:1.0>) — соглашение A1111, может быть неоднозначным при дублировании имён файлов в разных папках.",
+            "loraSyntaxFormatHelp": "Формат синтаксиса LoRA. Полный путь включает подпапку (<lora:style/anime/x:1.0>) для беспотерьного разрешения модели. Устаревший использует только имя файла (<lora:x:1.0>) — соглашение A1111, может быть неоднозначным при дублировании имён файлов в разных папках.",
             "loraSyntaxFormatOptions": {
                 "full": "Полный путь (подпапка/имя)",
                 "legacy": "Устаревший A1111 (только имя)"
@@ -647,7 +647,7 @@
         },
         "metadataArchive": {
             "enableArchiveDb": "Включить архив метаданных",
-            "enableArchiveDbHelp": "Использовать локальную базу данных для доступа к метаданным моделей, удалённых с Civitai.",
+            "enableArchiveDbHelp": "Использовать локальную базу данных для доступа к метаданным моделей, удалённых с CivitAI.",
             "status": "Статус",
             "statusAvailable": "Доступно",
             "statusUnavailable": "Недоступно",
@@ -708,7 +708,7 @@
                 "custom": "Пользовательский (совместимый с OpenAI)"
             },
             "apiBase": "Базовый URL API",
-            "apiBaseHelp": "Базовый URL для LLM API (например, https://api.openai.com/v1). Оставьте пустым, чтобы использовать значение по умолчанию.",
+            "apiBaseHelp": "Базовый URL для LLM API. Выберите пресет или введите свой URL. В раскрывающемся списке отображаются пресеты для всех поддерживаемых провайдеров.",
             "apiBasePlaceholder": "https://api.openai.com/v1",
             "apiKey": "API-ключ",
             "apiKeyHelp": "Ваш API-ключ поставщика LLM. Хранится локально и никогда не отправляется на другие серверы, кроме выбранного поставщика LLM.",
@@ -750,7 +750,7 @@
                 "fullTooltip": "Перечитывает все данные моделей из файлов метаданных — используйте, если библиотека выглядит устаревшей или после ручных правок."
             },
             "fetch": {
-                "title": "Получить метаданные с Civitai",
+                "title": "Получить метаданные с CivitAI",
                 "action": "Получить"
             },
             "download": {
@@ -803,8 +803,8 @@
             "downloadMissingExamples": "Скачать недостающие",
             "reprocessExamples": "Обработать всё заново",
             "clear": "Очистить выбор",
-            "skipMetadataRefreshCount": "Пропустить（{count} моделей）",
-            "resumeMetadataRefreshCount": "Возобновить（{count} моделей）",
+            "skipMetadataRefreshCount": "Пропустить({count} моделей)",
+            "resumeMetadataRefreshCount": "Возобновить({count} моделей)",
             "sendToWorkflow": "Отправить в Workflow",
             "sections": {
                 "workflow": "Workflow",
@@ -825,10 +825,10 @@
             "enrichHfAgent": "Обогатить HF метаданные (ИИ)"
         },
         "contextMenu": {
-            "refreshMetadata": "Обновить данные Civitai",
+            "refreshMetadata": "Обновить данные CivitAI",
             "checkUpdates": "Проверить обновления",
             "linkModel": "Связать модель",
-            "linkCivitai": "Пересвязать с Civitai",
+            "linkCivitai": "Пересвязать с CivitAI",
             "linkHuggingFace": "Связать с HuggingFace",
             "copySyntax": "Копировать синтаксис LoRA",
             "copyFilename": "Копировать имя файла модели",
@@ -860,6 +860,7 @@
         "actions": {
             "sendCheckpoint": "Отправить в ComfyUI",
             "sendRecipe": "Отправить в ComfyUI",
+            "copyRecipeSyntax": "Копировать синтаксис рецепта",
             "deleteRecipeWithShortcut": "Удалить рецепт (Del)"
         },
         "navigation": {
@@ -883,23 +884,78 @@
         "loraStatus": {
             "none": "В этом рецепте нет LoRAs",
             "allAvailable": "Все LoRAs доступны - Готово к использованию",
-            "missing": "Отсутствует {missing} из {total} LoRAs"
+            "missing": "Отсутствует {missing} из {total} LoRAs",
+            "missingAndUnavailable": "Отсутствует {missing} из {total} LoRAs, {unavailable} недоступны (удалены из источника или хеш не разрешается)",
+            "partial": "{unavailable} из {total} LoRAs недоступны (удалены из источника или хеш не разрешается) - будут пропущены при использовании рецепта",
+            "noneUsable": "Нет доступных LoRAs - {unavailable} из {total} удалены из источника или хеш не разрешается"
         },
         "resources": {
             "inLibrary": "В библиотеке",
             "notInLibrary": "Не в библиотеке",
             "deleted": "Удалено",
+            "hashInvalid": "Нераспознанный хеш",
             "inLibraryTooltip": "Эта модель есть в вашей локальной библиотеке",
             "notInLibraryTooltip": "Этой модели нет в вашей библиотеке",
             "deletedTooltip": "Этот LoRA был удалён из источника и больше недоступен для скачивания",
+            "hashInvalidTooltip": "Этот хеш LoRA не удаётся распознать на CivitAI - возможно, модель была обновлена",
+            "noLorasAssociated": "С этим рецептом не связаны LoRA",
+            "noLorasWhyToggle": "Почему нет LoRA?",
+            "noLorasImportMethod": "Способ импорта",
+            "noLorasInferredNote": "Возможная причина (выведена) — этот рецепт был импортирован до того, как стала записываться диагностика импорта.",
+            "noLorasChannels": {
+                "batch_import_url": "Пакетный импорт (URL изображения)",
+                "batch_import_local": "Пакетный импорт (локальный файл)",
+                "url": "Импорт по URL изображения",
+                "local": "Импорт локального файла",
+                "upload": "Загрузка изображения",
+                "widget": "Сохранён из Workflow",
+                "reimport_url": "Повторный импорт (URL изображения)",
+                "reimport_local": "Повторный импорт (локальный файл)"
+            },
+            "noLorasReasons": {
+                "no_loras_used": "Метаданные генерации полны и не содержат ссылок на LoRA.",
+                "api_meta_no_lora_resources": "Исходный API не вернул данные о ресурсах LoRA для этого изображения. LoRA, отображаемые на странице CivitAI, могут поступать из внутренних данных, которые публичный API не раскрывает.",
+                "api_meta_missing": "Исходный API не вернул метаданные генерации для этого изображения.",
+                "no_embedded_metadata": "Изображение не содержит встроенных метаданных генерации, поэтому восстановить информацию о LoRA невозможно.",
+                "workflow_metadata_limited": "Встроенные метаданные изображения представляют собой Workflow ComfyUI; извлечение информации о LoRA из Workflow ограничено.",
+                "video_no_metadata": "Видеофайлы не содержат встроенных метаданных генерации.",
+                "metadata_unsupported": "Изображение содержит метаданные в формате, который не удалось разобрать.",
+                "unknown": "Причину не удалось определить по сохранённым данным рецепта."
+            },
+            "noLorasDetails": {
+                "apiMetaFields": "Поля метаданных API",
+                "modelVersionIds": "Сообщено ID версий моделей",
+                "embeddedMetadata": "Встроенные метаданные",
+                "present": "найдены",
+                "absent": "нет"
+            },
             "download": "Скачать",
             "downloadLoraTooltip": "Скачать этот LoRA",
-            "preparingDownload": "Подготовка к скачиванию…",
+            "preparingDownload": "Подготовка к скачиванию...",
             "reconnect": "Переподключить",
             "reconnectTooltip": "Переподключить к локальному LoRA",
-            "viewOnCivitai": "Открыть на Civitai",
+            "reconnectInstructions": "Введите синтаксис или имя LoRA для переподключения:",
+            "reconnectExample": "Пример: <lora:name:1> или просто имя",
+            "reconnectPlaceholder": "Введите имя или синтаксис LoRA",
+            "reconnectSuggestionsLoading": "Поиск в локальной библиотеке...",
+            "reconnectSuggestionsEmpty": "В локальной библиотеке нет подходящих LoRA",
+            "reconnectMatchSameHash": "Тот же хеш",
+            "reconnectMatchSameVersion": "Та же версия модели",
+            "reconnectMatchSimilarFilename": "Похожее имя файла",
+            "reconnectMatchSimilarName": "Похожее имя",
+            "undoReconnect": "Отменить",
+            "undoReconnectTooltip": "Восстановить привязку, которая была у записи до переподключения",
+            "undoReconnectTooltipNamed": "Восстановить {name} (привязка до переподключения)",
+            "viewOnCivitai": "Открыть на CivitAI",
             "openLoraDetails": "Открыть {name} в библиотеке LoRA",
-            "openCheckpointDetails": "Открыть {name} в библиотеке моделей"
+            "openCheckpointDetails": "Открыть {name} в библиотеке моделей",
+            "checkpointDeletedTooltip": "Этот чекпойнт был удалён из источника и больше не может быть скачан - переподключите его к локальной модели",
+            "checkpointHashInvalidTooltip": "Хеш этого чекпойнта не удаётся разрешить на CivitAI - возможно, модель была обновлена",
+            "reconnectCheckpoint": "Переподключить",
+            "reconnectCheckpointTooltip": "Переподключить к локальному чекпойнту",
+            "checkpointReconnectInstructions": "Введите имя чекпойнта для переподключения:",
+            "checkpointReconnectPlaceholder": "Введите имя чекпойнта",
+            "checkpointReconnectSuggestionsEmpty": "В локальной библиотеке нет подходящих чекпойнтов"
         },
         "controls": {
             "import": {
@@ -909,7 +965,7 @@
                 "dropZoneHint": "Перетащите изображение сюда, вставьте из буфера обмена или нажмите для выбора",
                 "orDivider": "или перетащите / вставьте изображение",
                 "imageUrlOrPath": "URL изображения или путь к файлу:",
-                "urlPlaceholder": "https://civitai.com/images/... или C:/path/to/image.png",
+                "urlPlaceholder": "https://civitai.com/images/... или https://civitai.red/images/... или C:/path/to/image.png",
                 "fetchImage": "Получить изображение",
                 "recipeName": "Название рецепта",
                 "recipeNamePlaceholder": "Введите название рецепта",
@@ -938,7 +994,7 @@
                 "downloadingLoras": "Загрузка LoRAs...",
                 "savingRecipe": "Сохранение рецепта...",
                 "startingDownload": "Начало загрузки LoRA {current}/{total}",
-                "deletedFromCivitai": "Удалено с Civitai",
+                "deletedFromCivitai": "Удалено с CivitAI",
                 "inLibrary": "В библиотеке",
                 "notInLibrary": "Не в библиотеке",
                 "earlyAccessRequired": "Для загрузки этой LoRA требуется платный ранний доступ.",
@@ -996,12 +1052,12 @@
             "noGroups": "Дубликатов с текущим критерием не найдено",
             "keepLatest": "Оставить последние версии",
             "deleteSelected": "Удалить выбранные",
-            "includePromptLabel": "Учитывать запрос при поиске дубликатов",
+            "includePromptLabel": "Учитывать промпт при поиске дубликатов",
             "basis": {
                 "loraCombo": "Критерий: комбинация LoRA",
-                "loraComboAndPrompt": "Критерий: комбинация LoRA + запрос",
+                "loraComboAndPrompt": "Критерий: комбинация LoRA + промпт",
                 "hintLoraCombo": "Рецепты с одинаковыми LoRA и одинаковой силой группируются вместе.",
-                "hintPromptIncluded": "Рецепты группируются только при одинаковых LoRA с одинаковой силой И одинаковом запросе."
+                "hintPromptIncluded": "Рецепты группируются только при одинаковых LoRA с одинаковой силой И одинаковом промпте."
             }
         },
         "contextMenu": {
@@ -1040,63 +1096,63 @@
             }
         },
         "batchImport": {
-            "title": "Batch Import Recipes",
-            "action": "Batch Import",
-            "urlList": "URL List",
-            "directory": "Directory",
-            "urlDescription": "Enter image URLs or local file paths (one per line). Each will be imported as a recipe.",
-            "directoryDescription": "Enter a directory path to import all images from that folder.",
-            "urlsLabel": "Image URLs or Local Paths",
+            "title": "Пакетный импорт рецептов",
+            "action": "Пакетный импорт",
+            "urlList": "Список URL",
+            "directory": "Папка",
+            "urlDescription": "Введите URL изображений или локальные пути к файлам (по одному на строку). Каждый будет импортирован как рецепт.",
+            "directoryDescription": "Введите путь к папке, чтобы импортировать все изображения из неё.",
+            "urlsLabel": "URL изображений или локальные пути",
             "urlsPlaceholder": "https://civitai.com/images/...\nhttps://civitai.com/images/...\nC:/path/to/image.png\n...",
-            "urlsHint": "Enter one URL or path per line",
-            "directoryPath": "Directory Path",
+            "urlsHint": "Один URL или путь на строку",
+            "directoryPath": "Путь к папке",
             "directoryPlaceholder": "/path/to/images/folder",
-            "browse": "Browse",
-            "recursive": "Include subdirectories",
-            "tagsOptional": "Tags (optional, applied to all recipes)",
-            "tagsPlaceholder": "Enter tags separated by commas",
-            "tagsHint": "Tags will be added to all imported recipes",
-            "skipNoMetadata": "Skip images without metadata",
-            "skipNoMetadataHelp": "Images without LoRA metadata will be skipped automatically.",
-            "start": "Start Import",
-            "startImport": "Start Import",
-            "importing": "Importing...",
-            "rateLimitedSlowdown": "Ограничение частоты запросов — замедление…",
+            "browse": "Обзор",
+            "recursive": "Включая подпапки",
+            "tagsOptional": "Теги (необязательно, применяются ко всем рецептам)",
+            "tagsPlaceholder": "Введите теги через запятую",
+            "tagsHint": "Теги будут добавлены ко всем импортированным рецептам",
+            "skipNoMetadata": "Пропускать изображения без метаданных",
+            "skipNoMetadataHelp": "Изображения без метаданных LoRA будут пропущены автоматически.",
+            "start": "Начать импорт",
+            "startImport": "Начать импорт",
+            "importing": "Импорт...",
+            "rateLimitedSlowdown": "Ограничение частоты запросов — замедление...",
             "rateLimitedHint": "Некоторые элементы были пропущены из-за ограничений частоты запросов поставщика метаданных. Повторите импорт позже, чтобы повторить попытку.",
-            "progress": "Progress",
-            "total": "Total",
-            "success": "Success",
-            "failed": "Failed",
-            "skipped": "Skipped",
-            "current": "Current",
-            "currentItem": "Current",
-            "preparing": "Preparing...",
-            "cancel": "Cancel",
-            "cancelImport": "Cancel",
-            "cancelled": "Import cancelled",
-            "completed": "Import completed",
-            "completedWithErrors": "Completed with errors",
-            "completedSuccess": "Successfully imported {count} recipe(s)",
-            "successCount": "Successful",
-            "failedCount": "Failed",
-            "skippedCount": "Skipped",
-            "totalProcessed": "Total processed",
-            "viewDetails": "View Details",
-            "newImport": "New Import",
-            "manualPathEntry": "Please enter the directory path manually. File browser is not available in this browser.",
-            "batchImportDirectorySelected": "Directory selected: {path}",
-            "batchImportManualEntryRequired": "File browser not available. Please enter the directory path manually.",
-            "backToParent": "Back to parent directory",
-            "folders": "Folders",
-            "folderCount": "{count} folders",
-            "imageFiles": "Image Files",
-            "images": "images",
-            "imageCount": "{count} images",
-            "selectFolder": "Select This Folder",
+            "progress": "Прогресс",
+            "total": "Всего",
+            "success": "Успешно",
+            "failed": "Ошибок",
+            "skipped": "Пропущено",
+            "current": "Текущий",
+            "currentItem": "Текущий",
+            "preparing": "Подготовка...",
+            "cancel": "Отмена",
+            "cancelImport": "Отмена",
+            "cancelled": "Импорт отменён",
+            "completed": "Импорт завершён",
+            "completedWithErrors": "Завершено с ошибками",
+            "completedSuccess": "Успешно импортировано рецептов: {count}",
+            "successCount": "Успешно",
+            "failedCount": "Ошибок",
+            "skippedCount": "Пропущено",
+            "totalProcessed": "Всего обработано",
+            "viewDetails": "Подробнее",
+            "newImport": "Новый импорт",
+            "manualPathEntry": "Введите путь к папке вручную. Выбор файлов недоступен в этом браузере.",
+            "batchImportDirectorySelected": "Выбрана папка: {path}",
+            "batchImportManualEntryRequired": "Выбор файлов недоступен. Введите путь к папке вручную.",
+            "backToParent": "В родительскую папку",
+            "folders": "Папки",
+            "folderCount": "Папки: {count}",
+            "imageFiles": "Файлы изображений",
+            "images": "изображения",
+            "imageCount": "Изображения: {count}",
+            "selectFolder": "Выбрать эту папку",
             "errors": {
-                "enterUrls": "Please enter at least one URL or path",
-                "enterDirectory": "Please enter a directory path",
-                "startFailed": "Failed to start import: {message}"
+                "enterUrls": "Введите хотя бы один URL или путь",
+                "enterDirectory": "Введите путь к папке",
+                "startFailed": "Не удалось начать импорт: {message}"
             }
         }
     },
@@ -1104,7 +1160,7 @@
         "title": "Модели Checkpoint",
         "modelTypes": {
             "checkpoint": "Checkpoint",
-            "diffusion_model": "Diffusion Model"
+            "diffusion_model": "Диффузионная модель"
         },
         "contextMenu": {
             "moveToOtherTypeFolder": "Переместить в папку {otherType}",
@@ -1163,8 +1219,8 @@
             "totalGenerations": "Всего генераций",
             "usageRate": "Коэффициент использования",
             "loras": "LoRA",
-            "checkpoints": "Контрольные точки",
-            "embeddings": "Эмбеддинги",
+            "checkpoints": "Checkpoints",
+            "embeddings": "Embeddings",
             "uniqueTags": "Уникальные теги",
             "unusedModels": "Неиспользуемые модели",
             "avgUsesPerModel": "Сред. использований/модель"
@@ -1197,9 +1253,9 @@
             },
             "unusedCheckpoints": {
                 "detected": {
-                    "title": "Обнаружены неиспользуемые контрольные точки",
-                    "description": "{percent}% ваших контрольных точек ({count}/{total}) никогда не использовались.",
-                    "suggestion": "Проверьте и удалите ненужные контрольные точки."
+                    "title": "Обнаружены неиспользуемые Checkpoints",
+                    "description": "{percent}% ваших Checkpoints ({count}/{total}) никогда не использовались.",
+                    "suggestion": "Проверьте и удалите ненужные Checkpoints."
                 }
             },
             "unusedEmbeddings": {
@@ -1241,9 +1297,9 @@
             "lora": "LoRA",
             "locon": "LyCORIS",
             "dora": "DoRA",
-            "checkpoint": "Контрольная точка",
+            "checkpoint": "Checkpoint",
             "diffusion_model": "Диффузионная модель",
-            "embedding": "Эмбеддинги"
+            "embedding": "Embeddings"
         },
         "placeholders": {
             "loading": "Загрузка...",
@@ -1266,10 +1322,10 @@
         "download": {
             "title": "Скачать модель по URL",
             "titleWithType": "Скачать {type} по URL",
-            "civitaiUrl": "Civitai URL:",
+            "civitaiUrl": "CivitAI URL:",
             "placeholder": "https://civitai.com/models/...",
             "urlHint": "Введите один URL CivitAI, CivArchive или Hugging Face в каждой строке. Поддерживает несколько URL для пакетной загрузки.",
-            "selectHfFiles": "Выберите файл(ы) для загрузки из этого репозитория：",
+            "selectHfFiles": "Выберите файл(ы) для загрузки из этого репозитория:",
             "selectAll": "Выбрать все",
             "fetchingRepoFiles": "Получение файлов репозитория...",
             "locationPreview": "Предпросмотр места загрузки",
@@ -1301,7 +1357,7 @@
                 "inLibrary": "В библиотеке"
             },
             "errors": {
-                "invalidUrl": "Неверный формат URL Civitai",
+                "invalidUrl": "Неверный формат URL CivitAI",
                 "noVersions": "Нет доступных версий для этой модели",
                 "mixedSources": "Нельзя смешивать URL-адреса CivitAI и Hugging Face в одном пакете.",
                 "noModelFiles": "В этом репозитории не найдено файлов моделей."
@@ -1415,7 +1471,7 @@
             "title": "Локальные примеры изображений",
             "message": "Локальные примеры изображений для этой модели не найдены. Варианты просмотра:",
             "downloadOption": {
-                "title": "Скачать с Civitai",
+                "title": "Скачать с CivitAI",
                 "description": "Сохранить удаленные примеры локально для использования офлайн и более быстрой загрузки"
             },
             "importOption": {
@@ -1442,7 +1498,7 @@
             "confirmAction": "Сохранить и связать"
         },
         "relinkCivitai": {
-            "title": "Пересвязать с Civitai",
+            "title": "Пересвязать с CivitAI",
             "warning": "Предупреждение:",
             "warningText": "Это потенциально разрушительная операция. Пересвязывание:",
             "warningList": {
@@ -1451,15 +1507,15 @@
                 "unintendedConsequences": "Может иметь другие непредвиденные последствия"
             },
             "proceedText": "Продолжайте только если вы уверены, что это то, что вам нужно.",
-            "urlLabel": "URL модели Civitai:",
-            "urlPlaceholder": "https://civitai.com/models/12345/model-name?modelVersionId=67890",
+            "urlLabel": "URL модели CivitAI:",
+            "urlPlaceholder": "https://civitai.com/models/12345/model-name?modelVersionId=67890 или https://civitai.red/models/12345/model-name?modelVersionId=67890",
             "helpText": {
-                "title": "Вставьте любой URL модели Civitai или CivitArchive. Поддерживаемые форматы:",
+                "title": "Вставьте любой URL модели CivitAI или CivitArchive. Поддерживаемые форматы:",
                 "format1": "https://civitai.com/models/12345",
                 "format2": "https://civitai.com/models/12345?modelVersionId=67890",
                 "format3": "https://civitai.com/models/12345/model-name?modelVersionId=67890",
                 "note": "Примечание: Если modelVersionId не указан, будет использована последняя версия.",
-                "format4": "https://civarchive.com/models/12345 (CivitArchive)"
+                "format4": "https://civarchive.com/models/12345 (CivArchive)"
             },
             "confirmAction": "Подтвердить пересвязывание"
         },
@@ -1469,15 +1525,15 @@
                 "editFileName": "Редактировать имя файла",
                 "editBaseModel": "Редактировать базовую модель",
                 "editVersionName": "Редактировать название версии",
-                "viewOnCivitai": "Посмотреть на Civitai",
-                "viewOnCivitaiText": "Посмотреть на Civitai",
+                "viewOnCivitai": "Посмотреть на CivitAI",
+                "viewOnCivitaiText": "Посмотреть на CivitAI",
                 "viewOnHuggingFace": "Открыть Hugging Face",
                 "viewOnHuggingFaceText": "Открыть Hugging Face",
                 "viewCreatorProfile": "Посмотреть профиль создателя",
                 "openFileLocation": "Открыть расположение файла",
                 "sendToWorkflow": "Отправить в ComfyUI",
                 "sendToWorkflowText": "Отправить в ComfyUI",
-                "copyHash": "Копировать хэш",
+                "copyHash": "Копировать хеш",
                 "deleteModelWithShortcut": "Удалить модель (Del)"
             },
             "openFileLocation": {
@@ -1502,7 +1558,7 @@
                 "notesHint": "Нажмите Enter для сохранения, Shift+Enter для новой строки",
                 "addNotesPlaceholder": "Добавьте ваши заметки здесь...",
                 "aboutThisVersion": "Об этой версии",
-                "baseModelSearchPlaceholder": "Поиск базовой модели…",
+                "baseModelSearchPlaceholder": "Поиск базовой модели...",
                 "baseModelSuggested": "Предполагаемые",
                 "baseModelNoMatch": "Нет подходящих базовых моделей"
             },
@@ -1571,10 +1627,10 @@
                 "noNext": "Следующая модель отсутствует"
             },
             "license": {
-                "noImageSell": "No selling generated content",
-                "noRentCivit": "No Civitai generation",
-                "noRent": "No generation services",
-                "noSell": "No selling models",
+                "noImageSell": "Продажа сгенерированных изображений запрещена",
+                "noRentCivit": "Генерация через CivitAI запрещена",
+                "noRent": "Сервисы генерации запрещены",
+                "noSell": "Продажа моделей запрещена",
                 "creditRequired": "Требуется указание авторства",
                 "noDerivatives": "Запрет на совместное использование производных работ",
                 "noReLicense": "Требуются те же права",
@@ -1637,33 +1693,33 @@
                     "newer": "Более новая версия",
                     "newerTooltip": "Эта версия новее вашей последней локальной версии",
                     "earlyAccess": "Ранний доступ",
-                    "earlyAccessTooltip": "Для этой версии сейчас требуется ранний доступ Civitai",
+                    "earlyAccessTooltip": "Для этой версии сейчас требуется ранний доступ CivitAI",
                     "paid": "Платная",
                     "paidTooltip": "Скачивание этой версии платное",
                     "ignored": "Игнорируется",
                     "ignoredTooltip": "Уведомления об обновлениях для этой версии отключены",
                     "onSiteOnly": "Только на Сайте",
-                    "onSiteOnlyTooltip": "Эта версия доступна только для генерации на сайте Civitai"
+                    "onSiteOnlyTooltip": "Эта версия доступна только для генерации на сайте CivitAI"
                 },
                 "actions": {
                     "download": "Скачать",
                     "downloadTooltip": "Скачать эту версию",
                     "downloadChooseFilesTooltip": "Выбрать файлы для скачивания",
-                    "downloadEarlyAccessTooltip": "Скачать эту версию раннего доступа с Civitai",
-                    "downloadPaidTooltip": "Скачать эту платную версию с Civitai",
-                    "downloadNotAllowedTooltip": "Эта версия доступна только для генерации на сайте Civitai",
+                    "downloadEarlyAccessTooltip": "Скачать эту версию раннего доступа с CivitAI",
+                    "downloadPaidTooltip": "Скачать эту платную версию с CivitAI",
+                    "downloadNotAllowedTooltip": "Эта версия доступна только для генерации на сайте CivitAI",
                     "delete": "Удалить",
                     "deleteTooltip": "Удалить эту локальную версию",
                     "ignore": "Игнорировать",
                     "unignore": "Перестать игнорировать",
                     "ignoreTooltip": "Игнорировать уведомления об обновлениях для этой версии",
                     "unignoreTooltip": "Возобновить уведомления об обновлениях для этой версии",
-                    "viewVersionOnCivitai": "Посмотреть версию на Civitai",
+                    "viewVersionOnCivitai": "Посмотреть версию на CivitAI",
                     "earlyAccessTooltip": "Требуется покупка раннего доступа",
                     "resumeModelUpdates": "Возобновить обновления для этой модели",
                     "ignoreModelUpdates": "Игнорировать обновления для этой модели",
                     "viewLocalVersions": "Показать все локальные версии",
-                    "viewLocalTooltip": "Скоро появится"
+                    "viewLocalTooltip": "Показать все локальные версии этой модели на главной странице"
                 },
                 "filters": {
                     "label": "Фильтр по базе",
@@ -1679,7 +1735,7 @@
                 },
                 "empty": "Для этой модели пока нет истории версий.",
                 "error": "Не удалось загрузить версии.",
-                "missingModelId": "У этой модели отсутствует идентификатор модели Civitai.",
+                "missingModelId": "У этой модели отсутствует идентификатор модели CivitAI.",
                 "hfGroupInfo": "Это группа моделей HuggingFace. Откройте библиотеку, чтобы увидеть все версии в сетке.",
                 "confirm": {
                     "delete": "Удалить эту версию из библиотеки?"
@@ -1753,7 +1809,7 @@
             "message": "Сканирование и построение кэша embedding. Это может занять несколько минут..."
         },
         "recipes": {
-            "title": "Инициализация Recipe Manager",
+            "title": "Инициализация менеджера рецептов",
             "message": "Загрузка и обработка рецептов. Это может занять несколько минут..."
         },
         "statistics": {
@@ -1763,14 +1819,14 @@
         "tips": {
             "title": "Советы и хитрости",
             "civitai": {
-                "title": "Интеграция с Civitai",
-                "description": "Подключите ваш аккаунт Civitai: Перейдите в Аватар профиля → Настройки → API ключи → Добавить API ключ, затем вставьте его в настройки Lora Manager.",
-                "alt": "Настройка API Civitai"
+                "title": "Интеграция с CivitAI",
+                "description": "Подключите ваш аккаунт CivitAI: Перейдите в Аватар профиля → Настройки → API ключи → Добавить API ключ, затем вставьте его в настройки Lora Manager.",
+                "alt": "Настройка API CivitAI"
             },
             "download": {
                 "title": "Легкая загрузка",
-                "description": "Используйте URL Civitai для быстрой загрузки и установки новых моделей.",
-                "alt": "Загрузка с Civitai"
+                "description": "Используйте URL CivitAI для быстрой загрузки и установки новых моделей.",
+                "alt": "Загрузка с CivitAI"
             },
             "recipes": {
                 "title": "Сохранение рецептов",
@@ -1826,14 +1882,14 @@
             "modelFailed": "Не удалось обновить узел модели",
             "embeddingAdded": "Embedding добавлен в workflow",
             "embeddingFailed": "Не удалось добавить embedding",
-            "promptSent": "Запрос отправлен в workflow",
-            "promptFailed": "Не удалось отправить запрос"
+            "promptSent": "Промпт отправлен в workflow",
+            "promptFailed": "Не удалось отправить промпт"
         },
         "nodeSelector": {
             "recipe": "Рецепт",
             "lora": "LoRA",
-            "embedding": "Эмбеддинг",
-            "prompt": "Запрос",
+            "embedding": "Embedding",
+            "prompt": "Промпт",
             "replace": "Заменить",
             "append": "Добавить",
             "selectTargetNode": "Выберите целевой узел",
@@ -1954,7 +2010,7 @@
             "submitGithubIssue": "Создать issue на GitHub",
             "joinDiscord": "Присоединиться к Discord",
             "youtubeChannel": "YouTube канал",
-            "civitaiProfile": "Профиль на Civitai",
+            "civitaiProfile": "Профиль на CivitAI",
             "supportKofi": "Поддержать на Ko-fi",
             "supportPatreon": "Поддержать на Patreon"
         },
@@ -2024,10 +2080,10 @@
             "negativePromptUpdated": "Негативный промпт успешно обновлён",
             "promptEditorHint": "Нажмите Enter для сохранения, Shift+Enter для новой строки",
             "noRecipeId": "ID рецепта недоступен",
-            "sendToWorkflowFailed": "Не удалось отправить рецепт в рабочий процесс: {message}",
+            "sendToWorkflowFailed": "Не удалось отправить рецепт в workflow: {message}",
             "copyFailed": "Ошибка копирования синтаксиса рецепта: {message}",
-            "createError": "Ошибка при создании рецепта：{message}",
-            "createFailed": "Не удалось создать рецепт：{error}",
+            "createError": "Ошибка при создании рецепта: {message}",
+            "createFailed": "Не удалось создать рецепт: {error}",
             "createMissingData": "Отсутствуют необходимые данные для создания рецепта",
             "created": "Рецепт успешно создан",
             "noMissingLoras": "Нет отсутствующих LoRAs для загрузки",
@@ -2037,15 +2093,26 @@
             "preparingForDownloadFailed": "Ошибка подготовки LoRAs для загрузки",
             "enterLoraName": "Пожалуйста, введите название LoRA или синтаксис",
             "reconnectedSuccessfully": "LoRA успешно переподключена",
+            "reconnectBaseModelMismatch": "Переподключение выполнено, но базовые модели различаются (рецепт: {recipe}, LoRA: {lora}) — они совместимы по архитектуре",
             "reconnectFailed": "Ошибка переподключения LoRA: {message}",
-            "noPromptToSend": "Нет запроса для отправки",
+            "loraRestored": "LoRA восстановлена к прежней привязке",
+            "loraRestoreFailed": "Ошибка восстановления LoRA: {message}",
+            "noPromptToSend": "Нет промпта для отправки",
             "cannotSend": "Невозможно отправить рецепт: отсутствует ID рецепта",
             "sendFailed": "Не удалось отправить рецепт в workflow",
             "sendError": "Ошибка отправки рецепта в workflow",
             "missingCheckpointPath": "Путь к чекпойнту недоступен",
             "missingCheckpointInfo": "Отсутствуют данные о чекпойнте",
             "downloadCheckpointFailed": "Не удалось скачать чекпойнт: {message}",
+            "enterCheckpointName": "Введите имя чекпойнта",
+            "checkpointReconnectedSuccessfully": "Чекпойнт успешно переподключён",
+            "reconnectCheckpointBaseModelMismatch": "Переподключение выполнено, но базовые модели различаются (рецепт: {recipe}, чекпойнт: {checkpoint}) — они совместимы по архитектуре",
+            "checkpointReconnectFailed": "Ошибка переподключения чекпойнта: {message}",
+            "checkpointRestored": "Чекпойнт восстановлен к прежней привязке",
+            "checkpointRestoreFailed": "Ошибка восстановления чекпойнта: {message}",
+            "checkpointDownloadUnavailable": "Этот чекпойнт нельзя скачать без идентификаторов CivitAI - попробуйте переподключить его к локальному чекпойнту",
             "missingLoraDownloadInfo": "Нет информации для скачивания этого LoRA",
+            "hashNotFoundOnCivitai": "Этот хеш LoRA не удаётся распознать на CivitAI - возможно, модель была обновлена или хеш недействителен",
             "downloadLoraFailed": "Не удалось скачать LoRA: {message}",
             "cannotDelete": "Невозможно удалить рецепт: отсутствует ID рецепта",
             "deleteConfirmationError": "Ошибка отображения подтверждения удаления",
@@ -2061,18 +2128,18 @@
             "processingError": "Ошибка обработки: {message}",
             "folderBrowserError": "Ошибка загрузки браузера папок: {message}",
             "recipeSaveFailed": "Не удалось сохранить рецепт: {error}",
-            "recipeSaved": "Recipe saved successfully",
+            "recipeSaved": "Рецепт успешно сохранён",
             "importFailed": "Импорт не удался: {message}",
             "folderTreeFailed": "Не удалось загрузить дерево папок",
             "folderTreeError": "Ошибка загрузки дерева папок",
-            "batchImportFailed": "Failed to start batch import: {message}",
-            "batchImportCancelling": "Cancelling batch import...",
-            "batchImportCancelFailed": "Failed to cancel batch import: {message}",
-            "batchImportNoUrls": "Please enter at least one URL or file path",
-            "batchImportNoDirectory": "Please enter a directory path",
+            "batchImportFailed": "Не удалось начать пакетный импорт: {message}",
+            "batchImportCancelling": "Отмена пакетного импорта...",
+            "batchImportCancelFailed": "Не удалось отменить пакетный импорт: {message}",
+            "batchImportNoUrls": "Введите хотя бы один URL или путь к файлу",
+            "batchImportNoDirectory": "Введите путь к папке",
             "batchImportRateLimited": "Достигнуто ограничение частоты запросов поставщика метаданных — запросы замедляются, некоторые элементы могут быть пропущены. Вы можете повторить импорт позже.",
-            "batchImportBrowseFailed": "Failed to browse directory: {message}",
-            "batchImportDirectorySelected": "Directory selected: {path}",
+            "batchImportBrowseFailed": "Не удалось открыть папку: {message}",
+            "batchImportDirectorySelected": "Выбрана папка: {path}",
             "noRecipesSelected": "Рецепты не выбраны",
             "repairBulkComplete": "Восстановление завершено: {repaired} восстановлено, {skipped} пропущено (из {total})",
             "repairBulkSkipped": "Ни один из {total} выбранных рецептов не требует восстановления",
@@ -2128,8 +2195,8 @@
             "bulkUpdatesChecking": "Проверка обновлений для выбранных {type}...",
             "bulkUpdatesSuccess": "Доступны обновления для {count} выбранных {type}",
             "bulkUpdatesNone": "Обновления для выбранных {type} не найдены",
-            "bulkUpdatesMissing": "Выбранные {type} не привязаны к обновлениям Civitai",
-            "bulkUpdatesPartialMissing": "Пропущено {missing} выбранных {type} без привязки Civitai",
+            "bulkUpdatesMissing": "Выбранные {type} не привязаны к обновлениям CivitAI",
+            "bulkUpdatesPartialMissing": "Пропущено {missing} выбранных {type} без привязки CivitAI",
             "bulkUpdatesFailed": "Не удалось проверить обновления для выбранных {type}: {message}",
             "invalidCharactersRemoved": "Недопустимые символы удалены из имени файла",
             "filenameCannotBeEmpty": "Имя файла не может быть пустым",
@@ -2158,7 +2225,7 @@
             "checkpointRootsFailed": "Не удалось загрузить корни checkpoint: {message}",
             "unetRootsFailed": "Не удалось загрузить корни Diffusion Model: {message}",
             "embeddingRootsFailed": "Не удалось загрузить корни embedding: {message}",
-            "mappingsUpdated": "Сопоставления путей базовых моделей обновлены ({count} сопоставлени{plural})",
+            "mappingsUpdated": "Сопоставления путей базовых моделей обновлены ({count})",
             "mappingsCleared": "Сопоставления путей базовых моделей очищены",
             "mappingSaveFailed": "Не удалось сохранить сопоставления базовых моделей: {message}",
             "downloadTemplatesUpdated": "Шаблоны путей загрузки обновлены",
@@ -2169,8 +2236,8 @@
             "compactModeToggled": "Компактный режим {state}",
             "settingSaveFailed": "Не удалось сохранить настройку: {message}",
             "displayDensitySet": "Плотность отображения установлена на {density}",
-            "libraryLoadFailed": "Failed to load libraries: {message}",
-            "libraryActivateFailed": "Failed to activate library: {message}",
+            "libraryLoadFailed": "Не удалось загрузить библиотеки: {message}",
+            "libraryActivateFailed": "Не удалось активировать библиотеку: {message}",
             "languageChangeFailed": "Не удалось изменить язык: {message}",
             "cacheCleared": "Файлы кэша успешно очищены. Кэш будет пересобран при следующем действии.",
             "cacheClearFailed": "Не удалось очистить кэш: {error}",
@@ -2255,7 +2322,7 @@
         "contextMenu": {
             "contentRatingSet": "Рейтинг контента установлен на {level}",
             "contentRatingFailed": "Не удалось установить рейтинг контента: {message}",
-            "relinkSuccess": "Модель успешно пересвязана с Civitai",
+            "relinkSuccess": "Модель успешно пересвязана с CivitAI",
             "relinkFailed": "Ошибка: {message}",
             "linkHfSuccess": "Модель успешно связана с HuggingFace",
             "linkHfFailed": "Ошибка: {message}",
@@ -2319,7 +2386,7 @@
             "bulkMoveSuccess": "Успешно перемещено {successCount} {type}s",
             "exampleImagesDownloadSuccess": "Примеры изображений успешно загружены!",
             "exampleImagesDownloadFailed": "Не удалось загрузить примеры изображений: {message}",
-            "moveFailed": "Failed to move item: {message}",
+            "moveFailed": "Не удалось переместить элемент: {message}",
             "copiedToClipboard": "Скопировано в буфер обмена",
             "downloadStarted": "Загрузка начата"
         },
@@ -2349,30 +2416,30 @@
         },
         "issues": {
             "civitai_api_key": {
-                "title": "Civitai API Key"
+                "title": "Ключ API CivitAI"
             },
             "cache_health": {
-                "title": "Model Cache Health"
+                "title": "Состояние кэша моделей"
             },
             "filename_conflicts": {
-                "title": "Duplicate Filename Conflicts"
+                "title": "Конфликты дублирующихся имён файлов"
             },
             "ui_version": {
-                "title": "UI Version"
+                "title": "Версия интерфейса"
             }
         },
         "actions": {
             "runAgain": "Запустить снова",
             "exportBundle": "Экспортировать пакет",
-            "open-settings": "Open Settings",
-            "open-settings-syntax-format": "Switch to Full Path Syntax",
-            "repair-cache": "Rebuild Cache",
-            "resolve-filename-conflicts": "Resolve Conflicts",
-            "reload-page": "Reload UI"
+            "open-settings": "Открыть настройки",
+            "open-settings-syntax-format": "Переключиться на полные пути",
+            "repair-cache": "Пересобрать кэш",
+            "resolve-filename-conflicts": "Разрешить конфликты",
+            "reload-page": "Перезагрузить интерфейс"
         },
         "labels": {
-            "conflicts": "Conflicts",
-            "version": "Version"
+            "conflicts": "Конфликты",
+            "version": "Версия"
         },
         "toast": {
             "loadFailed": "Не удалось загрузить диагностику: {message}",
@@ -2402,10 +2469,10 @@
             "seconds": "секунд"
         },
         "communitySupport": {
-            "title": "Keep LoRA Manager Thriving with Your Support ❤️",
-            "content": "LoRA Manager is a passion project maintained full-time by a solo developer. Your support on Ko-fi helps cover development costs, keeps new updates coming, and unlocks a license key for the LM Civitai Extension as a thank-you gift. Every contribution truly makes a difference.",
-            "supportCta": "Support on Ko-fi",
-            "learnMore": "LM Civitai Extension Tutorial"
+            "title": "Поддержите развитие LoRA Manager ❤️",
+            "content": "LoRA Manager — это проект по призванию, которым в полную силу занимается один разработчик. Ваша поддержка на Ko-fi помогает покрывать расходы на разработку, обеспечивает новые обновления и даёт лицензионный ключ для расширения LM CivitAI в качестве благодарности. Каждый вклад действительно важен.",
+            "supportCta": "Поддержать на Ko-fi",
+            "learnMore": "Руководство по расширению LM CivitAI"
         },
         "cacheHealth": {
             "corrupted": {
