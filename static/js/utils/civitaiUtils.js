@@ -9,8 +9,13 @@
 export const OptimizationMode = {
     /** Full quality for showcase/display - uses /optimized=true only */
     SHOWCASE: 'showcase',
+    /** In-modal display - caps image width at 2400 (covers the ~1200 CSS px
+     * main viewer at DPR 2); videos stay full quality */
+    DISPLAY: 'display',
     /** Thumbnail size for cards - uses /width=450,optimized=true */
     THUMBNAIL: 'thumbnail',
+    /** Small thumbnails for the showcase gallery strip (72px display) - uses /width=160,optimized=true */
+    GALLERY_THUMBNAIL: 'gallery-thumbnail',
 };
 
 export const DEFAULT_CIVITAI_PAGE_HOST = 'civitai.com';
@@ -95,15 +100,21 @@ export function rewriteCivitaiUrl(sourceUrl, mediaType = null, mode = Optimizati
         }
 
         // Determine replacement based on mode and media type
+        const isVideo = Boolean(mediaType && mediaType.toLowerCase() === 'video');
         let replacement;
         if (mode === OptimizationMode.SHOWCASE) {
             // Full quality for showcase - no width restriction
             replacement = '/optimized=true';
+        } else if (mode === OptimizationMode.DISPLAY) {
+            // Display mode caps image width for in-modal viewing; videos stay
+            // full quality (CDN transcoding costs more than it saves here)
+            replacement = isVideo ? '/optimized=true' : '/width=2400,optimized=true';
         } else {
-            // Thumbnail mode with width restriction
-            replacement = '/width=450,optimized=true';
-            if (mediaType && mediaType.toLowerCase() === 'video') {
-                replacement = '/transcode=true,width=450,optimized=true';
+            // Thumbnail modes with width restriction
+            const width = mode === OptimizationMode.GALLERY_THUMBNAIL ? 160 : 450;
+            replacement = `/width=${width},optimized=true`;
+            if (isVideo) {
+                replacement = `/transcode=true,width=${width},optimized=true`;
             }
         }
 
@@ -151,6 +162,19 @@ export function getShowcaseUrl(url, type = 'image') {
 }
 
 /**
+ * Get display-optimized URL for the in-modal main viewer (images capped at
+ * width=2400; videos full quality). Use getShowcaseUrl for full-size viewing
+ * (e.g. the media viewer overlay)
+ *
+ * @param {string} url - Original URL
+ * @param {string} type - Media type ("image" or "video")
+ * @returns {string} - Optimized URL for in-modal display
+ */
+export function getDisplayUrl(url, type = 'image') {
+    return getOptimizedUrl(url, type, OptimizationMode.DISPLAY);
+}
+
+/**
  * Get thumbnail-optimized URL (width=450)
  * 
  * @param {string} url - Original URL
@@ -159,6 +183,17 @@ export function getShowcaseUrl(url, type = 'image') {
  */
 export function getThumbnailUrl(url, type = 'image') {
     return getOptimizedUrl(url, type, OptimizationMode.THUMBNAIL);
+}
+
+/**
+ * Get gallery-strip-thumbnail-optimized URL (width=160, for the 72px strip)
+ *
+ * @param {string} url - Original URL
+ * @param {string} type - Media type ("image" or "video")
+ * @returns {string} - Optimized URL for gallery strip thumbnail display
+ */
+export function getGalleryThumbnailUrl(url, type = 'image') {
+    return getOptimizedUrl(url, type, OptimizationMode.GALLERY_THUMBNAIL);
 }
 
 /**

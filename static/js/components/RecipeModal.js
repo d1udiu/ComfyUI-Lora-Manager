@@ -10,7 +10,7 @@ import { downloadManager } from '../managers/DownloadManager.js';
 import { MODEL_TYPES } from '../api/apiConfig.js';
 import { openMediaViewer } from './shared/MediaViewer.js';
 import { showRecipeDeleteConfirmation } from './RecipeCard.js';
-import { renderCompactTags, setupTagTooltip } from './shared/utils.js';
+import { renderCompactTags, setupTagTooltip, escapeAttribute } from './shared/utils.js';
 import { setupTagEditMode } from './shared/ModelTags.js';
 import { Combobox } from './Combobox.js';
 
@@ -66,6 +66,39 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+/**
+ * Call backend to open the recipe's file location and select the file.
+ * Mirrors the model modal's openFileLocation, including the Docker
+ * clipboard fallback.
+ * @param {string} filePath
+ */
+async function openRecipeFileLocation(filePath) {
+    try {
+        const resp = await fetch('/api/lm/open-file-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 'file_path': filePath })
+        });
+        if (!resp.ok) throw new Error('Failed to open file location');
+
+        const data = await resp.json();
+
+        if (data.mode === 'clipboard' && data.path) {
+            try {
+                await navigator.clipboard.writeText(data.path);
+                showToast('recipes.modal.openFileLocation.copied', { path: data.path }, 'success');
+            } catch (clipboardErr) {
+                console.warn('Clipboard API not available:', clipboardErr);
+                showToast('recipes.modal.openFileLocation.clipboardFallback', { path: data.path }, 'info');
+            }
+        } else {
+            showToast('recipes.modal.openFileLocation.success', {}, 'success');
+        }
+    } catch (err) {
+        showToast('recipes.modal.openFileLocation.failed', {}, 'error');
+    }
+}
+
 // Fallback English strings for the collapsed "Why no LoRAs?" panel.
 // Translations live in locales/*.json under recipes.resources.
 const NO_LORAS_REASON_FALLBACKS = {
@@ -95,6 +128,9 @@ class RecipeModal {
         this.recipeHydrationRequestId = 0;
         this.navigationKeyHandler = null;
         this.navigationInProgress = false;
+        this._disposed = false;
+        this._deferredTimerIds = new Set();
+        this._documentClickHandler = null;
         this.resetLocalEditState();
         this.init();
     }
@@ -164,7 +200,7 @@ class RecipeModal {
         this.setupDeleteControl();
 
         // Set up document click handler to close edit fields
-        document.addEventListener('click', (event) => {
+        this._documentClickHandler = (event) => {
             const recipeModal = document.getElementById('recipeModal');
             if (recipeModal && recipeModal.style.display !== 'none') {
                 const mediaEl = event.target.closest('.recipe-preview-media');
@@ -202,7 +238,8 @@ class RecipeModal {
                     this.hideReconnectInput(container);
                 }
             });
-        });
+        };
+        document.addEventListener('click', this._documentClickHandler);
     }
 
     setupNavigationControls() {
@@ -266,6 +303,39 @@ class RecipeModal {
         this._destroyAllReconnectComboboxes();
     }
 
+    /**
+     * Run a callback on a tracked timer so it can be cancelled when the
+     * modal is disposed. Used for render/wiring work that must never touch
+     * the DOM after the modal has been torn down (test teardown, close).
+     */
+    _scheduleDeferred(fn, delay) {
+        const timerId = setTimeout(() => {
+            this._deferredTimerIds.delete(timerId);
+            fn();
+        }, delay);
+        this._deferredTimerIds.add(timerId);
+        return timerId;
+    }
+
+    /**
+     * Tear the modal down: mark it disposed (in-flight async chains and any
+     * later render/wiring become no-ops), cancel pending deferred work, and
+     * detach global listeners. Safe to call multiple times.
+     */
+    dispose() {
+        if (this._disposed) {
+            return;
+        }
+        this._disposed = true;
+        this._deferredTimerIds.forEach(timerId => clearTimeout(timerId));
+        this._deferredTimerIds.clear();
+        if (this._documentClickHandler) {
+            document.removeEventListener('click', this._documentClickHandler);
+            this._documentClickHandler = null;
+        }
+        this.cleanupNavigationShortcuts();
+    }
+
     setupNavigationShortcuts() {
         const modalElement = document.getElementById('recipeModal');
         if (!modalElement) return;
@@ -320,6 +390,9 @@ class RecipeModal {
     }
 
     showRecipeDetails(recipe) {
+        if (this._disposed) {
+            return;
+        }
         const hydratedRecipe = recipe || {};
         this.resetLocalEditState();
         // Store the full recipe for editing
@@ -410,7 +483,7 @@ class RecipeModal {
             // Delay binding slightly so modal layout is stable, but skip if this render was torn down.
             const sourceUrlContainerRef = sourceUrlContainer;
             const sourceUrlEditorRef = sourceUrlEditor;
-            setTimeout(() => {
+            this._scheduleDeferred(() => {
                 if (!document.body.contains(sourceUrlContainerRef) || !document.body.contains(sourceUrlEditorRef)) {
                     return;
                 }
@@ -421,6 +494,7 @@ class RecipeModal {
         this.syncGenerationParams(hydratedRecipe.gen_params);
         this.syncResourcesSection(hydratedRecipe);
         this.syncHeaderActions();
+        this.syncMetaFooter();
 
         // Show the modal
         modalManager.showModal('recipeModal', null, null, () => this.cleanupNavigationShortcuts());
@@ -446,10 +520,83 @@ class RecipeModal {
         }
     }
 
+    /**
+     * Render the meta footer: clickable file location (opens the recipe JSON
+     * in the OS file manager) plus the truncated recipe ID with copy button.
+     * De-emphasized by design, mirroring the model modal's hash footnote.
+     */
+    syncMetaFooter() {
+        const footer = document.getElementById('recipeMetaFooter');
+        if (!footer) {
+            return;
+        }
+
+        const recipeId = this.currentRecipe?.id || '';
+        const filePath = this.currentRecipe?.file_path || '';
+        const openTarget = this.currentRecipe?.recipe_json_path || filePath;
+        const folderPath = filePath.replace(/[^/\\]+$/, '');
+
+        if (!recipeId && !folderPath) {
+            footer.hidden = true;
+            footer.innerHTML = '';
+            return;
+        }
+
+        const truncatedId = recipeId.length > 14
+            ? `${recipeId.slice(0, 8)}…${recipeId.slice(-4)}`
+            : recipeId;
+        const openLocationLabel = translate('recipes.modal.actions.openFileLocation', {}, 'Open File Location');
+        const copyIdLabel = translate('recipes.modal.actions.copyId', {}, 'Copy recipe ID');
+
+        const locationMarkup = folderPath ? `
+            <span class="recipe-meta-location" role="button" tabindex="0"
+                title="${escapeAttribute(folderPath)}"
+                aria-label="${escapeAttribute(openLocationLabel)}"
+                data-filepath="${escapeAttribute(openTarget)}">
+                <i class="fas fa-folder-open" aria-hidden="true"></i>
+                <span class="recipe-meta-location-path">${escapeHtml(folderPath)}</span>
+            </span>` : '';
+
+        const idMarkup = recipeId ? `
+            <span class="recipe-meta-id">
+                <span class="recipe-meta-id-label">${translate('recipes.modal.metadata.id', {}, 'ID')}</span>
+                <span class="recipe-meta-id-value" title="${escapeAttribute(recipeId)}">${escapeHtml(truncatedId)}</span>
+                <button class="recipe-meta-copy-btn" title="${escapeAttribute(copyIdLabel)}" aria-label="${escapeAttribute(copyIdLabel)}">
+                    <i class="fas fa-copy" aria-hidden="true"></i>
+                </button>
+            </span>` : '';
+
+        footer.innerHTML = locationMarkup + idMarkup;
+        footer.hidden = false;
+
+        const locationEl = footer.querySelector('.recipe-meta-location');
+        if (locationEl) {
+            const openLocation = () => {
+                if (locationEl.dataset.filepath) {
+                    openRecipeFileLocation(locationEl.dataset.filepath);
+                }
+            };
+            locationEl.addEventListener('click', openLocation);
+            locationEl.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openLocation();
+                }
+            });
+        }
+
+        const copyBtn = footer.querySelector('.recipe-meta-copy-btn');
+        if (copyBtn && recipeId) {
+            copyBtn.addEventListener('click', () => {
+                copyToClipboard(recipeId);
+            });
+        }
+    }
+
     async hydrateRecipeDetails(recipeId, requestId, requestEditVersions = {}) {
         try {
             const fullRecipe = await fetchRecipeDetails(recipeId);
-            if (requestId !== this.recipeHydrationRequestId || !fullRecipe) {
+            if (this._disposed || requestId !== this.recipeHydrationRequestId || !fullRecipe) {
                 return;
             }
 
@@ -470,6 +617,9 @@ class RecipeModal {
             const previousFilePath = nextRecipe.file_path;
             if (fullRecipe.file_path !== undefined) {
                 nextRecipe.file_path = fullRecipe.file_path;
+            }
+            if (fullRecipe.recipe_json_path !== undefined) {
+                nextRecipe.recipe_json_path = fullRecipe.recipe_json_path;
             }
             if (fullRecipe.file_url !== undefined) {
                 nextRecipe.file_url = fullRecipe.file_url;
@@ -568,6 +718,7 @@ class RecipeModal {
             this.updateSourceUrlDisplay(this.currentRecipe.source_path || '');
         }
         this.syncHeaderActions();
+        this.syncMetaFooter();
     }
 
     getPreviewMediaUrl(recipe = {}) {
@@ -841,6 +992,9 @@ class RecipeModal {
     }
 
     syncResourcesSection(recipe = {}) {
+        if (this._disposed) {
+            return;
+        }
         const checkpointContainer = document.getElementById('recipeCheckpoint');
         const resourceDivider = document.getElementById('recipeResourceDivider');
         const lorasListElement = document.getElementById('recipeLorasList');
@@ -905,7 +1059,7 @@ class RecipeModal {
                 missingStatus.addEventListener('click', () => this.showDownloadMissingLorasModal());
             }
 
-            setTimeout(() => {
+            this._scheduleDeferred(() => {
                 const viewRecipeLorasBtn = document.getElementById('viewRecipeLorasBtn');
                 if (viewRecipeLorasBtn) {
                     viewRecipeLorasBtn.addEventListener('click', () => this.navigateToLorasPage());
@@ -1046,7 +1200,7 @@ class RecipeModal {
                 `;
             }).join('');
 
-            setTimeout(() => {
+            this._scheduleDeferred(() => {
                 this.setupReconnectButtons();
                 this.setupLoraItemActions();
                 this.setupLoraItemsClickable();
@@ -2002,13 +2156,13 @@ class RecipeModal {
         try {
             const suggestions = await this._fetchReconnectSuggestions(loraIndex);
             // Stale guard: panel closed or another item opened while fetching
-            if (token !== this._reconnectSuggestionsToken || !container.classList.contains('active')) {
+            if (this._disposed || token !== this._reconnectSuggestionsToken || !container.classList.contains('active')) {
                 return;
             }
             this._renderReconnectSuggestions(container, suggestions, loraIndex);
         } catch (error) {
             console.error('Error fetching reconnect suggestions:', error);
-            if (token !== this._reconnectSuggestionsToken || !container.classList.contains('active')) {
+            if (this._disposed || token !== this._reconnectSuggestionsToken || !container.classList.contains('active')) {
                 return;
             }
             this._renderReconnectSuggestions(container, [], loraIndex);
@@ -2120,6 +2274,9 @@ class RecipeModal {
             });
 
             const result = await response.json();
+            if (this._disposed) {
+                return;
+            }
 
             if (result.success) {
                 // Hide the reconnect input
@@ -2145,7 +2302,7 @@ class RecipeModal {
                 }
 
                 // Refresh modal to show updated content
-                setTimeout(() => {
+                this._scheduleDeferred(() => {
                     this.showRecipeDetails(this.currentRecipe);
                 }, 500);
 
@@ -2179,6 +2336,9 @@ class RecipeModal {
             });
 
             const result = await response.json();
+            if (this._disposed) {
+                return;
+            }
 
             if (result.success) {
                 // Swap the entry back to its pre-reconnect state
@@ -2186,7 +2346,7 @@ class RecipeModal {
 
                 showToast('toast.recipes.loraRestored', {}, 'success');
 
-                setTimeout(() => {
+                this._scheduleDeferred(() => {
                     this.showRecipeDetails(this.currentRecipe);
                 }, 500);
 
@@ -2231,6 +2391,9 @@ class RecipeModal {
             });
 
             const result = await response.json();
+            if (this._disposed) {
+                return;
+            }
 
             if (result.success) {
                 // Hide the reconnect input
@@ -2256,7 +2419,7 @@ class RecipeModal {
                 }
 
                 // Refresh modal to show updated content
-                setTimeout(() => {
+                this._scheduleDeferred(() => {
                     this.showRecipeDetails(this.currentRecipe);
                 }, 500);
 
@@ -2289,6 +2452,9 @@ class RecipeModal {
             });
 
             const result = await response.json();
+            if (this._disposed) {
+                return;
+            }
 
             if (result.success) {
                 // Swap the entry back to its pre-reconnect state
@@ -2296,7 +2462,7 @@ class RecipeModal {
 
                 showToast('toast.recipes.checkpointRestored', {}, 'success');
 
-                setTimeout(() => {
+                this._scheduleDeferred(() => {
                     this.showRecipeDetails(this.currentRecipe);
                 }, 500);
 
@@ -2331,6 +2497,9 @@ class RecipeModal {
                     recipe_id: recipeId,
                 }),
             });
+            if (this._disposed) {
+                return;
+            }
             if (this.currentRecipe?.checkpoint) {
                 this.currentRecipe.checkpoint.hashInvalid = true;
                 this.syncResourcesSection(this.currentRecipe);
@@ -2864,6 +3033,9 @@ class RecipeModal {
                 return;
             }
             const updated = await fetchRecipeDetails(recipeId);
+            if (this._disposed) {
+                return;
+            }
             if (!updated) {
                 return;
             }
@@ -2972,6 +3144,9 @@ class RecipeModal {
                     lora_index: loraIndex,
                 }),
             });
+            if (this._disposed) {
+                return;
+            }
             if (this.currentRecipe?.loras?.[loraIndex]) {
                 this.currentRecipe.loras[loraIndex].hashInvalid = true;
                 this.syncResourcesSection(this.currentRecipe);

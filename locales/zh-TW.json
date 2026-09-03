@@ -868,6 +868,21 @@
             "previousWithShortcut": "上一個配方（←）",
             "nextWithShortcut": "下一個配方（→）"
         },
+        "modal": {
+            "metadata": {
+                "id": "ID"
+            },
+            "actions": {
+                "openFileLocation": "開啟檔案位置",
+                "copyId": "複製配方 ID"
+            },
+            "openFileLocation": {
+                "success": "檔案位置已成功開啟",
+                "failed": "開啟檔案位置失敗",
+                "copied": "路徑已複製到剪貼簿：{{path}}",
+                "clipboardFallback": "路徑：{{path}}"
+            }
+        },
         "workflow": {
             "sendWorkflow": "傳送工作流到 ComfyUI",
             "sent": "工作流已傳送到 ComfyUI",
@@ -1649,8 +1664,8 @@
                 "showCount": "顯示範例（{count}）",
                 "hideExamples": "隱藏範例",
                 "addExamples": "新增範例",
-                "previousExample": "上一個範例",
-                "nextExample": "下一個範例",
+                "previousExample": "上一個範例（[）",
+                "nextExample": "下一個範例（]）",
                 "noExamples": "沒有可用的範例圖片",
                 "addMoreExamples": "新增更多範例",
                 "dragDrop": "拖放圖片或影片到此處",

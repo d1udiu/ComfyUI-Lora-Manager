@@ -868,6 +868,21 @@
             "previousWithShortcut": "Recette précédente (←)",
             "nextWithShortcut": "Recette suivante (→)"
         },
+        "modal": {
+            "metadata": {
+                "id": "ID"
+            },
+            "actions": {
+                "openFileLocation": "Ouvrir l’emplacement du fichier",
+                "copyId": "Copier l’ID de la Recipe"
+            },
+            "openFileLocation": {
+                "success": "Emplacement du fichier ouvert avec succès",
+                "failed": "Échec de l’ouverture de l’emplacement du fichier",
+                "copied": "Chemin copié dans le presse-papiers: {{path}}",
+                "clipboardFallback": "Chemin: {{path}}"
+            }
+        },
         "workflow": {
             "sendWorkflow": "Envoyer le workflow vers ComfyUI",
             "sent": "Workflow envoyé vers ComfyUI",
@@ -1649,8 +1664,8 @@
                 "showCount": "Afficher les exemples ({count})",
                 "hideExamples": "Masquer les exemples",
                 "addExamples": "Ajouter des exemples",
-                "previousExample": "Exemple précédent",
-                "nextExample": "Exemple suivant",
+                "previousExample": "Exemple précédent ([)",
+                "nextExample": "Exemple suivant (])",
                 "noExamples": "Aucune image d'exemple disponible",
                 "addMoreExamples": "Ajouter d'autres exemples",
                 "dragDrop": "Glissez-déposez des images ou des vidéos ici",

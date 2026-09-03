@@ -868,6 +868,21 @@
             "previousWithShortcut": "Vorheriges Rezept (←)",
             "nextWithShortcut": "Nächstes Rezept (→)"
         },
+        "modal": {
+            "metadata": {
+                "id": "ID"
+            },
+            "actions": {
+                "openFileLocation": "Dateispeicherort öffnen",
+                "copyId": "Rezept-ID kopieren"
+            },
+            "openFileLocation": {
+                "success": "Dateispeicherort erfolgreich geöffnet",
+                "failed": "Fehler beim Öffnen des Dateispeicherorts",
+                "copied": "Pfad in die Zwischenablage kopiert: {{path}}",
+                "clipboardFallback": "Pfad: {{path}}"
+            }
+        },
         "workflow": {
             "sendWorkflow": "Workflow an ComfyUI senden",
             "sent": "Workflow an ComfyUI gesendet",
@@ -1649,8 +1664,8 @@
                 "showCount": "Beispiele anzeigen ({count})",
                 "hideExamples": "Beispiele ausblenden",
                 "addExamples": "Beispiele hinzufügen",
-                "previousExample": "Vorheriges Beispiel",
-                "nextExample": "Nächstes Beispiel",
+                "previousExample": "Vorheriges Beispiel ([)",
+                "nextExample": "Nächstes Beispiel (])",
                 "noExamples": "Keine Beispielbilder verfügbar",
                 "addMoreExamples": "Weitere Beispiele hinzufügen",
                 "dragDrop": "Bilder oder Videos hierher ziehen & ablegen",

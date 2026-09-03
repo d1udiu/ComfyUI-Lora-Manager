@@ -868,6 +868,21 @@
             "previousWithShortcut": "המתכון הקודם (←)",
             "nextWithShortcut": "המתכון הבא (→)"
         },
+        "modal": {
+            "metadata": {
+                "id": "ID"
+            },
+            "actions": {
+                "openFileLocation": "פתח מיקום קובץ",
+                "copyId": "העתק מזהה מתכון"
+            },
+            "openFileLocation": {
+                "success": "מיקום הקובץ נפתח בהצלחה",
+                "failed": "פתיחת מיקום הקובץ נכשלה",
+                "copied": "הנתיב הועתק ללוח העריכה: {{path}}",
+                "clipboardFallback": "נתיב: {{path}}"
+            }
+        },
         "workflow": {
             "sendWorkflow": "שלח workflow ל-ComfyUI",
             "sent": "ה-workflow נשלח ל-ComfyUI",
@@ -1649,8 +1664,8 @@
                 "showCount": "הצג דוגמאות ({count})",
                 "hideExamples": "הסתר דוגמאות",
                 "addExamples": "הוסף דוגמאות",
-                "previousExample": "דוגמה קודמת",
-                "nextExample": "דוגמה הבאה",
+                "previousExample": "דוגמה קודמת ([)",
+                "nextExample": "דוגמה הבאה (])",
                 "noExamples": "אין תמונות דוגמה זמינות",
                 "addMoreExamples": "הוסף עוד דוגמאות",
                 "dragDrop": "גרור ושחרר תמונות או סרטונים כאן",

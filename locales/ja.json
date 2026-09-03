@@ -868,6 +868,21 @@
             "previousWithShortcut": "前のレシピ（←）",
             "nextWithShortcut": "次のレシピ（→）"
         },
+        "modal": {
+            "metadata": {
+                "id": "ID"
+            },
+            "actions": {
+                "openFileLocation": "ファイルの場所を開く",
+                "copyId": "レシピIDをコピー"
+            },
+            "openFileLocation": {
+                "success": "ファイルの場所を正常に開きました",
+                "failed": "ファイルの場所を開くのに失敗しました",
+                "copied": "パスをクリップボードにコピーしました: {{path}}",
+                "clipboardFallback": "パス: {{path}}"
+            }
+        },
         "workflow": {
             "sendWorkflow": "ワークフローをComfyUIへ送信",
             "sent": "ワークフローをComfyUIへ送信しました",
@@ -1649,8 +1664,8 @@
                 "showCount": "例を表示（{count}）",
                 "hideExamples": "例を非表示",
                 "addExamples": "例を追加",
-                "previousExample": "前の例",
-                "nextExample": "次の例",
+                "previousExample": "前の例（[）",
+                "nextExample": "次の例（]）",
                 "noExamples": "利用可能な例画像がありません",
                 "addMoreExamples": "さらに例を追加",
                 "dragDrop": "画像または動画をここにドラッグ＆ドロップ",
