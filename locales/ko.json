@@ -50,6 +50,27 @@
             "mb": "MB",
             "gb": "GB",
             "tb": "TB"
+        },
+        "scanProgress": {
+            "refreshing": "{type} 새로고침 중...",
+            "fullRebuilding": "{type} 전체 재구성 중...",
+            "actionRefresh": "새로고침",
+            "actionFullRebuild": "전체 재구성",
+            "actionRefreshLower": "새로고침",
+            "actionRebuildLower": "재구성",
+            "stages": {
+                "scan_folders": "폴더 스캔 중...",
+                "count_models": "파일 {total}개 발견",
+                "process_models": "모델 처리 중",
+                "reconcile_scan": "변경 사항 확인 중...",
+                "process_new": "새 모델 처리 중",
+                "finalizing": "마무리 중..."
+            },
+            "eta": {
+                "lessThanMinute": "남은 시간 1분 미만",
+                "minutes": "약 {minutes}분 남음",
+                "hours": "약 {hours}시간 {minutes}분 남음"
+            }
         }
     },
     "onboarding": {
@@ -1593,7 +1614,11 @@
                 "clipSkip": "클립 스킵",
                 "valuePlaceholder": "값",
                 "add": "추가",
-                "invalidRange": "잘못된 범위 형식입니다. x.x-y.y를 사용하세요"
+                "invalidRange": "잘못된 범위 형식입니다. x.x-y.y를 사용하세요",
+                "invalidValue": "유효한 숫자를 입력하세요",
+                "saveFailed": "프리셋 매개변수 저장에 실패했습니다",
+                "added": "프리셋 매개변수가 추가되었습니다",
+                "updated": "프리셋 매개변수가 업데이트되었습니다"
             },
             "triggerWords": {
                 "label": "트리거 단어",

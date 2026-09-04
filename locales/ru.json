@@ -50,6 +50,27 @@
             "mb": "МБ",
             "gb": "ГБ",
             "tb": "ТБ"
+        },
+        "scanProgress": {
+            "refreshing": "Обновление {type}...",
+            "fullRebuilding": "Полная пересборка {type}...",
+            "actionRefresh": "Обновление",
+            "actionFullRebuild": "Полная пересборка",
+            "actionRefreshLower": "обновить",
+            "actionRebuildLower": "пересобрать",
+            "stages": {
+                "scan_folders": "Сканирование папок...",
+                "count_models": "Найдено файлов: {total}",
+                "process_models": "Обработка моделей",
+                "reconcile_scan": "Проверка изменений...",
+                "process_new": "Обработка новых моделей",
+                "finalizing": "Завершение..."
+            },
+            "eta": {
+                "lessThanMinute": "Осталось меньше минуты",
+                "minutes": "Осталось ~{minutes} мин",
+                "hours": "Осталось ~{hours} ч {minutes} мин"
+            }
         }
     },
     "onboarding": {
@@ -1593,7 +1614,11 @@
                 "clipSkip": "Clip Skip",
                 "valuePlaceholder": "Значение",
                 "add": "Добавить",
-                "invalidRange": "Неверный формат диапазона. Используйте x.x-y.y"
+                "invalidRange": "Неверный формат диапазона. Используйте x.x-y.y",
+                "invalidValue": "Введите корректное число",
+                "saveFailed": "Не удалось сохранить предустановленный параметр",
+                "added": "Предустановленный параметр добавлен",
+                "updated": "Предустановленный параметр обновлён"
             },
             "triggerWords": {
                 "label": "Триггерные слова",

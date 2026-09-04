@@ -50,6 +50,27 @@
             "mb": "Mo",
             "gb": "Go",
             "tb": "To"
+        },
+        "scanProgress": {
+            "refreshing": "Actualisation des {type}...",
+            "fullRebuilding": "Reconstruction complète des {type}...",
+            "actionRefresh": "Actualisation",
+            "actionFullRebuild": "Reconstruction complète",
+            "actionRefreshLower": "l’actualisation",
+            "actionRebuildLower": "la reconstruction",
+            "stages": {
+                "scan_folders": "Scan des dossiers...",
+                "count_models": "{total} fichiers trouvés",
+                "process_models": "Traitement des modèles",
+                "reconcile_scan": "Vérification des modifications...",
+                "process_new": "Traitement des nouveaux modèles",
+                "finalizing": "Finalisation..."
+            },
+            "eta": {
+                "lessThanMinute": "Moins d’une minute restante",
+                "minutes": "~{minutes} min restantes",
+                "hours": "~{hours} h {minutes} min restantes"
+            }
         }
     },
     "onboarding": {
@@ -1593,7 +1614,11 @@
                 "clipSkip": "Clip Skip",
                 "valuePlaceholder": "Valeur",
                 "add": "Ajouter",
-                "invalidRange": "Format de plage invalide. Utilisez x.x-y.y"
+                "invalidRange": "Format de plage invalide. Utilisez x.x-y.y",
+                "invalidValue": "Veuillez saisir un nombre valide",
+                "saveFailed": "Échec de l'enregistrement du paramètre préréglé",
+                "added": "Paramètre préréglé ajouté",
+                "updated": "Paramètre préréglé mis à jour"
             },
             "triggerWords": {
                 "label": "Mots-clés",

@@ -50,6 +50,27 @@
             "mb": "MB",
             "gb": "GB",
             "tb": "TB"
+        },
+        "scanProgress": {
+            "refreshing": "מרענן {type}...",
+            "fullRebuilding": "בונה מחדש את כל ה-{type}...",
+            "actionRefresh": "רענון",
+            "actionFullRebuild": "רענון מלא",
+            "actionRefreshLower": "רענון",
+            "actionRebuildLower": "רענון מלא",
+            "stages": {
+                "scan_folders": "סורק תיקיות...",
+                "count_models": "נמצאו {total} קבצים",
+                "process_models": "מעבד מודלים",
+                "reconcile_scan": "בודק שינויים...",
+                "process_new": "מעבד מודלים חדשים",
+                "finalizing": "מסיים..."
+            },
+            "eta": {
+                "lessThanMinute": "נותרה פחות מדקה",
+                "minutes": "נותרו ~{minutes} דקות",
+                "hours": "נותרו ~{hours} שעות ו-{minutes} דקות"
+            }
         }
     },
     "onboarding": {
@@ -1593,7 +1614,11 @@
                 "clipSkip": "Clip Skip",
                 "valuePlaceholder": "ערך",
                 "add": "הוסף",
-                "invalidRange": "פורמט טווח לא תקין. השתמש ב-x.x-y.y"
+                "invalidRange": "פורמט טווח לא תקין. השתמש ב-x.x-y.y",
+                "invalidValue": "נא להזין מספר תקין",
+                "saveFailed": "שמירת הפרמטר הקבוע מראש נכשלה",
+                "added": "הפרמטר הקבוע מראש נוסף",
+                "updated": "הפרמטר הקבוע מראש עודכן"
             },
             "triggerWords": {
                 "label": "מילות טריגר",

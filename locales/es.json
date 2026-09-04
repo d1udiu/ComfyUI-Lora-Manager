@@ -50,6 +50,27 @@
             "mb": "MB",
             "gb": "GB",
             "tb": "TB"
+        },
+        "scanProgress": {
+            "refreshing": "Actualizando {type}...",
+            "fullRebuilding": "Reconstrucción completa de {type}...",
+            "actionRefresh": "Actualización",
+            "actionFullRebuild": "Reconstrucción completa",
+            "actionRefreshLower": "actualizar",
+            "actionRebuildLower": "reconstruir",
+            "stages": {
+                "scan_folders": "Escaneando carpetas...",
+                "count_models": "Se encontraron {total} archivos",
+                "process_models": "Procesando modelos",
+                "reconcile_scan": "Comprobando cambios...",
+                "process_new": "Procesando modelos nuevos",
+                "finalizing": "Finalizando..."
+            },
+            "eta": {
+                "lessThanMinute": "Queda menos de un minuto",
+                "minutes": "Quedan ~{minutes} min",
+                "hours": "Quedan ~{hours} h {minutes} min"
+            }
         }
     },
     "onboarding": {
@@ -1593,7 +1614,11 @@
                 "clipSkip": "Clip Skip",
                 "valuePlaceholder": "Valor",
                 "add": "Añadir",
-                "invalidRange": "Formato de rango inválido. Use x.x-y.y"
+                "invalidRange": "Formato de rango inválido. Use x.x-y.y",
+                "invalidValue": "Introduce un número válido",
+                "saveFailed": "Error al guardar el parámetro preajustado",
+                "added": "Parámetro preajustado añadido",
+                "updated": "Parámetro preajustado actualizado"
             },
             "triggerWords": {
                 "label": "Palabras clave",

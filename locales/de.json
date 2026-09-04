@@ -50,6 +50,27 @@
             "mb": "MB",
             "gb": "GB",
             "tb": "TB"
+        },
+        "scanProgress": {
+            "refreshing": "{type} werden aktualisiert...",
+            "fullRebuilding": "{type} werden vollständig neu aufgebaut...",
+            "actionRefresh": "Aktualisierung",
+            "actionFullRebuild": "Vollständiger Neuaufbau",
+            "actionRefreshLower": "Aktualisieren",
+            "actionRebuildLower": "Neuaufbau",
+            "stages": {
+                "scan_folders": "Ordner werden gescannt...",
+                "count_models": "{total} Dateien gefunden",
+                "process_models": "Modelle werden verarbeitet",
+                "reconcile_scan": "Änderungen werden geprüft...",
+                "process_new": "Neue Modelle werden verarbeitet",
+                "finalizing": "Abschließen..."
+            },
+            "eta": {
+                "lessThanMinute": "Weniger als eine Minute verbleibend",
+                "minutes": "~{minutes} Min. verbleibend",
+                "hours": "~{hours} Std. {minutes} Min. verbleibend"
+            }
         }
     },
     "onboarding": {
@@ -1593,7 +1614,11 @@
                 "clipSkip": "Clip Skip",
                 "valuePlaceholder": "Wert",
                 "add": "Hinzufügen",
-                "invalidRange": "Ungültiges Bereichsformat. Verwenden Sie x.x-y.y"
+                "invalidRange": "Ungültiges Bereichsformat. Verwenden Sie x.x-y.y",
+                "invalidValue": "Bitte geben Sie eine gültige Zahl ein",
+                "saveFailed": "Fehler beim Speichern des voreingestellten Parameters",
+                "added": "Voreingestellter Parameter hinzugefügt",
+                "updated": "Voreingestellter Parameter aktualisiert"
             },
             "triggerWords": {
                 "label": "Trigger Words",

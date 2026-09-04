@@ -50,6 +50,27 @@
             "mb": "MB",
             "gb": "GB",
             "tb": "TB"
+        },
+        "scanProgress": {
+            "refreshing": "{type}を更新中...",
+            "fullRebuilding": "{type}を完全に再構築中...",
+            "actionRefresh": "更新",
+            "actionFullRebuild": "完全な再構築",
+            "actionRefreshLower": "更新",
+            "actionRebuildLower": "再構築",
+            "stages": {
+                "scan_folders": "フォルダをスキャン中...",
+                "count_models": "{total} 件のファイルが見つかりました",
+                "process_models": "モデルを処理中",
+                "reconcile_scan": "変更を確認中...",
+                "process_new": "新しいモデルを処理中",
+                "finalizing": "最終処理中..."
+            },
+            "eta": {
+                "lessThanMinute": "残り1分未満",
+                "minutes": "残り約 {minutes} 分",
+                "hours": "残り約 {hours} 時間 {minutes} 分"
+            }
         }
     },
     "onboarding": {
@@ -1593,7 +1614,11 @@
                 "clipSkip": "Clip Skip",
                 "valuePlaceholder": "値",
                 "add": "追加",
-                "invalidRange": "無効な範囲形式です。x.x-y.y を使用してください"
+                "invalidRange": "無効な範囲形式です。x.x-y.y を使用してください",
+                "invalidValue": "有効な数値を入力してください",
+                "saveFailed": "プリセットパラメータの保存に失敗しました",
+                "added": "プリセットパラメータを追加しました",
+                "updated": "プリセットパラメータを更新しました"
             },
             "triggerWords": {
                 "label": "トリガーワード",

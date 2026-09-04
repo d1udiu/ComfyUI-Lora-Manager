@@ -50,6 +50,27 @@
             "mb": "MB",
             "gb": "GB",
             "tb": "TB"
+        },
+        "scanProgress": {
+            "refreshing": "正在重新整理 {type}...",
+            "fullRebuilding": "正在完整重建 {type}...",
+            "actionRefresh": "重新整理",
+            "actionFullRebuild": "完整重建",
+            "actionRefreshLower": "重新整理",
+            "actionRebuildLower": "重建",
+            "stages": {
+                "scan_folders": "正在掃描資料夾...",
+                "count_models": "找到 {total} 個檔案",
+                "process_models": "正在處理模型",
+                "reconcile_scan": "正在檢查變更...",
+                "process_new": "正在處理新模型",
+                "finalizing": "正在收尾..."
+            },
+            "eta": {
+                "lessThanMinute": "剩餘時間不到一分鐘",
+                "minutes": "剩餘約 {minutes} 分鐘",
+                "hours": "剩餘約 {hours} 小時 {minutes} 分鐘"
+            }
         }
     },
     "onboarding": {
@@ -1593,7 +1614,11 @@
                 "clipSkip": "Clip Skip",
                 "valuePlaceholder": "數值",
                 "add": "新增",
-                "invalidRange": "無效的範圍格式。請使用 x.x-y.y"
+                "invalidRange": "無效的範圍格式。請使用 x.x-y.y",
+                "invalidValue": "請輸入有效的數值",
+                "saveFailed": "儲存預設參數失敗",
+                "added": "已新增預設參數",
+                "updated": "已更新預設參數"
             },
             "triggerWords": {
                 "label": "觸發詞",
