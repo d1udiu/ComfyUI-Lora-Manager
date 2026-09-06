@@ -96,7 +96,7 @@
             },
             "bulk": {
                 "title": "Massenoperationen",
-                "content": "Wechseln Sie in den Massenmodus, indem Sie auf diese Schaltfläche klicken oder <span class=\"onboarding-shortcut\">B</span> drücken. Wählen Sie mehrere Modelle aus und führen Sie Stapeloperationen durch. Mit <span class=\"onboarding-shortcut\">Strg+A</span> können Sie alle sichtbaren Modelle auswählen."
+                "content": "Wechseln Sie in den Massenmodus, indem Sie auf diese Schaltfläche klicken oder <span class=\"onboarding-shortcut\">B</span> drücken, um mehrere Modelle auszuwählen und Stapeloperationen durchzuführen.<br>• <span class=\"onboarding-shortcut\">Ctrl/Cmd+A</span> wählt alle sichtbaren Modelle aus, <span class=\"onboarding-shortcut\">Shift+Click</span> wählt einen Bereich aus.<br>• <span class=\"onboarding-shortcut\">Esc</span> oder ein Klick auf einen leeren Bereich verlässt den Massenmodus."
             },
             "searchOptions": {
                 "title": "Suchoptionen",
@@ -116,7 +116,19 @@
             },
             "contextMenu": {
                 "title": "Kontextmenü",
-                "content": "<strong>Rechtsklick</strong> auf eine Modellkarte öffnet ein Kontextmenü mit weiteren Aktionen."
+                "content": "<strong>Rechtsklick</strong> auf eine beliebige Modellkarte öffnet ein Kontextmenü mit Kartenaktionen wie Verschieben, Löschen oder Bearbeiten von Metadaten."
+            },
+            "marqueeSelect": {
+                "title": "Durch Ziehen auswählen",
+                "content": "Halten Sie die <strong>linke Maustaste</strong> auf einem leeren Bereich des Rasters gedrückt und ziehen Sie, um einen Auswahlrahmen aufzuziehen, der mehrere Karten gleichzeitig auswählt."
+            },
+            "dragToSidebar": {
+                "title": "Organisieren durch Ziehen",
+                "content": "Ziehen Sie eine Modellkarte auf einen Ordner in der Seitenleiste, um die Datei dorthin zu verschieben. Dies funktioniert auch mit mehreren ausgewählten Karten im Massenmodus."
+            },
+            "contextMenus": {
+                "title": "Weitere Kontextmenüs",
+                "content": "<strong>Rechtsklick auf eine ausgewählte Karte</strong> im Massenmodus öffnet die Massenaktionen. <strong>Rechtsklick auf einen leeren Bereich</strong> der Seite öffnet globale Aktionen wie das Prüfen auf Updates und das Verwalten ausgeschlossener Modelle."
             }
         }
     },
@@ -472,6 +484,8 @@
         "layoutSettings": {
             "groupByModel": "Nach Modell gruppieren",
             "groupByModelHelp": "Wenn aktiviert, wird nur die neueste Version jedes CivitAI-Modells als einzelne Karte angezeigt. Ältere Versionen werden ausgeblendet.",
+            "stickyControls": "Aktionsleiste sichtbar halten",
+            "stickyControlsHelp": "Wenn aktiviert, bleibt die Aktionsleiste (Aktualisieren, Herunterladen usw.) beim Scrollen zusammen mit der Breadcrumb-Navigation oben angeheftet.",
             "displayDensity": "Anzeige-Dichte",
             "displayDensityOptions": {
                 "default": "Standard",
@@ -1629,7 +1643,7 @@
                 "addPlaceholder": "Tippen zum Hinzufügen oder klicken Sie auf Vorschläge unten",
                 "editWord": "Trigger Word bearbeiten",
                 "editPlaceholder": "Trigger Word bearbeiten",
-                "copyWord": "Trigger Word kopieren",
+                "copyOrEditWord": "Klicken zum Kopieren, Doppelklick zum Bearbeiten",
                 "deleteWord": "Trigger Word löschen",
                 "suggestions": {
                     "noSuggestions": "Keine Vorschläge verfügbar",
@@ -1954,10 +1968,52 @@
         "tabs": {
             "gettingStarted": "Erste Schritte",
             "updateVlogs": "Update-Vlogs",
-            "documentation": "Dokumentation"
+            "documentation": "Dokumentation",
+            "shortcuts": "Tastenkürzel"
         },
         "gettingStarted": {
-            "title": "Erste Schritte mit LoRA Manager"
+            "title": "Erste Schritte mit LoRA Manager",
+            "replayTutorial": "Tutorial erneut abspielen"
+        },
+        "shortcuts": {
+            "title": "Tastatur- & Mauskürzel",
+            "groups": {
+                "general": "Allgemein",
+                "actions": "Aktionen",
+                "selection": "Auswahl & Massenmodus",
+                "navigation": "Navigation",
+                "modelModal": "Modell- / Rezept-Dialog",
+                "mediaViewer": "Medienanzeige / Beispielgalerie"
+            },
+            "keys": {
+                "click": "Klick",
+                "drag": "Ziehen",
+                "rightClick": "Rechtsklick",
+                "letter": "Buchstabe",
+                "swipe": "Wischen"
+            },
+            "entries": {
+                "focusSearch": "Suche fokussieren",
+                "closeModal": "Dialog / Panel schließen",
+                "openShortcuts": "Dieses Tastenkürzel-Panel öffnen",
+                "refresh": "Modellliste aktualisieren",
+                "fetchMetadata": "Metadaten von CivitAI abrufen (nur Modellseiten)",
+                "downloadModel": "Ein Modell herunterladen (nur Modellseiten)",
+                "toggleBulkMode": "Massenmodus umschalten",
+                "selectAll": "Alle sichtbaren Modelle auswählen",
+                "rangeSelect": "Bereich auswählen",
+                "marqueeSelect": "Karten mit Auswahlrahmen auswählen (auf leerem Rasterbereich)",
+                "exitBulkMode": "Massenmodus verlassen",
+                "bulkActions": "Auf ausgewählter Karte: Menü für Massenaktionen",
+                "globalActions": "Auf leerem Seitenbereich: Menü für globale Aktionen (Updates prüfen, ausgeschlossene Modelle verwalten)",
+                "scrollPages": "Seiten scrollen",
+                "jumpAlphabet": "Zur Alphabetleiste springen",
+                "prevNext": "Vorheriges / nächstes Modell",
+                "deleteEntry": "Löschen",
+                "cycleMedia": "Medien durchblättern ([ / ] in der Beispielgalerie)",
+                "swipeTouch": "Medien auf Touch-Geräten durchblättern",
+                "closeViewer": "Medienanzeige schließen"
+            }
         },
         "updateVlogs": {
             "title": "Neueste Updates",
@@ -1974,7 +2030,8 @@
             "settings": "Einstellungen & Konfiguration",
             "extensions": "Erweiterungen",
             "newBadge": "NEU"
-        }
+        },
+        "newContentBadge": "NEU"
     },
     "update": {
         "title": "Nach Updates suchen",

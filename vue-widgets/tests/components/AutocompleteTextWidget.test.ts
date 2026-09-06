@@ -16,7 +16,7 @@ import AutocompleteTextWidget from '@/components/AutocompleteTextWidget.vue'
 function createMockWidget() {
   return {
     callback: vi.fn(),
-    onSetValue: undefined,
+    onSetValue: undefined as ((v: string) => void) | undefined,
     inputEl: undefined,
     metadataWidget: undefined,
     name: 'text',
@@ -132,5 +132,150 @@ describe('AutocompleteTextWidget clear button', () => {
     expect(ta.selectionEnd).toBe(ta.value.length)
     expect(wrapper.find('.clear-button').exists()).toBe(true)
     expect(widget.callback).toHaveBeenLastCalledWith('hello world')
+  })
+})
+
+/**
+ * Tests for the vertical-scrollbar inset.
+ *
+ * When the textarea content overflows and a classic (non-overlay) scrollbar
+ * is shown, the absolutely-positioned corner clear (x) button would sit on
+ * top of the scrollbar. The component measures the scrollbar gutter and
+ * exposes it as the --lm-vscrollbar-width CSS var on .input-wrapper so the
+ * button shifts left of the scrollbar. jsdom does no layout, so overflow is
+ * simulated by overriding the scroll/dimension props.
+ */
+describe('AutocompleteTextWidget vertical scrollbar inset', () => {
+  function overrideTextareaMetrics(
+    ta: HTMLTextAreaElement,
+    metrics: { scrollHeight: number; clientHeight: number; offsetWidth: number; clientWidth: number }
+  ) {
+    Object.defineProperty(ta, 'scrollHeight', { configurable: true, value: metrics.scrollHeight })
+    Object.defineProperty(ta, 'clientHeight', { configurable: true, value: metrics.clientHeight })
+    Object.defineProperty(ta, 'offsetWidth', { configurable: true, value: metrics.offsetWidth })
+    Object.defineProperty(ta, 'clientWidth', { configurable: true, value: metrics.clientWidth })
+  }
+
+  it('exposes the scrollbar width as a CSS var when the content overflows', async () => {
+    const { wrapper } = mountWidget()
+    const textarea = wrapper.find('textarea').element as HTMLTextAreaElement
+
+    overrideTextareaMetrics(textarea, {
+      scrollHeight: 200,
+      clientHeight: 100,
+      offsetWidth: 320,
+      clientWidth: 305, // 15px scrollbar gutter
+    })
+    textarea.dispatchEvent(new Event('input'))
+    await nextTick()
+
+    const wrapperEl = wrapper.find('.input-wrapper').element as HTMLElement
+    expect(wrapperEl.style.getPropertyValue('--lm-vscrollbar-width')).toBe('15px')
+  })
+
+  it('keeps the CSS var at 0px when there is no vertical scrollbar', async () => {
+    const { wrapper } = mountWidget()
+    const textarea = wrapper.find('textarea').element as HTMLTextAreaElement
+
+    overrideTextareaMetrics(textarea, {
+      scrollHeight: 100,
+      clientHeight: 100,
+      offsetWidth: 320,
+      clientWidth: 320,
+    })
+    textarea.dispatchEvent(new Event('input'))
+    await nextTick()
+
+    const wrapperEl = wrapper.find('.input-wrapper').element as HTMLElement
+    expect(wrapperEl.style.getPropertyValue('--lm-vscrollbar-width')).toBe('0px')
+  })
+
+  it('clears the inset once overflowing content is removed', async () => {
+    const { wrapper } = mountWidget()
+    const textarea = wrapper.find('textarea').element as HTMLTextAreaElement
+
+    overrideTextareaMetrics(textarea, {
+      scrollHeight: 200,
+      clientHeight: 100,
+      offsetWidth: 320,
+      clientWidth: 305,
+    })
+    textarea.dispatchEvent(new Event('input'))
+    await nextTick()
+    const wrapperEl = wrapper.find('.input-wrapper').element as HTMLElement
+    expect(wrapperEl.style.getPropertyValue('--lm-vscrollbar-width')).toBe('15px')
+
+    // Content now fits: no scrollbar → inset cleared
+    overrideTextareaMetrics(textarea, {
+      scrollHeight: 100,
+      clientHeight: 100,
+      offsetWidth: 320,
+      clientWidth: 320,
+    })
+    textarea.dispatchEvent(new Event('input'))
+    await nextTick()
+    expect(wrapperEl.style.getPropertyValue('--lm-vscrollbar-width')).toBe('0px')
+  })
+
+  it('re-measures the inset when the value is set programmatically via onSetValue', async () => {
+    const { wrapper, widget } = mountWidget()
+    const textarea = wrapper.find('textarea').element as HTMLTextAreaElement
+
+    // Start with no overflow
+    overrideTextareaMetrics(textarea, {
+      scrollHeight: 100,
+      clientHeight: 100,
+      offsetWidth: 320,
+      clientWidth: 320,
+    })
+    await nextTick()
+
+    // Simulate an external setValue (e.g. "send lora to workflow"): the DOM
+    // value is set by the caller and widget.onSetValue fires without an
+    // input event. Content now overflows → inset must be re-measured.
+    overrideTextareaMetrics(textarea, {
+      scrollHeight: 200,
+      clientHeight: 100,
+      offsetWidth: 320,
+      clientWidth: 305, // 15px scrollbar gutter
+    })
+    if (!widget.onSetValue) throw new Error('onSetValue not installed by component')
+    widget.onSetValue('long content')
+    await nextTick()
+
+    const wrapperEl = wrapper.find('.input-wrapper').element as HTMLElement
+    expect(wrapperEl.style.getPropertyValue('--lm-vscrollbar-width')).toBe('15px')
+  })
+
+  it('re-measures the inset on external value-change events', async () => {
+    const { wrapper } = mountWidget()
+    const textarea = wrapper.find('textarea').element as HTMLTextAreaElement
+
+    // Start with no overflow
+    overrideTextareaMetrics(textarea, {
+      scrollHeight: 100,
+      clientHeight: 100,
+      offsetWidth: 320,
+      clientWidth: 320,
+    })
+    await nextTick()
+
+    // The lora-manager:autocomplete-value-changed event fires when the
+    // widget value is set externally; content now overflows → re-measure.
+    overrideTextareaMetrics(textarea, {
+      scrollHeight: 200,
+      clientHeight: 100,
+      offsetWidth: 320,
+      clientWidth: 305, // 15px scrollbar gutter
+    })
+    textarea.dispatchEvent(
+      new CustomEvent('lora-manager:autocomplete-value-changed', {
+        detail: { value: 'long content' },
+      })
+    )
+    await nextTick()
+
+    const wrapperEl = wrapper.find('.input-wrapper').element as HTMLElement
+    expect(wrapperEl.style.getPropertyValue('--lm-vscrollbar-width')).toBe('15px')
   })
 })

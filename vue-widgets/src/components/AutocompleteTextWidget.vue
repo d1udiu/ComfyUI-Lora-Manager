@@ -1,6 +1,10 @@
 <template>
   <div class="autocomplete-text-widget">
-    <div class="input-wrapper">
+    <div
+      ref="inputWrapperRef"
+      class="input-wrapper"
+      :style="{ '--lm-vscrollbar-width': vScrollbarWidth + 'px' }"
+    >
       <textarea
         ref="textareaRef"
         :placeholder="placeholder"
@@ -59,9 +63,49 @@ const isVueDomMode = ref(typeof LiteGraph !== 'undefined' && LiteGraph.vueNodesM
 const onModeChange = (event: Event) => {
   const customEvent = event as CustomEvent<{ isVueDomMode: boolean }>
   isVueDomMode.value = customEvent.detail.isVueDomMode
+  // Canvas vs Vue DOM mode use different paddings/geometry.
+  updateVScrollbarWidth()
 }
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const inputWrapperRef = ref<HTMLElement | null>(null)
+
+// Width of the textarea's own vertical scrollbar gutter. When the content
+// overflows and a classic (non-overlay) scrollbar is shown, the scrollbar
+// occupies the textarea's rightmost pixels and the absolutely-positioned
+// corner clear (x) button would overlap it. We expose this width as a CSS
+// var so the button can shift left of the scrollbar; it is 0 when there is
+// no scrollbar (content fits, or platform overlay scrollbars that float
+// over the content).
+const vScrollbarWidth = ref(0)
+let scrollbarResizeObserver: ResizeObserver | null = null
+
+const updateVScrollbarWidth = () => {
+  const ta = textareaRef.value
+  if (!ta) return
+  const overflowsY = ta.scrollHeight > ta.clientHeight
+  vScrollbarWidth.value = overflowsY ? ta.offsetWidth - ta.clientWidth : 0
+}
+
+const observeScrollbarWidth = () => {
+  unobserveScrollbarWidth()
+  const ta = textareaRef.value
+  if (!ta || typeof ResizeObserver === 'undefined') {
+    return
+  }
+  scrollbarResizeObserver = new ResizeObserver(() => {
+    updateVScrollbarWidth()
+  })
+  scrollbarResizeObserver.observe(ta)
+}
+
+const unobserveScrollbarWidth = () => {
+  if (scrollbarResizeObserver) {
+    scrollbarResizeObserver.disconnect()
+    scrollbarResizeObserver = null
+  }
+}
+
 const hasText = ref(false)
 
 // Show clear button when there is text
@@ -79,6 +123,9 @@ const updateHasTextState = () => {
 }
 
 const onInput = (event: Event) => {
+  // Content may grow/shrink past the overflow threshold on each edit.
+  updateVScrollbarWidth()
+
   // A clear via execCommand captures the full-text selection in the browser's
   // undo entry; Ctrl+Z restores the content together with that selection.
   // Collapse the caret so the restored text is not left selected.
@@ -153,6 +200,9 @@ const onWheel = (event: WheelEvent) => {
 
 // Handle external value changes (e.g., from "send lora to workflow")
 const onExternalValueChange = () => {
+  // The DOM value was set synchronously by the caller; the new content may
+  // have toggled the vertical scrollbar on/off.
+  updateVScrollbarWidth()
   updateHasTextState()
 }
 
@@ -162,6 +212,9 @@ const setupWidgetOnSetValue = () => {
     props.widget.onSetValue = (value: string) => {
       // The DOM value is already set by setValue, just update our state
       hasText.value = value.length > 0
+      // Programmatic sets can toggle the scrollbar; re-measure so the
+      // corner clear button stays clear of it.
+      updateVScrollbarWidth()
     }
   }
 }
@@ -252,11 +305,17 @@ onMounted(() => {
   // Setup widget.onSetValue callback
   setupWidgetOnSetValue()
 
+  // Keep the corner buttons clear of the textarea's vertical scrollbar.
+  updateVScrollbarWidth()
+  observeScrollbarWidth()
+
   // Listen for custom event dispatched by main.ts
   document.addEventListener('lora-manager:vue-mode-change', onModeChange)
 })
 
 onUnmounted(() => {
+  unobserveScrollbarWidth()
+
   // Clean up textarea reference
   if (props.widget.inputEl === textareaRef.value) {
     props.widget.inputEl = undefined
@@ -333,7 +392,7 @@ onUnmounted(() => {
 /* Clear button styles */
 .clear-button {
   position: absolute;
-  right: 6px;
+  right: calc(6px + var(--lm-vscrollbar-width, 0px));
   bottom: 6px;  /* Changed from top to bottom */
   width: 18px;
   height: 18px;
@@ -371,7 +430,7 @@ onUnmounted(() => {
 
 /* Vue DOM mode adjustments for clear button */
 .text-input.vue-dom-mode ~ .clear-button {
-  right: 8px;
+  right: calc(8px + var(--lm-vscrollbar-width, 0px));
   bottom: 10px;  /* Changed from top to bottom, adjusted for Vue DOM padding */
   width: 20px;
   height: 20px;

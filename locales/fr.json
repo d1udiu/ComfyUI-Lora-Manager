@@ -96,7 +96,7 @@
             },
             "bulk": {
                 "title": "Opérations groupées",
-                "content": "Activez le mode groupé en cliquant sur ce bouton ou en appuyant sur <span class=\"onboarding-shortcut\">B</span>. Sélectionnez plusieurs modèles et effectuez des opérations groupées. Utilisez <span class=\"onboarding-shortcut\">Ctrl+A</span> pour sélectionner tous les modèles visibles."
+                "content": "Activez le mode groupé en cliquant sur ce bouton ou en appuyant sur <span class=\"onboarding-shortcut\">B</span> pour sélectionner plusieurs modèles et effectuer des opérations groupées.<br>• <span class=\"onboarding-shortcut\">Ctrl/Cmd+A</span> sélectionne tous les modèles visibles, <span class=\"onboarding-shortcut\">Shift+Click</span> sélectionne une plage.<br>• <span class=\"onboarding-shortcut\">Esc</span> ou un clic sur une zone vide quitte le mode groupé."
             },
             "searchOptions": {
                 "title": "Options de recherche",
@@ -116,7 +116,19 @@
             },
             "contextMenu": {
                 "title": "Menu contextuel",
-                "content": "<strong>Clic droit</strong> sur une carte de modèle pour accéder à un menu contextuel avec des actions supplémentaires."
+                "content": "<strong>Clic droit</strong> sur n'importe quelle carte de modèle pour ouvrir un menu contextuel avec des actions sur la carte comme déplacer, supprimer ou modifier les métadonnées."
+            },
+            "marqueeSelect": {
+                "title": "Glisser pour sélectionner",
+                "content": "Maintenez le <strong>bouton gauche de la souris</strong> enfoncé sur une zone vide de la grille et glissez pour tracer un rectangle de sélection qui sélectionne plusieurs cartes à la fois."
+            },
+            "dragToSidebar": {
+                "title": "Organiser par glisser-déposer",
+                "content": "Glissez une carte de modèle sur un dossier de la barre latérale pour y déplacer le fichier. Cela fonctionne aussi avec plusieurs cartes sélectionnées en mode groupé."
+            },
+            "contextMenus": {
+                "title": "Plus de menus contextuels",
+                "content": "En mode groupé, <strong>faites un clic droit sur une carte sélectionnée</strong> pour accéder aux actions groupées. <strong>Faites un clic droit sur une zone vide</strong> de la page pour accéder aux actions globales comme la vérification des mises à jour et la gestion des modèles exclus."
             }
         }
     },
@@ -472,6 +484,8 @@
         "layoutSettings": {
             "groupByModel": "Grouper par modèle",
             "groupByModelHelp": "Lorsque activé, seule la version la plus récente de chaque modèle CivitAI s'affiche sous forme de carte unique. Les versions plus anciennes sont masquées.",
+            "stickyControls": "Garder la barre d'actions visible",
+            "stickyControlsHelp": "Lorsque activé, la barre d'actions (Actualiser, Télécharger, etc.) reste épinglée en haut lors du défilement, avec la navigation par fil d'Ariane.",
             "displayDensity": "Densité d'affichage",
             "displayDensityOptions": {
                 "default": "Par défaut",
@@ -1629,7 +1643,7 @@
                 "addPlaceholder": "Tapez pour ajouter ou cliquez sur les suggestions ci-dessous",
                 "editWord": "Modifier le mot-clé",
                 "editPlaceholder": "Modifier le mot-clé",
-                "copyWord": "Copier le mot-clé",
+                "copyOrEditWord": "Cliquez pour copier, double-cliquez pour modifier",
                 "deleteWord": "Supprimer le mot-clé",
                 "suggestions": {
                     "noSuggestions": "Aucune suggestion disponible",
@@ -1954,10 +1968,52 @@
         "tabs": {
             "gettingStarted": "Commencer",
             "updateVlogs": "Vlogs de mise à jour",
-            "documentation": "Documentation"
+            "documentation": "Documentation",
+            "shortcuts": "Raccourcis"
         },
         "gettingStarted": {
-            "title": "Premiers pas avec le Gestionnaire LoRA"
+            "title": "Premiers pas avec le Gestionnaire LoRA",
+            "replayTutorial": "Rejouer le tutoriel"
+        },
+        "shortcuts": {
+            "title": "Raccourcis clavier et souris",
+            "groups": {
+                "general": "Général",
+                "actions": "Actions",
+                "selection": "Sélection et mode groupé",
+                "navigation": "Navigation",
+                "modelModal": "Modale Modèle / Recipe",
+                "mediaViewer": "Visionneuse de médias / Galerie d'exemples"
+            },
+            "keys": {
+                "click": "Clic",
+                "drag": "Glisser",
+                "rightClick": "Clic droit",
+                "letter": "Lettre",
+                "swipe": "Balayage"
+            },
+            "entries": {
+                "focusSearch": "Donner le focus au champ de recherche",
+                "closeModal": "Fermer la fenêtre modale / le panneau",
+                "openShortcuts": "Ouvrir ce panneau de raccourcis",
+                "refresh": "Actualiser la liste des modèles",
+                "fetchMetadata": "Récupérer les métadonnées depuis CivitAI (pages de modèles uniquement)",
+                "downloadModel": "Télécharger un modèle (pages de modèles uniquement)",
+                "toggleBulkMode": "Activer/désactiver le mode groupé",
+                "selectAll": "Sélectionner tous les modèles visibles",
+                "rangeSelect": "Sélection d'une plage",
+                "marqueeSelect": "Sélection par glisser-déposer des cartes (sur une zone vide de la grille)",
+                "exitBulkMode": "Quitter le mode groupé",
+                "bulkActions": "Sur une carte sélectionnée : menu des actions groupées",
+                "globalActions": "Sur une zone vide de la page : menu des actions globales (vérification des mises à jour, gestion des modèles exclus)",
+                "scrollPages": "Faire défiler les pages",
+                "jumpAlphabet": "Sauter via la barre alphabétique",
+                "prevNext": "Modèle précédent / suivant",
+                "deleteEntry": "Supprimer",
+                "cycleMedia": "Parcourir les médias ([ / ] dans la galerie d'exemples)",
+                "swipeTouch": "Parcourir les médias sur les appareils tactiles",
+                "closeViewer": "Fermer la visionneuse"
+            }
         },
         "updateVlogs": {
             "title": "Dernières mises à jour",
@@ -1974,7 +2030,8 @@
             "settings": "Paramètres & Configuration",
             "extensions": "Extensions",
             "newBadge": "NOUVEAU"
-        }
+        },
+        "newContentBadge": "NOUVEAU"
     },
     "update": {
         "title": "Vérifier les mises à jour",

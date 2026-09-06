@@ -25,6 +25,23 @@
     box-shadow: var(--shadow-xs);
 }
 
+/* Wrapper around the controls bar and breadcrumb nav. With the sticky-controls
+   setting off it is transparent to layout (display: contents), preserving the
+   original behavior (only the breadcrumb stays visible). When enabled, the whole
+   wrapper sticks as one unit so the two bars can never drift apart. */
+.sticky-topbar {
+    display: contents;
+}
+
+body.sticky-controls .sticky-topbar {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: calc(var(--z-header) - 1);
+    background: var(--bg-color);
+    box-shadow: var(--shadow-xs);
+}
+
 /* Responsive container for larger screens */
 @media (min-width: 2150px) {
     .container {
@@ -201,36 +218,42 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-left: 6px;
     min-width: 16px;
     height: 16px;
-    padding: 0 3px;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 0 4px;
+    font-size: 10px;
+    font-weight: 500;
     line-height: 1;
+    text-transform: uppercase;
     border-radius: var(--border-radius-xs);
     background-color: var(--shortcut-bg);
     border: 1px solid var(--shortcut-border);
     color: var(--shortcut-text);
-    vertical-align: middle;
     opacity: 0.8;
     transition: var(--transition-base);
 }
 
 .control-group button:hover .shortcut-key {
     opacity: 1;
-    background-color: oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.2);
+    background-color: var(--shortcut-bg-hover);
+    border-color: var(--shortcut-border-hover);
 }
 
-[data-theme="dark"] .shortcut-key {
-    --shortcut-bg: oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.15);
-    --shortcut-border: oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.3);
+/* Invert the keycap on active (accent-filled) buttons for contrast.
+   Must come after the hover rule above so it wins on active+hover. */
+.control-group button.active .shortcut-key,
+.control-group button.active:hover .shortcut-key {
+    color: var(--lora-accent);
+    background: rgba(255, 255, 255, 0.92);
+    border-color: transparent;
+    opacity: 1;
 }
 
 /* Ensure correct vertical alignment for text+shortcut */
 .control-group button span {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
 }
 
 /* Select dropdown styling */

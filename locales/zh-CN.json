@@ -96,7 +96,7 @@
             },
             "bulk": {
                 "title": "批量操作",
-                "content": "点击此按钮或按 <span class=\"onboarding-shortcut\">B</span> 进入批量模式。可多选模型并进行批量操作。使用 <span class=\"onboarding-shortcut\">Ctrl+A</span> 全选所有可见模型。"
+                "content": "点击此按钮或按 <span class=\"onboarding-shortcut\">B</span> 进入批量模式，可多选模型并执行批量操作。<br>• <span class=\"onboarding-shortcut\">Ctrl/Cmd+A</span> 全选所有可见模型，<span class=\"onboarding-shortcut\">Shift+Click</span> 选择一个范围。<br>• 按 <span class=\"onboarding-shortcut\">Esc</span> 或点击空白区域退出批量模式。"
             },
             "searchOptions": {
                 "title": "搜索选项",
@@ -116,7 +116,19 @@
             },
             "contextMenu": {
                 "title": "右键菜单",
-                "content": "<strong>右键点击</strong>任意模型卡片可打开更多操作菜单。"
+                "content": "<strong>右键点击</strong>任意模型卡片，可打开包含移动、删除或编辑元数据等卡片操作的菜单。"
+            },
+            "marqueeSelect": {
+                "title": "拖动框选",
+                "content": "在网格的空白区域按住<strong>鼠标左键</strong>并拖动，绘制一个可同时选中多张卡片的框选区域。"
+            },
+            "dragToSidebar": {
+                "title": "拖放整理",
+                "content": "将模型卡片拖到侧边栏的文件夹上，即可把文件移动到该文件夹。批量模式下选中的多张卡片也可如此操作。"
+            },
+            "contextMenus": {
+                "title": "更多右键菜单",
+                "content": "在批量模式下，<strong>右键点击已选中的卡片</strong>可进行批量操作。<strong>右键点击页面空白区域</strong>可使用检查更新、管理已排除的模型等全局操作。"
             }
         }
     },
@@ -472,6 +484,8 @@
         "layoutSettings": {
             "groupByModel": "按模型分组",
             "groupByModelHelp": "开启后，每个 CivitAI 模型仅显示最新版本的单张卡片，旧版本将被隐藏。",
+            "stickyControls": "保持操作栏可见",
+            "stickyControlsHelp": "开启后，操作栏（刷新、下载等）会在滚动时与路径导航一起固定在页面顶部。",
             "displayDensity": "显示密度",
             "displayDensityOptions": {
                 "default": "默认",
@@ -1629,7 +1643,7 @@
                 "addPlaceholder": "输入或点击下方建议添加",
                 "editWord": "编辑触发词",
                 "editPlaceholder": "编辑触发词",
-                "copyWord": "复制触发词",
+                "copyOrEditWord": "单击复制，双击编辑",
                 "deleteWord": "删除触发词",
                 "suggestions": {
                     "noSuggestions": "暂无建议",
@@ -1954,10 +1968,52 @@
         "tabs": {
             "gettingStarted": "新手入门",
             "updateVlogs": "更新日志",
-            "documentation": "文档"
+            "documentation": "文档",
+            "shortcuts": "快捷键"
         },
         "gettingStarted": {
-            "title": "LoRA 管理器新手入门"
+            "title": "LoRA 管理器新手入门",
+            "replayTutorial": "重播教程"
+        },
+        "shortcuts": {
+            "title": "键盘与鼠标快捷键",
+            "groups": {
+                "general": "通用",
+                "actions": "操作",
+                "selection": "选择与批量模式",
+                "navigation": "导航",
+                "modelModal": "模型 / 配方弹窗",
+                "mediaViewer": "媒体查看器 / 示例展示"
+            },
+            "keys": {
+                "click": "单击",
+                "drag": "拖动",
+                "rightClick": "右键点击",
+                "letter": "字母",
+                "swipe": "滑动"
+            },
+            "entries": {
+                "focusSearch": "聚焦搜索框",
+                "closeModal": "关闭弹窗 / 面板",
+                "openShortcuts": "打开本快捷键面板",
+                "refresh": "刷新模型列表",
+                "fetchMetadata": "从 CivitAI 获取元数据（仅模型页面）",
+                "downloadModel": "下载模型（仅模型页面）",
+                "toggleBulkMode": "切换批量模式",
+                "selectAll": "全选所有可见模型",
+                "rangeSelect": "范围选择",
+                "marqueeSelect": "框选卡片（在网格空白区域）",
+                "exitBulkMode": "退出批量模式",
+                "bulkActions": "在已选中的卡片上：批量操作菜单",
+                "globalActions": "在页面空白区域：全局操作菜单（检查更新、管理已排除的模型）",
+                "scrollPages": "滚动页面",
+                "jumpAlphabet": "字母索引栏跳转",
+                "prevNext": "上一个 / 下一个模型",
+                "deleteEntry": "删除",
+                "cycleMedia": "切换媒体（在示例展示中按 [ / ]）",
+                "swipeTouch": "在触屏设备上切换媒体",
+                "closeViewer": "关闭查看器"
+            }
         },
         "updateVlogs": {
             "title": "最新更新",
@@ -1974,7 +2030,8 @@
             "settings": "设置与配置",
             "extensions": "扩展",
             "newBadge": "新"
-        }
+        },
+        "newContentBadge": "新"
     },
     "update": {
         "title": "检查更新",

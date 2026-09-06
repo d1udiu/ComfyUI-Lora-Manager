@@ -96,7 +96,7 @@
             },
             "bulk": {
                 "title": "פעולות בכמות גדולה",
-                "content": "היכנס למצב פעולות בכמות גדולה על ידי לחיצה על כפתור זה או על <span class=\"onboarding-shortcut\">B</span>. בחר מספר מודלים ובצע פעולות בכמות גדולה. השתמש ב-<span class=\"onboarding-shortcut\">Ctrl+A</span> כדי לבחור את כל המודלים הגלויים."
+                "content": "היכנס למצב פעולות בכמות גדולה על ידי לחיצה על כפתור זה או על <span class=\"onboarding-shortcut\">B</span> כדי לבחור מספר מודלים ולבצע פעולות בכמות גדולה.<br>• <span class=\"onboarding-shortcut\">Ctrl/Cmd+A</span> בחר את כל המודלים הגלויים, <span class=\"onboarding-shortcut\">Shift+Click</span> בחר טווח.<br>• <span class=\"onboarding-shortcut\">Esc</span> או לחיצה על אזור ריק מוציאים ממצב בכמות גדולה."
             },
             "searchOptions": {
                 "title": "אפשרויות חיפוש",
@@ -116,7 +116,19 @@
             },
             "contextMenu": {
                 "title": "תפריט הקשר",
-                "content": "<strong>לחיצה ימנית</strong> על כל כרטיס מודל לתפריט הקשר עם פעולות נוספות."
+                "content": "<strong>לחיצה ימנית</strong> על כל כרטיס מודל לתפריט הקשר עם פעולות כרטיס כמו העברה, מחיקה או עריכת מטא-נתונים."
+            },
+            "marqueeSelect": {
+                "title": "גרור כדי לבחור",
+                "content": "החזק את <strong>לחצן העכבר השמאלי</strong> לחוץ על אזור ריק של הרשת וגרור כדי לצייר מסגרת בחירה שבוחרת מספר כרטיסים בבת אחת."
+            },
+            "dragToSidebar": {
+                "title": "ארגון באמצעות גרירה",
+                "content": "גרור כרטיס מודל אל תיקייה בסרגל הצד כדי להעביר את הקובץ לשם. פעולה זו עובדת גם עם מספר כרטיסים נבחרים במצב בכמות גדולה."
+            },
+            "contextMenus": {
+                "title": "תפריטי הקשר נוספים",
+                "content": "במצב בכמות גדולה, <strong>לחץ לחיצה ימנית על כרטיס נבחר</strong> לפעולות בכמות גדולה. <strong>לחץ לחיצה ימנית על אזור ריק</strong> בדף לפעולות גלובליות כמו בדיקת עדכונים וניהול מודלים מוחרגים."
             }
         }
     },
@@ -472,6 +484,8 @@
         "layoutSettings": {
             "groupByModel": "קיבוץ לפי מודל",
             "groupByModelHelp": "כאשר מופעל, רק הגרסה העדכנית ביותר של כל מודל CivitAI מוצגת ככרטיס בודד. גרסאות ישנות יותר מוסתרות.",
+            "stickyControls": "השארת סרגל הפעולות גלוי",
+            "stickyControlsHelp": "כאשר מופעל, סרגל הפעולות (רענון, הורדה וכו') נשאר מוצמד לחלק העליון בעת גלילה, יחד עם ניווט פירורי הלחם.",
             "displayDensity": "צפיפות תצוגה",
             "displayDensityOptions": {
                 "default": "ברירת מחדל",
@@ -1629,7 +1643,7 @@
                 "addPlaceholder": "הקלד להוספה או לחץ על הצעות למטה",
                 "editWord": "עריכת מילת טריגר",
                 "editPlaceholder": "עריכת מילת טריגר",
-                "copyWord": "העתק מילת טריגר",
+                "copyOrEditWord": "לחץ כדי להעתיק, לחץ פעמיים כדי לערוך",
                 "deleteWord": "מחק מילת טריגר",
                 "suggestions": {
                     "noSuggestions": "אין הצעות זמינות",
@@ -1954,10 +1968,52 @@
         "tabs": {
             "gettingStarted": "תחילת עבודה",
             "updateVlogs": "בלוגי וידאו של עדכונים",
-            "documentation": "תיעוד"
+            "documentation": "תיעוד",
+            "shortcuts": "קיצורי דרך"
         },
         "gettingStarted": {
-            "title": "תחילת עבודה עם מנהל LoRA"
+            "title": "תחילת עבודה עם מנהל LoRA",
+            "replayTutorial": "הפעל את המדריך מחדש"
+        },
+        "shortcuts": {
+            "title": "קיצורי מקלדת ועכבר",
+            "groups": {
+                "general": "כללי",
+                "actions": "פעולות",
+                "selection": "בחירה ומצב בכמות גדולה",
+                "navigation": "ניווט",
+                "modelModal": "חלון מודל / מתכון",
+                "mediaViewer": "מציג מדיה / גלריית דוגמאות"
+            },
+            "keys": {
+                "click": "לחיצה",
+                "drag": "גרירה",
+                "rightClick": "לחיצה ימנית",
+                "letter": "אות",
+                "swipe": "החלקה"
+            },
+            "entries": {
+                "focusSearch": "העבר מיקוד לחיפוש",
+                "closeModal": "סגור חלון / פאנל",
+                "openShortcuts": "פתח את פאנל קיצורי הדרך הזה",
+                "refresh": "רענן את רשימת המודלים",
+                "fetchMetadata": "אחזר מטא-נתונים מ-CivitAI (דפי מודלים בלבד)",
+                "downloadModel": "הורד מודל (דפי מודלים בלבד)",
+                "toggleBulkMode": "הפעל/כבה מצב בכמות גדולה",
+                "selectAll": "בחר את כל המודלים הגלויים",
+                "rangeSelect": "בחר טווח",
+                "marqueeSelect": "בחר כרטיסים במסגרת בחירה (באזור ריק של הרשת)",
+                "exitBulkMode": "צא ממצב בכמות גדולה",
+                "bulkActions": "על כרטיס נבחר: תפריט פעולות בכמות גדולה",
+                "globalActions": "באזור ריק בדף: תפריט פעולות גלובליות (בדיקת עדכונים, ניהול מודלים מוחרגים)",
+                "scrollPages": "גלול בין דפים",
+                "jumpAlphabet": "קפוץ בעזרת סרגל האותיות",
+                "prevNext": "מודל קודם / הבא",
+                "deleteEntry": "מחק",
+                "cycleMedia": "עבור בין פריטי מדיה ([ / ] בגלריית הדוגמאות)",
+                "swipeTouch": "עבור בין פריטי מדיה במכשירי מגע",
+                "closeViewer": "סגור את המציג"
+            }
         },
         "updateVlogs": {
             "title": "עדכונים אחרונים",
@@ -1974,7 +2030,8 @@
             "settings": "הגדרות ותצורה",
             "extensions": "הרחבות",
             "newBadge": "חדש"
-        }
+        },
+        "newContentBadge": "חדש"
     },
     "update": {
         "title": "בדוק עדכונים",

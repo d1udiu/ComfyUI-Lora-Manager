@@ -96,7 +96,7 @@
             },
             "bulk": {
                 "title": "一括操作",
-                "content": "このボタンをクリックするか、<span class=\"onboarding-shortcut\">B</span>キーを押して一括モードに入ります。複数のモデルを選択して一括操作が可能です。<span class=\"onboarding-shortcut\">Ctrl+A</span>で表示中のモデルをすべて選択できます。"
+                "content": "このボタンをクリックするか、<span class=\"onboarding-shortcut\">B</span>キーを押して一括モードに入り、複数のモデルを選択して一括操作を実行できます。<br>• <span class=\"onboarding-shortcut\">Ctrl/Cmd+A</span>で表示中のモデルをすべて選択、<span class=\"onboarding-shortcut\">Shift+Click</span>で範囲選択。<br>• <span class=\"onboarding-shortcut\">Esc</span>キーまたは空白部分をクリックすると一括モードを終了します。"
             },
             "searchOptions": {
                 "title": "検索オプション",
@@ -116,7 +116,19 @@
             },
             "contextMenu": {
                 "title": "コンテキストメニュー",
-                "content": "<strong>モデルカードを右クリック</strong>すると追加の操作ができるコンテキストメニューが表示されます。"
+                "content": "<strong>モデルカードを右クリック</strong>すると、移動、削除、メタデータの編集などのカード操作を含むコンテキストメニューが表示されます。"
+            },
+            "marqueeSelect": {
+                "title": "ドラッグで選択",
+                "content": "グリッドの空白部分で<strong>マウスの左ボタン</strong>を押したままドラッグすると、複数のカードを一度に選択する矩形（マーキー）を描画できます。"
+            },
+            "dragToSidebar": {
+                "title": "ドラッグで整理",
+                "content": "モデルカードをサイドバーのフォルダにドラッグすると、ファイルをそこに移動できます。一括モードで複数選択したカードでも同様に機能します。"
+            },
+            "contextMenus": {
+                "title": "その他のコンテキストメニュー",
+                "content": "一括モードでは、<strong>選択したカードを右クリック</strong>すると一括操作メニューが表示されます。<strong>ページの空白部分を右クリック</strong>すると、更新の確認や除外モデルの管理などのグローバル操作メニューが表示されます。"
             }
         }
     },
@@ -472,6 +484,8 @@
         "layoutSettings": {
             "groupByModel": "モデルでグループ化",
             "groupByModelHelp": "有効にすると、各CivitAIモデルの最新バージョンのみが1枚のカードとして表示され、古いバージョンは非表示になります。",
+            "stickyControls": "アクションバーを常に表示",
+            "stickyControlsHelp": "有効にすると、アクションバー（更新、ダウンロードなど）がスクロール時にパンくずナビゲーションと一緒に画面上部に固定されます。",
             "displayDensity": "表示密度",
             "displayDensityOptions": {
                 "default": "デフォルト",
@@ -1629,7 +1643,7 @@
                 "addPlaceholder": "入力して追加するか、下の提案をクリック",
                 "editWord": "トリガーワードを編集",
                 "editPlaceholder": "トリガーワードを編集",
-                "copyWord": "トリガーワードをコピー",
+                "copyOrEditWord": "クリックでコピー、ダブルクリックで編集",
                 "deleteWord": "トリガーワードを削除",
                 "suggestions": {
                     "noSuggestions": "提案はありません",
@@ -1954,10 +1968,52 @@
         "tabs": {
             "gettingStarted": "はじめに",
             "updateVlogs": "更新Vlog",
-            "documentation": "ドキュメント"
+            "documentation": "ドキュメント",
+            "shortcuts": "ショートカット"
         },
         "gettingStarted": {
-            "title": "LoRA Managerを始める"
+            "title": "LoRA Managerを始める",
+            "replayTutorial": "チュートリアルをもう一度再生"
+        },
+        "shortcuts": {
+            "title": "キーボード & マウスのショートカット",
+            "groups": {
+                "general": "一般",
+                "actions": "操作",
+                "selection": "選択 & 一括モード",
+                "navigation": "ナビゲーション",
+                "modelModal": "モデル / レシピモーダル",
+                "mediaViewer": "メディアビューア / ショーケース"
+            },
+            "keys": {
+                "click": "クリック",
+                "drag": "ドラッグ",
+                "rightClick": "右クリック",
+                "letter": "文字キー",
+                "swipe": "スワイプ"
+            },
+            "entries": {
+                "focusSearch": "検索にフォーカス",
+                "closeModal": "モーダル / パネルを閉じる",
+                "openShortcuts": "このショートカットパネルを開く",
+                "refresh": "モデルリストを更新",
+                "fetchMetadata": "CivitAIからメタデータを取得（モデルページのみ）",
+                "downloadModel": "モデルをダウンロード（モデルページのみ）",
+                "toggleBulkMode": "一括モードを切り替え",
+                "selectAll": "表示中のモデルをすべて選択",
+                "rangeSelect": "範囲選択",
+                "marqueeSelect": "カードを矩形選択（グリッドの空白部分で）",
+                "exitBulkMode": "一括モードを終了",
+                "bulkActions": "選択したカード上：一括操作メニュー",
+                "globalActions": "ページの空白部分：グローバル操作メニュー（更新の確認、除外モデルの管理）",
+                "scrollPages": "ページをスクロール",
+                "jumpAlphabet": "アルファベットバーへジャンプ",
+                "prevNext": "前 / 次のモデル",
+                "deleteEntry": "削除",
+                "cycleMedia": "メディアを切り替え（ショーケースギャラリーでは [ / ]）",
+                "swipeTouch": "タッチデバイスでメディアを切り替え",
+                "closeViewer": "ビューアを閉じる"
+            }
         },
         "updateVlogs": {
             "title": "最新の更新",
@@ -1974,7 +2030,8 @@
             "settings": "設定&構成",
             "extensions": "拡張機能",
             "newBadge": "新着"
-        }
+        },
+        "newContentBadge": "新着"
     },
     "update": {
         "title": "更新確認",

@@ -133,4 +133,124 @@ describe('AutoComplete active-filters flag', () => {
       expect(call[0]).not.toContain('base_model=');
     }
   });
+
+  const typeLorasSlashCommand = async () => {
+    const input = document.createElement('textarea');
+    input.value = '/';
+    input.selectionStart = 1;
+    document.body.append(input);
+
+    caretHelperInstance.getBeforeCursor.mockReturnValue('/');
+
+    const { AutoComplete } = await import(AUTOCOMPLETE_MODULE);
+    const autoComplete = new AutoComplete(input, 'loras', { showPreview: false, minChars: 1 });
+
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    return autoComplete;
+  };
+
+  it('shows the active-filters state below the loras slash command list', async () => {
+    await typeLorasSlashCommand();
+
+    const footer = document.querySelector('.lm-autocomplete-command-footer');
+    expect(footer).not.toBeNull();
+    expect(footer.textContent).toContain('Active Filters Search: OFF');
+    expect(footer.textContent).toContain('/activefilters to enable');
+  });
+
+  it('shows how to disable active-filters search in the footer when it is on', async () => {
+    settingGetMock.mockImplementation((key) => {
+      if (key === 'loramanager.lora_active_filters_autocomplete') {
+        return true;
+      }
+      return undefined;
+    });
+
+    await typeLorasSlashCommand();
+
+    const footer = document.querySelector('.lm-autocomplete-command-footer');
+    expect(footer).not.toBeNull();
+    expect(footer.textContent).toContain('Active Filters Search: ON');
+    expect(footer.textContent).toContain('/noactivefilters to disable');
+  });
+
+  it('shows a dismissible first-run hint on loras suggestions and remembers dismissal', async () => {
+    fetchApiMock.mockResolvedValue({
+      json: () => Promise.resolve({
+        success: true,
+        relative_paths: ['models/example.safetensors'],
+      }),
+    });
+
+    const triggerSearch = async () => {
+      const input = document.createElement('textarea');
+      input.value = 'example';
+      input.selectionStart = 7;
+      document.body.append(input);
+
+      caretHelperInstance.getBeforeCursor.mockReturnValue('example');
+
+      const { AutoComplete } = await import(AUTOCOMPLETE_MODULE);
+      const autoComplete = new AutoComplete(input, 'loras', {
+        debounceDelay: 0,
+        showPreview: false,
+        minChars: 1,
+      });
+
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await vi.runOnlyPendingTimersAsync();
+      await vi.runOnlyPendingTimersAsync();
+      await Promise.resolve();
+      return autoComplete;
+    };
+
+    const autoComplete = await triggerSearch();
+    const hint = autoComplete.dropdown.querySelector('.lm-autocomplete-first-run-hint');
+    expect(hint).not.toBeNull();
+    expect(hint.textContent).toContain('/activefilters');
+
+    hint.querySelector('button').click();
+    expect(autoComplete.dropdown.querySelector('.lm-autocomplete-first-run-hint')).toBeNull();
+    expect(localStorage.getItem('lm:activefilters-tip-dismissed')).toBe('1');
+    // A fresh instance no longer shows the hint once dismissed
+    const autoComplete2 = await triggerSearch();
+    expect(autoComplete2.dropdown.querySelector('.lm-autocomplete-first-run-hint')).toBeNull();
+  });
+
+  it('does not show the loras first-run hint when active-filters search is already on', async () => {
+    settingGetMock.mockImplementation((key) => {
+      if (key === 'loramanager.lora_active_filters_autocomplete') {
+        return true;
+      }
+      return undefined;
+    });
+
+    fetchApiMock.mockResolvedValue({
+      json: () => Promise.resolve({
+        success: true,
+        relative_paths: ['models/example.safetensors'],
+      }),
+    });
+
+    const input = document.createElement('textarea');
+    input.value = 'example';
+    input.selectionStart = 7;
+    document.body.append(input);
+
+    caretHelperInstance.getBeforeCursor.mockReturnValue('example');
+
+    const { AutoComplete } = await import(AUTOCOMPLETE_MODULE);
+    const autoComplete = new AutoComplete(input, 'loras', {
+      debounceDelay: 0,
+      showPreview: false,
+      minChars: 1,
+    });
+
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.runOnlyPendingTimersAsync();
+    await vi.runOnlyPendingTimersAsync();
+    await Promise.resolve();
+
+    expect(autoComplete.dropdown.querySelector('.lm-autocomplete-first-run-hint')).toBeNull();
+  });
 });
