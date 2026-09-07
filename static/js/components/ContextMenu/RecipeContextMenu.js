@@ -6,6 +6,7 @@ import { setSessionItem, removeSessionItem } from '../../utils/storageHelpers.js
 import { updateRecipeMetadata } from '../../api/recipeApi.js';
 import { state } from '../../state/index.js';
 import { moveManager } from '../../managers/MoveManager.js';
+import { probeExtension, delegateReimport, getCivitaiImageInfo } from '../../utils/extensionReimportBridge.js';
 
 export class RecipeContextMenu extends BaseContextMenu {
     constructor() {
@@ -92,10 +93,6 @@ export class RecipeContextMenu extends BaseContextMenu {
             case 'download-missing':
                 // Download missing LoRAs
                 this.downloadMissingLoRAs(recipeId);
-                break;
-            case 'repair':
-                // Repair recipe metadata
-                this.repairRecipe(recipeId);
                 break;
             case 'rematch':
                 // Rematch recipe resources to local models
@@ -297,44 +294,6 @@ export class RecipeContextMenu extends BaseContextMenu {
         }
     }
 
-    // Repair recipe metadata
-    async repairRecipe(recipeId) {
-        if (!recipeId) {
-            showToast('recipes.contextMenu.repair.missingId', {}, 'error');
-            return;
-        }
-
-        try {
-            showToast('recipes.contextMenu.repair.starting', {}, 'info');
-
-            const response = await fetch(`/api/lm/recipe/${recipeId}/repair`, {
-                method: 'POST'
-            });
-            const result = await response.json();
-
-            if (result.success) {
-                if (result.repaired > 0) {
-                    showToast('recipes.contextMenu.repair.success', {}, 'success');
-                    const detailResponse = await fetch(`/api/lm/recipe/${recipeId}`);
-                    if (detailResponse.ok) {
-                        const updatedRecipe = await detailResponse.json();
-                        const filePath = this.currentCard?.dataset?.filepath;
-                        if (filePath && state.virtualScroller) {
-                            state.virtualScroller.updateSingleItem(filePath, updatedRecipe);
-                        }
-                    }
-                } else {
-                    showToast('recipes.contextMenu.repair.skipped', {}, 'info');
-                }
-            } else {
-                throw new Error(result.error || 'Repair failed');
-            }
-        } catch (error) {
-            console.error('Error repairing recipe:', error);
-            showToast('recipes.contextMenu.repair.failed', { message: error.message }, 'error');
-        }
-    }
-
     async rematchRecipe(recipeId) {
         if (!recipeId) {
             showToast('toast.recipes.rematchFailed', { message: 'Missing recipe ID' }, 'error');
@@ -397,6 +356,24 @@ export class RecipeContextMenu extends BaseContextMenu {
             return;
         }
 
+        // Recipes imported from a CivitAI image page can carry incomplete
+        // metadata (0 LoRAs); the companion browser extension can re-import
+        // them with the full page data. Fall back to the native path whenever
+        // the extension is absent, unlicensed, or the delegation fails.
+        const recipeItem = state.virtualScroller?.items?.find(item => item?.id === recipeId);
+        const civitaiImage = getCivitaiImageInfo(recipeItem?.source_path);
+        if (civitaiImage) {
+            try {
+                const probe = await probeExtension();
+                if (probe?.supported && probe?.licenseValid) {
+                    await this.reimportViaExtension(recipeId, civitaiImage, recipeItem?.title || '');
+                    return;
+                }
+            } catch (error) {
+                console.warn('Extension re-import unavailable, using native path:', error);
+            }
+        }
+
         state.loadingManager.showSimpleLoading('Re-importing recipe from source...');
 
         try {
@@ -417,6 +394,34 @@ export class RecipeContextMenu extends BaseContextMenu {
             console.error('Error reimporting recipe:', error);
             state.loadingManager.hide();
             showToast('recipes.contextMenu.reimport.failed', { message: error.message }, 'error');
+        }
+    }
+
+    // Re-import a single CivitAI-image recipe through the companion browser
+    // extension. Throws on delegation failure so the caller can fall back to
+    // the native path.
+    async reimportViaExtension(recipeId, civitaiImage, title) {
+        state.loadingManager.showSimpleLoading('Re-importing recipe via browser extension...');
+
+        try {
+            const { failed } = await delegateReimport([{
+                recipeId,
+                imageId: civitaiImage.imageId,
+                imageUrl: civitaiImage.imageUrl,
+                title,
+            }]);
+
+            state.loadingManager.hide();
+            if (failed > 0) {
+                showToast('recipes.contextMenu.reimport.failed', { message: 'Extension re-import failed' }, 'error');
+            } else {
+                showToast('toast.recipes.reimportSuccess', {}, 'success');
+            }
+            const { resetAndReload } = await import('../../api/recipeApi.js');
+            resetAndReload(false, { preserveScroll: false });
+        } catch (error) {
+            state.loadingManager.hide();
+            throw error;
         }
     }
 }
