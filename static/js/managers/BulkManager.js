@@ -3,6 +3,8 @@ import { showToast, showActionToast, copyToClipboard, sendLoraToWorkflow, sendEm
 import { handleUndoDelete } from '../utils/undoHelpers.js';
 import { updateCardsForBulkMode } from '../components/shared/ModelCard.js';
 import { modalManager } from './ModalManager.js';
+import { rematchModalManager } from './RematchModalManager.js';
+import { showRematchSummary } from '../components/RematchSummaryModal.js';
 import { getModelApiClient, resetAndReload } from '../api/modelApiFactory.js';
 import { RecipeSidebarApiClient, updateRecipeMetadata, extractRecipeId } from '../api/recipeApi.js';
 import { MODEL_TYPES, MODEL_CONFIG } from '../api/apiConfig.js';
@@ -978,6 +980,15 @@ export class BulkManager {
             return;
         }
 
+        // Collect options (relaxed matching) before starting anything; the
+        // run only begins when the user confirms the dialog.
+        rematchModalManager.showOptionsModal({
+            recipeCount: state.selectedModels.size,
+            onConfirm: ({ relaxed }) => this._startRematchSelectedRecipes(relaxed),
+        });
+    }
+
+    async _startRematchSelectedRecipes(relaxed = false) {
         try {
             const apiClient = this.getActiveApiClient();
             const filePaths = Array.from(state.selectedModels);
@@ -989,7 +1000,7 @@ export class BulkManager {
 
             state.loadingManager.showSimpleLoading('Rematching recipes to local models...');
 
-            const result = await apiClient.rematchBulkModels(filePaths);
+            const result = await apiClient.rematchBulkModels(filePaths, { relaxed: !!relaxed });
 
             if (result.success) {
                 const total = result.total || filePaths.length;
@@ -1015,38 +1026,29 @@ export class BulkManager {
                     }
                 }
 
-                if (matchedEntries > 0) {
-                    const hasFailures = failures > 0;
-                    const toastKey = hasFailures
-                        ? 'toast.recipes.rematchCompleteErrors'
-                        : 'toast.recipes.rematchComplete';
-                    showToast(
-                        toastKey,
-                        { rematched, skipped, total, entries: matchedEntries, recipes: matchedRecipes, failures },
-                        hasFailures ? 'warning' : 'success'
-                    );
-                } else if (failures > 0) {
-                    // Nothing matched and at least one recipe errored —
-                    // "no rematch needed" would be actively misleading here.
-                    showToast(
-                        'toast.recipes.rematchAllFailed',
-                        { total, failures },
-                        'error'
-                    );
-                } else if (unresolvedEntries > 0) {
-                    // Entries existed but have no local model — expected for
-                    // models deleted from Civitai; informational, not an error.
-                    showToast(
-                        'toast.recipes.rematchUnmatched',
-                        { entries: unresolvedEntries, recipes: unresolvedRecipes, total },
-                        'info'
-                    );
-                } else {
+                // Complete no-op (nothing matched, nothing unresolved, no
+                // errors) keeps the lightweight toast; anything else opens
+                // the post-run summary modal.
+                const l4Matches = Array.isArray(result.l4_matches) ? result.l4_matches : [];
+                const isNoop = matchedEntries === 0 && unresolvedEntries === 0 && failures === 0;
+                if (isNoop) {
                     showToast(
                         'toast.recipes.rematchSkipped',
                         { total },
                         'info'
                     );
+                } else {
+                    showRematchSummary({
+                        scope: 'bulk',
+                        total,
+                        matchedRecipes,
+                        matchedEntries,
+                        unresolvedRecipes,
+                        unresolvedEntries,
+                        skipped,
+                        errors: failures,
+                        l4Matches,
+                    });
                 }
 
                 if (state.bulkMode) this.toggleBulkMode();

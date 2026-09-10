@@ -44,6 +44,22 @@ const flushAsyncTasks = async (rounds = 5) => {
   }
 };
 
+// The single-recipe rematch now opens the options dialog first and only
+// starts once confirmOptions() is invoked (the user clicking Rematch).
+async function confirmRematchOptions() {
+  const { rematchModalManager } = await import(
+    '../../../static/js/managers/RematchModalManager.js'
+  );
+  return rematchModalManager.confirmOptions();
+}
+
+async function cancelRematchOptions() {
+  const { rematchModalManager } = await import(
+    '../../../static/js/managers/RematchModalManager.js'
+  );
+  rematchModalManager.cancelOptions();
+}
+
 describe('RecipeContextMenu.rematchRecipe', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -69,8 +85,8 @@ describe('RecipeContextMenu.rematchRecipe', () => {
   }
 
   // Oracle R4-F1 pin: branches on `result.rematched > 0` — a blind `repaired`
-  // mirror would fire the skipped toast here.
-  it('posts to the per-recipe rematch endpoint and toasts the rematched count', async () => {
+  // mirror would render 0 matched entries in the summary modal here.
+  it('posts to the per-recipe rematch endpoint and opens the summary modal', async () => {
     const menu = await createMenu();
     const card = document.getElementById('card');
     menu.showMenu(100, 100, card);
@@ -91,19 +107,33 @@ describe('RecipeContextMenu.rematchRecipe', () => {
 
     await flushAsyncTasks();
 
+    // The click only opened the options dialog — nothing started yet.
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    await confirmRematchOptions();
+    await flushAsyncTasks();
+
     expect(global.fetch).toHaveBeenNthCalledWith(1, '/api/lm/recipe/recipe-1/rematch', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ relaxed: false }),
     });
-    expect(showToastMock).toHaveBeenCalledWith(
+    // Non-noop runs open the summary modal instead of toasting.
+    expect(showToastMock).not.toHaveBeenCalledWith(
       'toast.recipes.rematchComplete',
-      { rematched: 2, skipped: 0, total: 1, entries: 2, recipes: 1, failures: 0 },
-      'success'
+      expect.anything(),
+      expect.anything()
     );
     expect(showToastMock).not.toHaveBeenCalledWith(
       'toast.recipes.rematchSkipped',
       expect.anything(),
       expect.anything()
     );
+    const summaryModal = document.getElementById('rematchSummaryModal');
+    expect(summaryModal).not.toBeNull();
+    expect(summaryModal.querySelector('.summary-header').classList.contains('success')).toBe(true);
+    expect(summaryModal.querySelector('.stat-card-success .stat-card-value').textContent).toBe('2');
+    expect(summaryModal.querySelector('.stat-card-failure .stat-card-value').textContent).toBe('0');
     expect(global.fetch).toHaveBeenNthCalledWith(2, '/api/lm/recipe/recipe-1');
     expect(updateSingleItemMock).toHaveBeenCalledWith('/recipes/recipe-1.webp', {
       id: 'recipe-1',
@@ -111,7 +141,7 @@ describe('RecipeContextMenu.rematchRecipe', () => {
     });
   });
 
-  it('toasts an info message when the entries had no local match', async () => {
+  it('opens the summary modal when the entries had no local match', async () => {
     const menu = await createMenu();
     const card = document.getElementById('card');
     menu.showMenu(100, 100, card);
@@ -126,12 +156,14 @@ describe('RecipeContextMenu.rematchRecipe', () => {
       .dispatchEvent(new Event('click', { bubbles: true }));
 
     await flushAsyncTasks();
+    await confirmRematchOptions();
+    await flushAsyncTasks();
 
-    expect(showToastMock).toHaveBeenCalledWith(
-      'toast.recipes.rematchUnmatched',
-      { entries: 2, recipes: 1, total: 1 },
-      'info'
-    );
+    const summaryModal = document.getElementById('rematchSummaryModal');
+    expect(summaryModal).not.toBeNull();
+    expect(summaryModal.querySelector('.summary-header').classList.contains('warning')).toBe(true);
+    expect(summaryModal.querySelector('.stat-card-success .stat-card-value').textContent).toBe('0');
+    expect(summaryModal.querySelector('.stat-card-total .stat-card-value').textContent).toBe('2');
     expect(showToastMock).not.toHaveBeenCalledWith(
       'toast.recipes.rematchSkipped',
       expect.anything(),
@@ -154,6 +186,8 @@ describe('RecipeContextMenu.rematchRecipe', () => {
       .querySelector('[data-action="rematch"]')
       .dispatchEvent(new Event('click', { bubbles: true }));
 
+    await flushAsyncTasks();
+    await confirmRematchOptions();
     await flushAsyncTasks();
 
     expect(showToastMock).toHaveBeenCalledWith(
@@ -186,6 +220,8 @@ describe('RecipeContextMenu.rematchRecipe', () => {
       .dispatchEvent(new Event('click', { bubbles: true }));
 
     await flushAsyncTasks();
+    await confirmRematchOptions();
+    await flushAsyncTasks();
 
     expect(showToastMock).toHaveBeenCalledWith(
       'toast.recipes.rematchFailed',
@@ -207,11 +243,100 @@ describe('RecipeContextMenu.rematchRecipe', () => {
       .dispatchEvent(new Event('click', { bubbles: true }));
 
     await flushAsyncTasks();
+    await confirmRematchOptions();
+    await flushAsyncTasks();
 
     expect(showToastMock).toHaveBeenCalledWith(
       'toast.recipes.rematchFailed',
       { message: 'network down' },
       'error'
     );
+  });
+
+  it('sends relaxed: true when the relaxed checkbox is checked', async () => {
+    const menu = await createMenu();
+    const card = document.getElementById('card');
+    menu.showMenu(100, 100, card);
+
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<input type="checkbox" id="rematchOptionsRelaxed">'
+    );
+
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, rematched: 0, skipped: 1 }),
+    });
+
+    document
+      .querySelector('[data-action="rematch"]')
+      .dispatchEvent(new Event('click', { bubbles: true }));
+
+    await flushAsyncTasks();
+
+    // The dialog resets the checkbox to unchecked on open; the user opts in.
+    document.getElementById('rematchOptionsRelaxed').checked = true;
+    await confirmRematchOptions();
+    await flushAsyncTasks();
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/lm/recipe/recipe-1/rematch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ relaxed: true }),
+    });
+  });
+
+  it('starts nothing when the options dialog is cancelled', async () => {
+    const menu = await createMenu();
+    const card = document.getElementById('card');
+    menu.showMenu(100, 100, card);
+
+    document
+      .querySelector('[data-action="rematch"]')
+      .dispatchEvent(new Event('click', { bubbles: true }));
+
+    await flushAsyncTasks();
+    await cancelRematchOptions();
+    await flushAsyncTasks();
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('lists L4 filename matches in the summary modal with undo buttons', async () => {
+    const menu = await createMenu();
+    const card = document.getElementById('card');
+    menu.showMenu(100, 100, card);
+
+    const l4Matches = [
+      { recipe_id: 'recipe-1', type: 'lora', entry: 'old.safetensors', file_name: 'new.safetensors', lora_index: 0 },
+    ];
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, rematched: 1, matched_entries: 1, l4_matches: l4Matches }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'recipe-1', title: 'Updated Recipe' }),
+      });
+
+    document
+      .querySelector('[data-action="rematch"]')
+      .dispatchEvent(new Event('click', { bubbles: true }));
+
+    await flushAsyncTasks();
+    await confirmRematchOptions();
+    await flushAsyncTasks();
+
+    const summaryModal = document.getElementById('rematchSummaryModal');
+    expect(summaryModal).not.toBeNull();
+    // L4 matches to review force the warning header
+    expect(summaryModal.querySelector('.summary-header').classList.contains('warning')).toBe(true);
+    expect(summaryModal.querySelector('.stat-card-skipped .stat-card-value').textContent).toBe('1');
+    const rows = summaryModal.querySelectorAll('tr[data-l4-index]');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('old.safetensors');
+    expect(rows[0].textContent).toContain('new.safetensors');
+    expect(rows[0].querySelector('.rematch-undo-btn[data-action="undo-match"][data-index="0"]')).not.toBeNull();
   });
 });

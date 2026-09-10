@@ -73,12 +73,29 @@ vi.mock('../../../static/js/components/shared/NsfwLevelSelector.js', () => ({
   getNsfwLevelSelector: vi.fn(),
 }));
 
+// The real RematchModalManager runs against the mocked modalManager; confirm
+// is invoked explicitly, mirroring the user clicking Rematch in the dialog.
+async function confirmRematchOptions() {
+  const { rematchModalManager } = await import(
+    '../../../static/js/managers/RematchModalManager.js'
+  );
+  return rematchModalManager.confirmOptions();
+}
+
+async function cancelRematchOptions() {
+  const { rematchModalManager } = await import(
+    '../../../static/js/managers/RematchModalManager.js'
+  );
+  rematchModalManager.cancelOptions();
+}
+
 describe('BulkManager.rematchSelectedRecipes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     stateStub.currentPageType = 'recipes';
     stateStub.bulkMode = false;
     stateStub.selectedModels.clear();
+    document.body.innerHTML = '';
   });
 
   async function createBulkManager() {
@@ -91,9 +108,9 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     expect(bulk.actionConfig.recipes.rematchMetadata).toBe(true);
   });
 
-  // Oracle R4-F1 pin: the complete toast must branch on `rematched` — a blind
-  // `repaired` mirror would fire the skipped toast with count 0 here.
-  it('toasts the rematched count when the bulk rematch succeeds', async () => {
+  // Oracle R4-F1 pin: the summary modal must branch on `matched_entries` — a
+  // blind `repaired` mirror would render 0 matched entries here.
+  it('opens the summary modal when the bulk rematch succeeds', async () => {
     const bulk = await createBulkManager();
     stateStub.selectedModels.add('/recipes/a.webp');
     stateStub.selectedModels.add('/recipes/b.webp');
@@ -114,29 +131,41 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     });
 
     await bulk.rematchSelectedRecipes();
+    await confirmRematchOptions();
 
-    expect(rematchBulkModelsMock).toHaveBeenCalledWith([
-      '/recipes/a.webp',
-      '/recipes/b.webp',
-      '/recipes/c.webp',
-    ]);
-    expect(showToastMock).toHaveBeenCalledWith(
+    expect(rematchBulkModelsMock).toHaveBeenCalledWith(
+      [
+        '/recipes/a.webp',
+        '/recipes/b.webp',
+        '/recipes/c.webp',
+      ],
+      { relaxed: false }
+    );
+    // Non-noop runs open the summary modal instead of toasting.
+    expect(showToastMock).not.toHaveBeenCalledWith(
       'toast.recipes.rematchComplete',
-      { rematched: 4, skipped: 1, total: 3, entries: 4, recipes: 2, failures: 0 },
-      'success'
+      expect.anything(),
+      expect.anything()
     );
     expect(showToastMock).not.toHaveBeenCalledWith(
       'toast.recipes.rematchSkipped',
       expect.anything(),
       expect.anything()
     );
+    const summaryModal = document.getElementById('rematchSummaryModal');
+    expect(summaryModal).not.toBeNull();
+    // unresolved_entries > 0 forces the warning header
+    expect(summaryModal.querySelector('.summary-header').classList.contains('warning')).toBe(true);
+    expect(summaryModal.querySelector('.stat-card-success .stat-card-value').textContent).toBe('4');
+    expect(summaryModal.querySelector('.stat-card-total .stat-card-value').textContent).toBe('1');
+    expect(summaryModal.querySelector('.stat-card-failure .stat-card-value').textContent).toBe('0');
     expect(updateSingleItemMock).toHaveBeenCalledWith('/recipes/a.webp', rematchedRecipe);
     expect(loadingManagerStub.showSimpleLoading).toHaveBeenCalled();
     expect(loadingManagerStub.hide).toHaveBeenCalled();
     expect(loadingManagerStub.restoreProgressBar).toHaveBeenCalled();
   });
 
-  it('uses the errors toast variant when the bulk rematch has failures', async () => {
+  it('opens the summary modal with a warning header when the bulk rematch has failures', async () => {
     const bulk = await createBulkManager();
     stateStub.selectedModels.add('/recipes/a.webp');
     stateStub.selectedModels.add('/recipes/b.webp');
@@ -155,15 +184,16 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     });
 
     await bulk.rematchSelectedRecipes();
+    await confirmRematchOptions();
 
-    expect(showToastMock).toHaveBeenCalledWith(
-      'toast.recipes.rematchCompleteErrors',
-      { rematched: 3, skipped: 0, total: 2, entries: 3, recipes: 1, failures: 2 },
-      'warning'
-    );
+    const summaryModal = document.getElementById('rematchSummaryModal');
+    expect(summaryModal).not.toBeNull();
+    expect(summaryModal.querySelector('.summary-header').classList.contains('warning')).toBe(true);
+    expect(summaryModal.querySelector('.stat-card-success .stat-card-value').textContent).toBe('3');
+    expect(summaryModal.querySelector('.stat-card-failure .stat-card-value').textContent).toBe('2');
   });
 
-  it('toasts an error when every selected recipe failed to rematch', async () => {
+  it('opens the summary modal with an error header when every selected recipe failed to rematch', async () => {
     const bulk = await createBulkManager();
     stateStub.selectedModels.add('/recipes/a.webp');
     stateStub.selectedModels.add('/recipes/b.webp');
@@ -182,12 +212,12 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     });
 
     await bulk.rematchSelectedRecipes();
+    await confirmRematchOptions();
 
-    expect(showToastMock).toHaveBeenCalledWith(
-      'toast.recipes.rematchAllFailed',
-      { total: 2, failures: 2 },
-      'error'
-    );
+    const summaryModal = document.getElementById('rematchSummaryModal');
+    expect(summaryModal).not.toBeNull();
+    expect(summaryModal.querySelector('.summary-header').classList.contains('error')).toBe(true);
+    expect(summaryModal.querySelector('.stat-card-failure .stat-card-value').textContent).toBe('2');
     expect(showToastMock).not.toHaveBeenCalledWith(
       'toast.recipes.rematchSkipped',
       expect.anything(),
@@ -195,7 +225,7 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     );
   });
 
-  it('toasts an info message when entries had no local match', async () => {
+  it('opens the summary modal when entries had no local match', async () => {
     const bulk = await createBulkManager();
     stateStub.selectedModels.add('/recipes/a.webp');
     stateStub.selectedModels.add('/recipes/b.webp');
@@ -215,12 +245,13 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     });
 
     await bulk.rematchSelectedRecipes();
+    await confirmRematchOptions();
 
-    expect(showToastMock).toHaveBeenCalledWith(
-      'toast.recipes.rematchUnmatched',
-      { entries: 2, recipes: 1, total: 3 },
-      'info'
-    );
+    const summaryModal = document.getElementById('rematchSummaryModal');
+    expect(summaryModal).not.toBeNull();
+    expect(summaryModal.querySelector('.summary-header').classList.contains('warning')).toBe(true);
+    expect(summaryModal.querySelector('.stat-card-success .stat-card-value').textContent).toBe('0');
+    expect(summaryModal.querySelector('.stat-card-total .stat-card-value').textContent).toBe('2');
     expect(showToastMock).not.toHaveBeenCalledWith(
       'toast.recipes.rematchSkipped',
       expect.anything(),
@@ -243,6 +274,7 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     });
 
     await bulk.rematchSelectedRecipes();
+    await confirmRematchOptions();
 
     expect(showToastMock).toHaveBeenCalledWith(
       'toast.recipes.rematchSkipped',
@@ -268,6 +300,7 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     });
 
     await bulk.rematchSelectedRecipes();
+    await confirmRematchOptions();
 
     expect(showToastMock).toHaveBeenCalledWith(
       'toast.recipes.rematchFailed',
@@ -284,6 +317,7 @@ describe('BulkManager.rematchSelectedRecipes', () => {
     rematchBulkModelsMock.mockRejectedValue(new Error('network down'));
 
     await bulk.rematchSelectedRecipes();
+    await confirmRematchOptions();
 
     expect(showToastMock).toHaveBeenCalledWith(
       'toast.recipes.rematchFailed',
@@ -318,5 +352,102 @@ describe('BulkManager.rematchSelectedRecipes', () => {
       'warning'
     );
     expect(rematchBulkModelsMock).not.toHaveBeenCalled();
+  });
+
+  it('does not start the rematch until the options dialog is confirmed', async () => {
+    const bulk = await createBulkManager();
+    stateStub.selectedModels.add('/recipes/a.webp');
+
+    await bulk.rematchSelectedRecipes();
+
+    expect(rematchBulkModelsMock).not.toHaveBeenCalled();
+
+    rematchBulkModelsMock.mockResolvedValue({
+      success: true,
+      total: 1,
+      rematched: 1,
+      skipped: 0,
+      errors: 0,
+      matched_recipes: 1,
+      matched_entries: 1,
+      recipes: [],
+    });
+
+    await confirmRematchOptions();
+
+    expect(rematchBulkModelsMock).toHaveBeenCalledWith(['/recipes/a.webp'], { relaxed: false });
+  });
+
+  it('sends relaxed: true when the relaxed checkbox is checked', async () => {
+    const bulk = await createBulkManager();
+    stateStub.selectedModels.add('/recipes/a.webp');
+    document.body.innerHTML = '<input type="checkbox" id="rematchOptionsRelaxed">';
+
+    rematchBulkModelsMock.mockResolvedValue({
+      success: true,
+      total: 1,
+      rematched: 0,
+      skipped: 1,
+      errors: 0,
+      recipes: [],
+    });
+
+    await bulk.rematchSelectedRecipes();
+    // The dialog resets the checkbox to unchecked on open; the user opts in.
+    document.getElementById('rematchOptionsRelaxed').checked = true;
+    await confirmRematchOptions();
+
+    expect(rematchBulkModelsMock).toHaveBeenCalledWith(['/recipes/a.webp'], { relaxed: true });
+
+    document.body.innerHTML = '';
+  });
+
+  it('starts nothing when the options dialog is cancelled', async () => {
+    const bulk = await createBulkManager();
+    stateStub.selectedModels.add('/recipes/a.webp');
+
+    await bulk.rematchSelectedRecipes();
+    await cancelRematchOptions();
+
+    expect(rematchBulkModelsMock).not.toHaveBeenCalled();
+    expect(showToastMock).not.toHaveBeenCalledWith(
+      'toast.recipes.rematchComplete',
+      expect.anything(),
+      expect.anything()
+    );
+  });
+
+  it('lists L4 filename matches in the summary modal with undo buttons', async () => {
+    const bulk = await createBulkManager();
+    stateStub.selectedModels.add('/recipes/a.webp');
+
+    const l4Matches = [
+      { recipe_id: 'a', type: 'lora', entry: 'old.safetensors', file_name: 'new.safetensors', lora_index: 0 },
+    ];
+    rematchBulkModelsMock.mockResolvedValue({
+      success: true,
+      total: 1,
+      rematched: 1,
+      skipped: 0,
+      errors: 0,
+      matched_recipes: 1,
+      matched_entries: 1,
+      recipes: [],
+      l4_matches: l4Matches,
+    });
+
+    await bulk.rematchSelectedRecipes();
+    await confirmRematchOptions();
+
+    const summaryModal = document.getElementById('rematchSummaryModal');
+    expect(summaryModal).not.toBeNull();
+    // L4 matches to review force the warning header
+    expect(summaryModal.querySelector('.summary-header').classList.contains('warning')).toBe(true);
+    expect(summaryModal.querySelector('.stat-card-skipped .stat-card-value').textContent).toBe('1');
+    const rows = summaryModal.querySelectorAll('tr[data-l4-index]');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('old.safetensors');
+    expect(rows[0].textContent).toContain('new.safetensors');
+    expect(rows[0].querySelector('.rematch-undo-btn[data-action="undo-match"][data-index="0"]')).not.toBeNull();
   });
 });

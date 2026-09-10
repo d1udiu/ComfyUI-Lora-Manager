@@ -6,6 +6,8 @@ import { setSessionItem, removeSessionItem } from '../../utils/storageHelpers.js
 import { updateRecipeMetadata } from '../../api/recipeApi.js';
 import { state } from '../../state/index.js';
 import { moveManager } from '../../managers/MoveManager.js';
+import { rematchModalManager } from '../../managers/RematchModalManager.js';
+import { showRematchSummary } from '../RematchSummaryModal.js';
 import { probeExtension, delegateReimport, getCivitaiImageInfo } from '../../utils/extensionReimportBridge.js';
 
 export class RecipeContextMenu extends BaseContextMenu {
@@ -303,26 +305,36 @@ export class RecipeContextMenu extends BaseContextMenu {
         // Capture before any await: the menu's click handler nulls currentCard
         const filePath = this.currentCard?.dataset?.filepath;
 
+        // Collect options (relaxed matching) before starting anything; the
+        // run only begins when the user confirms the dialog.
+        rematchModalManager.showOptionsModal({
+            scope: 'single',
+            onConfirm: ({ relaxed }) => this._startRematchRecipe(recipeId, filePath, relaxed),
+        });
+    }
+
+    async _startRematchRecipe(recipeId, filePath, relaxed = false) {
         try {
             showToast('Rematching recipe to local models...', {}, 'info');
 
             const response = await fetch(`/api/lm/recipe/${recipeId}/rematch`, {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ relaxed: !!relaxed }),
             });
             const result = await response.json();
 
             if (result.success) {
                 const matchedEntries = result.matched_entries || result.rematched || 0;
                 const failures = result.errors || 0;
+                const unresolvedEntries = result.unresolved_entries || 0;
+                const l4Matches = Array.isArray(result.l4_matches) ? result.l4_matches : [];
+                // Complete no-op (nothing matched, nothing unresolved, no
+                // errors) keeps the lightweight toast; anything else opens
+                // the post-run summary modal.
+                const isNoop = matchedEntries === 0 && unresolvedEntries === 0 && failures === 0;
+
                 if (matchedEntries > 0) {
-                    const toastKey = failures > 0
-                        ? 'toast.recipes.rematchCompleteErrors'
-                        : 'toast.recipes.rematchComplete';
-                    showToast(
-                        toastKey,
-                        { rematched: matchedEntries, skipped: result.skipped || 0, total: 1, entries: matchedEntries, recipes: 1, failures },
-                        failures > 0 ? 'warning' : 'success'
-                    );
                     const detailResponse = await fetch(`/api/lm/recipe/${recipeId}`);
                     if (detailResponse.ok) {
                         const updatedRecipe = await detailResponse.json();
@@ -330,16 +342,22 @@ export class RecipeContextMenu extends BaseContextMenu {
                             state.virtualScroller.updateSingleItem(filePath, updatedRecipe);
                         }
                     }
-                } else if (result.unresolved_entries > 0) {
-                    // Entries existed but have no local model — expected for
-                    // models deleted from Civitai; informational, not an error.
-                    showToast(
-                        'toast.recipes.rematchUnmatched',
-                        { entries: result.unresolved_entries, recipes: 1, total: 1 },
-                        'info'
-                    );
-                } else {
+                }
+
+                if (isNoop) {
                     showToast('toast.recipes.rematchSkipped', { total: 1 }, 'info');
+                } else {
+                    showRematchSummary({
+                        scope: 'single',
+                        total: 1,
+                        matchedRecipes: result.matched_recipes || (matchedEntries > 0 ? 1 : 0),
+                        matchedEntries,
+                        unresolvedRecipes: result.unresolved_recipes || 0,
+                        unresolvedEntries,
+                        skipped: result.skipped || 0,
+                        errors: failures,
+                        l4Matches,
+                    });
                 }
             } else {
                 throw new Error(result.error || 'Rematch failed');

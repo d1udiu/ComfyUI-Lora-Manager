@@ -347,6 +347,19 @@ export class ModalManager {
             });
         }
 
+        // Register rematchOptionsModal
+        const rematchOptionsModal = document.getElementById('rematchOptionsModal');
+        if (rematchOptionsModal) {
+            this.registerModal('rematchOptionsModal', {
+                element: rematchOptionsModal,
+                onClose: () => {
+                    this.getModal('rematchOptionsModal').element.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                },
+                closeOnOutsideClick: true
+            });
+        }
+
         document.addEventListener('keydown', this.boundHandleEscape);
         this.initialized = true;
     }
