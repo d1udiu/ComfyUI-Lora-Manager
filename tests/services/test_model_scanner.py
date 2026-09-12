@@ -733,6 +733,130 @@ async def test_reconcile_cache_removes_duplicate_alias_when_same_real_file_seen_
 
 
 @pytest.mark.asyncio
+async def test_reconcile_cache_keeps_cached_path_when_walk_yields_a_live_alias(
+    tmp_path: Path,
+):
+    """A root-order / symlink change can make the walk produce a *different but
+    still live* business path for a file already in the cache. The realpath
+    alias map must keep the cached entry instead of re-processing the file and
+    swapping the path (which would re-read metadata and re-hash the weights)."""
+    loras_root = tmp_path / "loras"
+    loras_root.mkdir()
+    extra_root = tmp_path / "extra"
+    extra_root.mkdir()
+    (extra_root / "one.txt").write_text("one", encoding="utf-8")
+    (loras_root / "link").symlink_to(extra_root, target_is_directory=True)
+
+    # `extra_root` comes first, so the cache entry is stored under its path.
+    scanner = MultiRootDummyScanner([extra_root, loras_root])
+    await scanner._initialize_cache()
+
+    cached_before = {item["file_path"] for item in scanner._cache.raw_data}
+    assert cached_before == {_normalize_path(extra_root / "one.txt")}
+
+    # The symlinked path now wins the walk; the file itself is unchanged.
+    scanner._roots = [str(loras_root), str(extra_root)]
+    processed: List[str] = []
+
+    async def _record_process(file_path: str, root_path: str, *args, **kwargs):
+        processed.append(file_path)
+        return await DummyScanner._process_model_file(
+            scanner, file_path, root_path, *args, **kwargs
+        )
+
+    scanner._process_model_file = _record_process  # type: ignore[method-assign]
+
+    await scanner._reconcile_cache()
+
+    cache = await scanner.get_cached_data()
+    assert {item["file_path"] for item in cache.raw_data} == cached_before
+    assert processed == []
+
+
+@pytest.mark.asyncio
+async def test_reconcile_cache_defers_realpath_to_cache_misses(
+    tmp_path: Path, monkeypatch
+):
+    """A no-change reconcile must not call realpath for unchanged files or for
+    every cached entry: both the alias map and the per-file realpath are only
+    needed for cache misses (they dominate the cost of a Refresh otherwise)."""
+    root = tmp_path / "loras"
+    root.mkdir()
+    for i in range(5):
+        (root / f"model{i}.txt").write_text("x", encoding="utf-8")
+
+    scanner = DummyScanner(root)
+    await scanner._initialize_cache()
+
+    real_realpath = model_scanner.os.path.realpath
+    realpath_args: List[str] = []
+
+    def _recording_realpath(path, *args, **kwargs):
+        realpath_args.append(os.fspath(path))
+        return real_realpath(path, *args, **kwargs)
+
+    monkeypatch.setattr(model_scanner.os.path, "realpath", _recording_realpath)
+
+    await scanner._reconcile_cache()
+
+    model_files = {_normalize_path(path) for path in root.glob("*.txt")}
+    assert not (set(realpath_args) & model_files)
+
+
+@pytest.mark.asyncio
+async def test_reconcile_cache_cleans_pre_existing_duplicate_paths(tmp_path: Path):
+    """External code rewrites raw_data directly, so a reconcile must still drop
+    duplicate business paths even when nothing changed on disk: the O(1)
+    integrity check may only skip the pass for a provably clean cache."""
+    root = tmp_path / "loras"
+    root.mkdir()
+    (root / "one.txt").write_text("one", encoding="utf-8")
+    (root / "two.txt").write_text("two", encoding="utf-8")
+
+    scanner = DummyScanner(root)
+    await scanner._initialize_cache()
+
+    first_path = _normalize_path(root / "one.txt")
+    duplicate = dict(next(i for i in scanner._cache.raw_data if i["file_path"] == first_path))
+    duplicate["model_name"] = "duplicate-wins"
+    scanner._cache.raw_data.append(duplicate)
+
+    await scanner._reconcile_cache()
+
+    cache = await scanner.get_cached_data()
+    assert len(cache.raw_data) == 2
+    survivor = next(i for i in cache.raw_data if i["file_path"] == first_path)
+    assert survivor["model_name"] == "duplicate-wins"
+
+
+@pytest.mark.asyncio
+async def test_reconcile_cache_reads_model_roots_once_per_phase(tmp_path: Path, monkeypatch):
+    """get_model_roots() must be snapshotted once for the walk and once for the
+    new-file pass, not re-read for every new file."""
+    root = tmp_path / "loras"
+    root.mkdir()
+    scanner = DummyScanner(root)
+    await scanner._initialize_cache()
+
+    calls = 0
+    real_get_model_roots = scanner.get_model_roots
+
+    def _counting_get_model_roots() -> List[str]:
+        nonlocal calls
+        calls += 1
+        return real_get_model_roots()
+
+    monkeypatch.setattr(scanner, "get_model_roots", _counting_get_model_roots)
+
+    for i in range(3):
+        (root / f"new{i}.txt").write_text("x", encoding="utf-8")
+
+    await scanner._reconcile_cache()
+
+    assert calls == 2
+
+
+@pytest.mark.asyncio
 async def test_log_duplicate_filename_summary_logs_warning(tmp_path: Path, caplog):
     """When duplicate filenames exist, _log_duplicate_filename_summary should emit
     a single warning log with the conflict count and total file count."""
@@ -1294,7 +1418,7 @@ async def test_bulk_delete_cancelled_after_one_staged_batch_present(
 
 
 @pytest.mark.asyncio
-async def test_get_all_folders_enumerates_empty_directories_live(tmp_path: Path):
+async def test_get_all_folders_records_empty_directories_during_scan(tmp_path: Path):
     _create_files(tmp_path)
     (tmp_path / "empty").mkdir()
     (tmp_path / "empty" / "nested_empty").mkdir()
@@ -1311,7 +1435,7 @@ async def test_get_all_folders_enumerates_empty_directories_live(tmp_path: Path)
     # cache.folders stays models-only
     assert sorted(cache.folders) == ["", "nested"]
 
-    # Live enumeration includes empty directories and stays a superset
+    # Scan recording includes empty directories and stays a superset
     assert set(cache.folders) <= set(all_folders)
     assert "empty" in all_folders
     assert "empty/nested_empty" in all_folders
@@ -1328,49 +1452,60 @@ async def test_get_all_folders_enumerates_empty_directories_live(tmp_path: Path)
 
 
 @pytest.mark.asyncio
-async def test_get_all_folders_uses_ttl_cache(tmp_path: Path, monkeypatch):
+async def test_get_all_folders_never_walks_filesystem(tmp_path: Path, monkeypatch):
     _create_files(tmp_path)
     scanner = DummyScanner(tmp_path)
     await scanner._initialize_cache()
 
-    walk_calls = {"n": 0}
-    real_walk = os.walk
+    def failing_walk(*args, **kwargs):
+        raise AssertionError("get_all_folders must not walk the filesystem")
 
-    def counting_walk(*args, **kwargs):
-        walk_calls["n"] += 1
-        return real_walk(*args, **kwargs)
+    monkeypatch.setattr(model_scanner.os, "walk", failing_walk)
 
-    monkeypatch.setattr(model_scanner.os, "walk", counting_walk)
-
-    first = await scanner.get_all_folders()
-    assert walk_calls["n"] == 1
-
-    # Second call within the TTL reuses the cached result without re-walking
-    second = await scanner.get_all_folders()
-    assert walk_calls["n"] == 1
-    assert second == first
-
-    # After the TTL expires the roots are walked again
-    real_monotonic = time.monotonic
-    monkeypatch.setattr(
-        model_scanner.time,
-        "monotonic",
-        lambda: real_monotonic() + model_scanner.ALL_FOLDERS_CACHE_TTL_SECONDS + 1,
-    )
-    third = await scanner.get_all_folders()
-    assert walk_calls["n"] == 2
-    assert third == first
+    all_folders = await scanner.get_all_folders()
+    assert all_folders == ["" , "nested"]
+    # No backfill is scheduled when the scan already recorded the folders
+    assert scanner._all_folders_backfill_running is False
 
 
 @pytest.mark.asyncio
-async def test_get_all_folders_invalidated_after_move(tmp_path: Path):
+async def test_get_all_folders_backfills_when_never_recorded(tmp_path: Path):
+    _create_files(tmp_path)
+    (tmp_path / "empty").mkdir()
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+
+    # Simulate a cache hydrated from a persisted snapshot that predates
+    # folder recording.
+    cache = await scanner.get_cached_data()
+    cache.all_folders = None
+
+    # The cold path returns the models-only folders immediately...
+    all_folders = await scanner.get_all_folders()
+    assert set(all_folders) == {"", "nested"}
+    # ...and schedules a one-shot background walk to backfill the rest.
+    assert scanner._all_folders_backfill_running is True
+
+    for _ in range(200):
+        if not scanner._all_folders_backfill_running:
+            break
+        await asyncio.sleep(0.01)
+
+    assert scanner._all_folders_backfill_running is False
+    assert cache.all_folders is not None
+    assert "empty" in cache.all_folders
+    all_folders = await scanner.get_all_folders()
+    assert "empty" in all_folders
+
+
+@pytest.mark.asyncio
+async def test_get_all_folders_updated_after_move(tmp_path: Path):
     first, _, _ = _create_files(tmp_path)
     scanner = DummyScanner(tmp_path)
 
     await scanner._initialize_cache()
 
     cached = await scanner.get_all_folders()
-    assert scanner._all_folders_ttl_cache is not None
     assert "new/deep" not in cached
 
     # Simulate a move: target directories exist on disk (created by
@@ -1390,15 +1525,70 @@ async def test_get_all_folders_invalidated_after_move(tmp_path: Path):
 
     await scanner.update_single_model_cache(original, new_path, moved_metadata)
 
-    # The TTL cache was invalidated by the move
-    assert scanner._all_folders_ttl_cache is None
-
+    # The recorded folder list picked up the destination (and its parents)
     all_folders = await scanner.get_all_folders()
     cache = await scanner.get_cached_data()
     assert sorted(cache.folders) == ["nested", "new/deep"]
     assert "new" in all_folders
     assert "new/deep" in all_folders
     assert set(cache.folders) <= set(all_folders)
+
+
+@pytest.mark.asyncio
+async def test_all_folders_persisted_and_hydrated(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv('LORA_MANAGER_DISABLE_PERSISTENT_CACHE', '0')
+    db_path = tmp_path / 'cache.sqlite'
+    store = PersistentModelCache(db_path=str(db_path))
+    monkeypatch.setattr(model_scanner, 'get_persistent_cache', lambda: store)
+
+    root = tmp_path / 'models'
+    root.mkdir()
+    (root / 'one.txt').write_text('one', encoding='utf-8')
+    (root / 'empty').mkdir()
+
+    scanner = DummyScanner(root)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    assert cache.all_folders is not None
+    assert 'empty' in cache.all_folders
+
+    # The folder list (including the empty dir) survives in SQLite.
+    persisted = store.load_cache('dummy')
+    assert persisted is not None
+    assert persisted.all_folders is not None
+    assert 'empty' in persisted.all_folders
+
+    # A fresh scanner hydrates the recorded folders without any walk.
+    ModelScanner._instances.clear()
+    hydrated = DummyScanner(root)
+    scan_result, invalid = hydrated._rebuild_persisted_cache()
+    assert scan_result is not None
+    assert scan_result.all_folders == persisted.all_folders
+
+
+def test_all_folders_absent_in_legacy_snapshot(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv('LORA_MANAGER_DISABLE_PERSISTENT_CACHE', '0')
+    store = PersistentModelCache(db_path=str(tmp_path / 'cache.sqlite'))
+
+    normalized = _normalize_path(tmp_path / 'one.txt')
+    raw_model = {
+        'file_path': normalized,
+        'file_name': 'one',
+        'model_name': 'one',
+        'folder': '',
+        'size': 3,
+        'modified': 123.0,
+        'sha256': 'hash-one',
+        'tags': [],
+    }
+
+    # Save without folder data, mimicking a snapshot written before folder
+    # recording existed.
+    store.save_cache('dummy', [raw_model], {'hash-one': [normalized]}, [])
+
+    persisted = store.load_cache('dummy')
+    assert persisted is not None
+    assert persisted.all_folders is None
 
 
 @pytest.mark.asyncio

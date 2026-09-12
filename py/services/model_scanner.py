@@ -62,10 +62,6 @@ def _is_hidden_relative_path(rel_path: str) -> bool:
     return any(part.startswith(".") for part in rel_path.replace(os.sep, "/").split("/"))
 
 
-# TTL (seconds) for the get_all_folders() live-walk cache, so rapid repeated
-# requests (modal open + autocomplete) do not re-walk the model roots.
-ALL_FOLDERS_CACHE_TTL_SECONDS = 5.0
-
 # Maps a scanner model type to the manager page type used in progress
 # broadcasts (e.g. 'lora' -> 'loras').
 PAGE_TYPE_MAP = {
@@ -89,6 +85,10 @@ class CacheBuildResult:
     hash_index: ModelHashIndex
     tags_count: Dict[str, int]
     excluded_models: List[str]
+    # Every directory under the model roots (including empty ones) discovered
+    # during the scan, or None when the source has no folder information
+    # (e.g. a persisted snapshot predating folder recording).
+    all_folders: Optional[List[str]] = None
 
 class ModelScanner:
     """Base service for scanning and managing model files"""
@@ -144,8 +144,9 @@ class ModelScanner:
         self._name_display_mode = self._resolve_name_display_mode()
         self._cancel_requested = False  # Flag for cancellation
         self._autov3_backfill_scheduled = False  # One-time AutoV3 backfill trigger per process
-        # Short-lived cache for get_all_folders(): (timestamp, folders) or None
-        self._all_folders_ttl_cache: Optional[Tuple[float, List[str]]] = None
+        # Guard against concurrent all-folders backfill walks (cold fallback
+        # for persisted snapshots that predate folder recording).
+        self._all_folders_backfill_running = False
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -217,7 +218,6 @@ class ModelScanner:
         self._excluded_models = []
         self._is_initializing = False
         self._name_display_mode = self._resolve_name_display_mode()
-        self.invalidate_all_folders_cache()
         self.bump_cache_version()
 
         try:
@@ -702,7 +702,8 @@ class ModelScanner:
             raw_data=valid_entries,
             hash_index=hash_index,
             tags_count=tags_count,
-            excluded_models=list(persisted.excluded_models)
+            excluded_models=list(persisted.excluded_models),
+            all_folders=list(persisted.all_folders) if persisted.all_folders is not None else None,
         )
         return scan_result, invalid_entries
 
@@ -737,6 +738,7 @@ class ModelScanner:
                 hash_snapshot,
                 list(scan_result.excluded_models),
                 autov3_snapshot,
+                scan_result.all_folders,
             )
         except Exception as exc:
             logger.warning("%s Scanner: Failed to persist cache: %s", self.model_type.capitalize(), exc)
@@ -784,7 +786,12 @@ class ModelScanner:
             raw_data=list(self._cache.raw_data),
             hash_index=self._hash_index,
             tags_count=dict(self._tags_count),
-            excluded_models=list(self._excluded_models)
+            excluded_models=list(self._excluded_models),
+            all_folders=(
+                list(self._cache.all_folders)
+                if self._cache.all_folders is not None
+                else None
+            ),
         )
         await self._save_persistent_cache(snapshot)
         await self._sync_download_history(snapshot.raw_data, source='scan')
@@ -1005,20 +1012,36 @@ class ModelScanner:
             await self._broadcast_scan_progress('started', 'reconcile_scan', 0, False)
             
             # Get current cached file paths
+            cached_size_before = len(self._cache.raw_data)
             cached_paths = {item['file_path'] for item in self._cache.raw_data}
             path_to_item = {item['file_path']: item for item in self._cache.raw_data}
-            cached_real_paths = {}
-            for cached_path in cached_paths:
-                try:
-                    cached_real_paths.setdefault(os.path.realpath(cached_path), cached_path)
-                except Exception:
-                    continue
+
+            # physical path -> cached business path, for the alias case where the
+            # same file is reachable under a different path than the cached one
+            # (overlapping roots / symlink layout changes): keep the existing
+            # entry instead of delete + re-add (which would re-read metadata and
+            # re-hash every file). Built lazily on the first miss, because a
+            # realpath per cached entry is ~half the cost of a no-change
+            # reconcile and the map is only ever consulted for misses.
+            cached_real_paths: Optional[Dict[str, str]] = None
+
+            def lookup_cached_real_path(real_path: str) -> Optional[str]:
+                nonlocal cached_real_paths
+                if cached_real_paths is None:
+                    cached_real_paths = {}
+                    for cached_path in cached_paths:
+                        try:
+                            cached_real_paths.setdefault(os.path.realpath(cached_path), cached_path)
+                        except Exception:
+                            continue
+                return cached_real_paths.get(real_path)
             
             # Track found files and new files
             found_paths = set()
             new_files = []
             visited_real_paths = set()
             discovered_real_files = set()
+            discovered_folders: Set[str] = set()
 
             # Scan all model roots
             for root_path in self.get_model_roots():
@@ -1033,19 +1056,31 @@ class ModelScanner:
                         continue
                     visited_real_paths.add(real_root)
 
+                    # Record every visited directory (including empty ones) so
+                    # the folder tree stays accurate without a live walk.
+                    rel_dir = os.path.relpath(
+                        os.path.abspath(root), os.path.abspath(root_path)
+                    ).replace(os.path.sep, "/")
+                    if rel_dir != "." and not _is_hidden_relative_path(rel_dir):
+                        discovered_folders.add(rel_dir)
+
                     for file in files:
                         ext = os.path.splitext(file)[1].lower()
                         if ext in self.file_extensions:
                             # Construct paths exactly as they would be in cache
                             file_path = os.path.join(root, file).replace(os.sep, '/')
-                            real_file_path = os.path.realpath(os.path.join(root, file))
-                            
+
                             # Check if this file is already in cache
                             if file_path in cached_paths:
                                 found_paths.add(file_path)
                                 continue
 
-                            cached_real_match = cached_real_paths.get(real_file_path)
+                            # Only a cache miss needs the physical path, so the
+                            # realpath syscalls are paid per changed file rather
+                            # than per file in the library.
+                            real_file_path = os.path.realpath(os.path.join(root, file))
+
+                            cached_real_match = lookup_cached_real_path(real_file_path)
                             if cached_real_match:
                                 found_paths.add(cached_real_match)
                                 continue
@@ -1090,6 +1125,9 @@ class ModelScanner:
                 total_new = len(new_files)
                 processed_new = 0
                 last_progress_time = time.time()
+                # Snapshot the roots once: this matches the walk above (which
+                # also snapshots them) and avoids a config read per new file.
+                model_roots = self.get_model_roots()
                 for i in range(0, total_new, batch_size):
                     batch = new_files[i:i+batch_size]
                     for path in batch:
@@ -1098,12 +1136,10 @@ class ModelScanner:
                         try:
                             # Find the appropriate root path for this file
                             root_path = None
-                            model_roots = self.get_model_roots()
+                            normalized_path = os.path.normpath(path)
                             for potential_root in model_roots:
                                 # Normalize both paths for comparison
-                                normalized_path = os.path.normpath(path)
-                                normalized_root = os.path.normpath(potential_root)
-                                if normalized_path.startswith(normalized_root):
+                                if normalized_path.startswith(os.path.normpath(potential_root)):
                                     root_path = potential_root
                                     break
                             
@@ -1200,25 +1236,41 @@ class ModelScanner:
                 # Update cache data
                 self._cache.raw_data = [item for item in self._cache.raw_data if item['file_path'] not in missing_files]
             
-            dedup_removed = 0
-            seen_paths: set[str] = set()
-            deduped: list[Dict[str, Any]] = []
-            for item in reversed(self._cache.raw_data):
-                path = item.get('file_path', '')
-                if path not in seen_paths:
-                    seen_paths.add(path)
-                    deduped.append(item)
-                else:
-                    for tag in item.get('tags', []):
-                        if tag in self._tags_count:
-                            self._tags_count[tag] = max(0, self._tags_count[tag] - 1)
-                            if self._tags_count[tag] == 0:
-                                del self._tags_count[tag]
-                    dedup_removed += 1
-            if dedup_removed > 0:
-                self._cache.raw_data = list(reversed(deduped))
-                total_removed += dedup_removed
+            # Defensive integrity pass: drop entries sharing a business path.
+            # Duplicates can only be introduced by external code rewriting
+            # raw_data directly or by this pass's own appends, so an unchanged
+            # filesystem walk over a clean cache has nothing to clean. The size
+            # mismatch is an O(1) tell that the snapshot already contained
+            # duplicates; skipping the O(N) pass when it is provably clean is
+            # what keeps a no-change Refresh cheap.
+            if cached_size_before != len(cached_paths) or total_added > 0:
+                dedup_removed = 0
+                seen_paths: set[str] = set()
+                deduped: list[Dict[str, Any]] = []
+                for item in reversed(self._cache.raw_data):
+                    path = item.get('file_path', '')
+                    if path not in seen_paths:
+                        seen_paths.add(path)
+                        deduped.append(item)
+                    else:
+                        for tag in item.get('tags', []):
+                            if tag in self._tags_count:
+                                self._tags_count[tag] = max(0, self._tags_count[tag] - 1)
+                                if self._tags_count[tag] == 0:
+                                    del self._tags_count[tag]
+                        dedup_removed += 1
+                if dedup_removed > 0:
+                    self._cache.raw_data = list(reversed(deduped))
+                    total_removed += dedup_removed
             
+            # The walk above visited every directory, so refresh the recorded
+            # folder list (including empty folders) even when no model files
+            # changed — e.g. an empty folder was created or removed externally.
+            sorted_discovered = sorted(discovered_folders, key=lambda x: x.lower())
+            folders_changed = self._cache.all_folders != sorted_discovered
+            if folders_changed:
+                self._cache.all_folders = sorted_discovered
+
             # Resort cache if changes were made
             if total_added > 0 or total_removed > 0:
                 # Update folders list
@@ -1230,6 +1282,8 @@ class ModelScanner:
                 # Resort cache
                 await self._cache.resort()
 
+                await self._persist_current_cache()
+            elif folders_changed:
                 await self._persist_current_cache()
                 
             logger.info(f"{self.model_type.capitalize()} Scanner: Cache reconciliation completed in {time.time() - start_time:.2f} seconds. Added {total_added}, removed {total_removed} models.")
@@ -1270,22 +1324,73 @@ class ModelScanner:
         raise NotImplementedError("Subclasses must implement get_model_roots")
 
     async def get_all_folders(self) -> List[str]:
+        """Return every known directory under the model roots.
+
+        The directory list (including empty ones) is recorded during cache
+        scans and hydrated from the persisted snapshot, so this is a pure
+        in-memory read — no filesystem walk ever runs on the event loop
+        (walking network roots synchronously used to freeze the whole
+        server, see issue #1110). The result is unioned with the
+        model-derived folders so it is always a superset of
+        ``cache.folders``.
+
+        Cold fallback: when the cache was hydrated from a persisted snapshot
+        that predates folder recording (``all_folders is None``), a one-shot
+        background walk is scheduled off the event loop to backfill and
+        persist the list; until it lands, the models-only folders are
+        returned.
+        """
+        folders: Set[str] = set()
+        cache = self._cache
+        if cache is not None:
+            folders |= {item.get('folder', '') for item in cache.raw_data}
+            recorded = getattr(cache, 'all_folders', None)
+            if recorded is None:
+                self._schedule_all_folders_backfill()
+            else:
+                folders |= set(recorded)
+        else:
+            self._schedule_all_folders_backfill()
+
+        return sorted(folders, key=lambda x: x.lower())
+
+    def _schedule_all_folders_backfill(self) -> None:
+        """Kick off a one-shot background folder walk if none is running."""
+        if self._all_folders_backfill_running:
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        self._all_folders_backfill_running = True
+        loop.create_task(self._run_all_folders_backfill())
+
+    async def _run_all_folders_backfill(self) -> None:
+        """Walk the roots in a worker thread, then record and persist the result."""
+        try:
+            loop = asyncio.get_running_loop()
+            folders = await loop.run_in_executor(None, self._walk_all_folders_sync)
+            cache = self._cache
+            # A scan may have recorded the list while the walk was in flight;
+            # prefer the fresher scan data in that case.
+            if cache is not None and cache.all_folders is None:
+                cache.all_folders = folders
+                await self._persist_current_cache()
+        except Exception as exc:
+            logger.warning(
+                "%s Scanner: all-folders backfill failed: %s",
+                self.model_type.capitalize(),
+                exc,
+            )
+        finally:
+            self._all_folders_backfill_running = False
+
+    def _walk_all_folders_sync(self) -> List[str]:
         """Enumerate every directory under the model roots, live from disk.
 
-        Unlike the models-only ``cache.folders``, this includes empty
-        directories, so it stays accurate even when the in-memory cache was
-        hydrated from a persisted snapshot without a filesystem walk. Hidden
-        directories (any segment starting with '.') and the pending-delete
-        staging dir are excluded. The result is unioned with the model-derived
-        folders so it is always a superset of ``cache.folders``, and cached
-        for ``ALL_FOLDERS_CACHE_TTL_SECONDS`` to avoid repeated walks.
+        Runs in a worker thread. Hidden directories (any segment starting
+        with '.') and the pending-delete staging dir are excluded.
         """
-        now = time.monotonic()
-        if self._all_folders_ttl_cache is not None:
-            cached_at, cached_folders = self._all_folders_ttl_cache
-            if now - cached_at < ALL_FOLDERS_CACHE_TTL_SECONDS:
-                return cached_folders
-
         discovered: Set[str] = set()
         visited_real_paths: Set[str] = set()
 
@@ -1307,17 +1412,7 @@ class ModelScanner:
                 if rel_dir != "." and not _is_hidden_relative_path(rel_dir):
                     discovered.add(rel_dir)
 
-        folders = set(discovered)
-        if self._cache is not None:
-            folders |= {item.get('folder', '') for item in self._cache.raw_data}
-
-        result = sorted(folders, key=lambda x: x.lower())
-        self._all_folders_ttl_cache = (now, result)
-        return result
-
-    def invalidate_all_folders_cache(self) -> None:
-        """Drop the cached get_all_folders() result (e.g. after a move)."""
-        self._all_folders_ttl_cache = None
+        return sorted(discovered, key=lambda x: x.lower())
     
     async def _create_default_metadata(self, file_path: str) -> Optional[BaseModelMetadata]:
         """Get model file info and metadata (extensible for different model types)"""
@@ -1541,6 +1636,9 @@ class ModelScanner:
         else:
             self._cache.raw_data = list(scan_result.raw_data)
 
+        if scan_result.all_folders is not None:
+            self._cache.all_folders = list(scan_result.all_folders)
+
         # resort() rebuilds folders and the version index on every path, so a
         # separate rebuild_version_index() call here would be redundant.
         await self._cache.resort()
@@ -1638,6 +1736,7 @@ class ModelScanner:
         processed_files = 0
         processed_real_files: Set[str] = set()
         visited_real_dirs: Set[str] = set()
+        discovered_folders: Set[str] = set()
 
         async def handle_progress(current_name: str = '') -> None:
             if progress_callback is None:
@@ -1716,6 +1815,13 @@ class ModelScanner:
                         elif entry.is_dir(follow_symlinks=True):
                             if _is_excluded_dir(entry.name):
                                 continue
+                            # Record every directory (including empty ones) so
+                            # the folder tree can be served without a live walk.
+                            rel_dir = os.path.relpath(
+                                os.path.abspath(entry.path), os.path.abspath(root_path)
+                            ).replace(os.path.sep, "/")
+                            if not _is_hidden_relative_path(rel_dir):
+                                discovered_folders.add(rel_dir)
                             await scan_recursive(entry.path, root_path, visited_paths)
                     except Exception as entry_error:
                         logger.error(f"Error processing entry {entry.path}: {entry_error}")
@@ -1735,7 +1841,8 @@ class ModelScanner:
             raw_data=raw_data,
             hash_index=hash_index,
             tags_count=tags_count,
-            excluded_models=excluded_models
+            excluded_models=excluded_models,
+            all_folders=sorted(discovered_folders, key=lambda x: x.lower()),
         )
 
     async def add_model_to_cache(self, metadata_dict: Dict[str, Any], folder: str = '') -> bool:
@@ -1992,16 +2099,22 @@ class ModelScanner:
             all_folders = set(item['folder'] for item in cache.raw_data)
             cache.folders = sorted(list(all_folders), key=lambda x: x.lower())
 
+            # The move target may live in directories the last scan never saw;
+            # record the destination folder (and its parents) in the known
+            # folder list so the folder tree reflects it without a rescan.
+            if cache.all_folders is not None and folder_value:
+                parts = folder_value.split("/")
+                known = set(cache.all_folders)
+                for i in range(1, len(parts) + 1):
+                    known.add("/".join(parts[:i]))
+                cache.all_folders = sorted(known, key=lambda x: x.lower())
+
             for tag in cache_entry.get('tags', []):
                 self._tags_count[tag] = self._tags_count.get(tag, 0) + 1
 
         cache.rebuild_version_index()
 
         await cache.resort()
-
-        # A move may have created new directories; drop the cached live-walk
-        # result so the next include_empty request sees them.
-        self.invalidate_all_folders_cache()
 
         if cache_modified:
             await self._persist_current_cache()
