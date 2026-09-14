@@ -25,9 +25,14 @@ from typing import (
 from platformdirs import user_config_dir
 
 from ..utils.constants import (
+    DEFAULT_DOWNLOAD_PATH_TEMPLATES,
+    DEFAULT_ENABLED_OTHER_SUB_TYPES,
     DEFAULT_HASH_CHUNK_SIZE_MB,
     DEFAULT_PRIORITY_TAG_CONFIG,
+    OTHER_SUB_TYPE_FOLDER_KEYS,
     SUPPORTED_DOWNLOAD_SKIP_BASE_MODELS,
+    VALID_OTHER_SUB_TYPES,
+    normalize_other_sub_types,
 )
 from ..utils.preview_selection import VALID_MATURE_BLUR_LEVELS
 from ..utils.settings_paths import (
@@ -83,6 +88,11 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "default_checkpoint_root": "",
     "default_unet_root": "",
     "default_embedding_root": "",
+    "default_other_roots": {},
+    # Other Models management is opt-in: nothing is scanned, shown or offered
+    # for download until the user turns the feature on.
+    "enable_other_models": False,
+    "enabled_other_sub_types": list(DEFAULT_ENABLED_OTHER_SUB_TYPES),
     "recipes_path": "",
     "base_model_path_mappings": {},
     "download_path_templates": {},
@@ -309,6 +319,7 @@ class SettingsManager:
                 default_checkpoint_root=merged.get("default_checkpoint_root"),
                 default_unet_root=merged.get("default_unet_root"),
                 default_embedding_root=merged.get("default_embedding_root"),
+                default_other_roots=merged.get("default_other_roots"),
                 recipes_path=merged.get("recipes_path"),
             )
         }
@@ -443,6 +454,7 @@ class SettingsManager:
                 ),
                 default_unet_root=self.settings.get("default_unet_root", ""),
                 default_embedding_root=self.settings.get("default_embedding_root", ""),
+                default_other_roots=self.settings.get("default_other_roots"),
                 recipes_path=self.settings.get("recipes_path", ""),
             )
             libraries = {library_name: library_payload}
@@ -494,6 +506,7 @@ class SettingsManager:
                 default_checkpoint_root=data.get("default_checkpoint_root"),
                 default_unet_root=data.get("default_unet_root"),
                 default_embedding_root=data.get("default_embedding_root"),
+                default_other_roots=data.get("default_other_roots"),
                 recipes_path=data.get("recipes_path"),
                 metadata=data.get("metadata"),
                 base=data,
@@ -541,6 +554,9 @@ class SettingsManager:
         self.settings["default_embedding_root"] = active_library.get(
             "default_embedding_root", ""
         )
+        self.settings["default_other_roots"] = self._normalize_default_other_roots(
+            active_library.get("default_other_roots", {})
+        )
         self.settings["recipes_path"] = active_library.get("recipes_path", "")
 
         if save:
@@ -558,6 +574,7 @@ class SettingsManager:
         default_checkpoint_root: Optional[str] = None,
         default_unet_root: Optional[str] = None,
         default_embedding_root: Optional[str] = None,
+        default_other_roots: Optional[Mapping[str, str]] = None,
         recipes_path: Optional[str] = None,
         metadata: Optional[Mapping[str, Any]] = None,
         base: Optional[Mapping[str, Any]] = None,
@@ -597,6 +614,15 @@ class SettingsManager:
         else:
             payload.setdefault("default_embedding_root", "")
 
+        if default_other_roots is not None:
+            payload["default_other_roots"] = self._normalize_default_other_roots(
+                default_other_roots
+            )
+        else:
+            payload["default_other_roots"] = self._normalize_default_other_roots(
+                payload.get("default_other_roots", {})
+            )
+
         if recipes_path is not None:
             payload["recipes_path"] = recipes_path
         else:
@@ -631,6 +657,71 @@ class SettingsManager:
                     seen.add(stripped)
             normalized[key] = cleaned
         return normalized
+
+    def _normalize_default_other_roots(
+        self, value: Any, *, strict: bool = False
+    ) -> Dict[str, str]:
+        """Normalize a ``default_other_roots`` mapping ({sub_type: root path}).
+
+        Unknown sub_type keys and non-string/empty paths are dropped; with
+        ``strict=True`` unknown sub_type keys raise instead (used by ``set()``
+        so typos in API payloads surface as errors).
+        """
+        if not isinstance(value, Mapping):
+            if strict and value is not None:
+                raise ValueError("default_other_roots must be a mapping")
+            return {}
+        normalized: Dict[str, str] = {}
+        for sub_type, path in value.items():
+            if sub_type not in VALID_OTHER_SUB_TYPES:
+                if strict:
+                    raise ValueError(
+                        f"Unknown other-model sub-type '{sub_type}'; "
+                        f"expected one of {sorted(VALID_OTHER_SUB_TYPES)}"
+                    )
+                continue
+            if not isinstance(path, str):
+                continue
+            stripped = path.strip()
+            if stripped:
+                normalized[sub_type] = stripped
+        return normalized
+
+    def is_other_models_enabled(self) -> bool:
+        """Return True when the opt-in Other Models management is enabled."""
+        return bool(self.settings.get("enable_other_models", False))
+
+    def get_enabled_other_sub_types(self) -> List[str]:
+        """Return the enabled other-model sub_types (empty when the feature is off)."""
+        if not self.is_other_models_enabled():
+            return []
+        return normalize_other_sub_types(self.settings.get("enabled_other_sub_types"))
+
+    def is_other_sub_type_enabled(self, sub_type: Optional[str]) -> bool:
+        """Return True when ``sub_type`` is currently managed."""
+        if not sub_type:
+            return False
+        return sub_type in self.get_enabled_other_sub_types()
+
+    def _apply_other_model_settings_change(self) -> None:
+        """Rebuild other-model roots and refresh the other scanner after a toggle."""
+        try:
+            from ..config import config  # Local import to avoid circular dependency
+
+            config.refresh_other_roots()
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.debug("Failed to refresh other-model roots: %s", exc)
+
+        try:
+            from .service_registry import ServiceRegistry  # pyright: ignore[reportImportCycles]
+
+            scanner = ServiceRegistry.get_service_sync("other_scanner")
+            if scanner is not None and hasattr(scanner, "on_library_changed"):
+                # reconcile=True lets the scanner pick up newly enabled roots and
+                # purge rows for folders that are no longer managed.
+                scanner.on_library_changed(reconcile=True)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.debug("Failed to refresh other scanner after settings change: %s", exc)
 
     def _has_configured_paths(self, folder_paths: Any) -> bool:
         if not isinstance(folder_paths, Mapping):
@@ -744,6 +835,7 @@ class SettingsManager:
         default_checkpoint_root: Optional[str] = None,
         default_unet_root: Optional[str] = None,
         default_embedding_root: Optional[str] = None,
+        default_other_roots: Optional[Mapping[str, str]] = None,
         recipes_path: Optional[str] = None,
     ) -> bool:
         libraries = self.settings.get("libraries", {})
@@ -793,6 +885,14 @@ class SettingsManager:
         ):
             library["default_embedding_root"] = default_embedding_root
             changed = True
+
+        if default_other_roots is not None:
+            normalized_other_roots = self._normalize_default_other_roots(
+                default_other_roots
+            )
+            if library.get("default_other_roots") != normalized_other_roots:
+                library["default_other_roots"] = normalized_other_roots
+                changed = True
 
         if recipes_path is not None and library.get("recipes_path") != recipes_path:
             library["recipes_path"] = recipes_path
@@ -894,12 +994,53 @@ class SettingsManager:
         updated = _check_and_auto_set("unet", "default_unet_root") or updated
         updated = _check_and_auto_set("embeddings", "default_embedding_root") or updated
 
+        # Other-model default roots: one entry per enabled sub_type; candidates
+        # are the union of that sub_type's folder_paths keys (text_encoder
+        # merges the legacy 'clip' key with 'text_encoders'). When the opt-in
+        # feature is off the existing mapping is left untouched.
+        other_roots = self._normalize_default_other_roots(
+            self.settings.get("default_other_roots")
+        )
+        if self.is_other_models_enabled():
+            for sub_type in self.get_enabled_other_sub_types():
+                candidates: List[str] = []
+                candidate_identities: set[str] = set()
+                for folder_key in OTHER_SUB_TYPE_FOLDER_KEYS.get(sub_type, []):
+                    for candidate in self._get_valid_root_candidates(folder_key):
+                        identity = _normalize_root_identity(candidate)
+                        if identity in candidate_identities:
+                            continue
+                        candidate_identities.add(identity)
+                        candidates.append(candidate)
+                if not candidates:
+                    continue
+                current = other_roots.get(sub_type, "")
+                if current and _normalize_root_identity(current) in candidate_identities:
+                    continue
+                other_roots[sub_type] = candidates[0]
+                if current:
+                    logger.info(
+                        "Repaired stale default_other_roots[%s] from '%s' to '%s' because it is not present in primary or extra roots",
+                        sub_type,
+                        current,
+                        candidates[0],
+                    )
+                else:
+                    logger.info(
+                        "Auto-set default_other_roots[%s] to '%s'",
+                        sub_type,
+                        candidates[0],
+                    )
+                updated = True
+
         if updated:
+            self.settings["default_other_roots"] = other_roots
             self._update_active_library_entry(
                 default_lora_root=self.settings.get("default_lora_root"),
                 default_checkpoint_root=self.settings.get("default_checkpoint_root"),
                 default_unet_root=self.settings.get("default_unet_root"),
                 default_embedding_root=self.settings.get("default_embedding_root"),
+                default_other_roots=other_roots,
             )
             if self._bootstrap_reason == "missing":
                 self._needs_initial_save = True
@@ -1599,6 +1740,12 @@ class SettingsManager:
             value = self.normalize_download_skip_base_models(value)
         elif key == "mature_blur_level":
             value = self.normalize_mature_blur_level(value)
+        elif key == "default_other_roots":
+            value = self._normalize_default_other_roots(value, strict=True)
+        elif key == "enabled_other_sub_types":
+            value = normalize_other_sub_types(value)
+        elif key == "enable_other_models":
+            value = bool(value)
         elif key == "recipes_path":
             current_recipes_dir = self._get_effective_recipes_dir()
             value = self._normalize_recipes_path_value(value)
@@ -1626,6 +1773,8 @@ class SettingsManager:
             self._update_active_library_entry(default_unet_root=str(value))
         elif key == "default_embedding_root":
             self._update_active_library_entry(default_embedding_root=str(value))
+        elif key == "default_other_roots":
+            self._update_active_library_entry(default_other_roots=value)
         elif key == "recipes_path":
             self._update_active_library_entry(recipes_path=str(value))
         elif key == "model_name_display":
@@ -1633,6 +1782,8 @@ class SettingsManager:
         self._save_settings()
         if key == "recipes_path":
             self._notify_library_change(self.get_active_library_name())
+        if key in ("enable_other_models", "enabled_other_sub_types"):
+            self._apply_other_model_settings_change()
         if portable_switch_pending:
             self._finalize_portable_switch()
 
@@ -1796,6 +1947,7 @@ class SettingsManager:
             "lora_scanner",
             "checkpoint_scanner",
             "embedding_scanner",
+            "other_scanner",
             "recipe_scanner",
         ):
             service = ServiceRegistry.get_service_sync(service_name)
@@ -1960,6 +2112,7 @@ class SettingsManager:
         default_checkpoint_root: Optional[str] = None,
         default_unet_root: Optional[str] = None,
         default_embedding_root: Optional[str] = None,
+        default_other_roots: Optional[Mapping[str, str]] = None,
         recipes_path: Optional[str] = None,
         metadata: Optional[Mapping[str, Any]] = None,
         activate: bool = False,
@@ -2004,6 +2157,11 @@ class SettingsManager:
                 if default_embedding_root is not None
                 else existing.get("default_embedding_root")
             ),
+            default_other_roots=(
+                default_other_roots
+                if default_other_roots is not None
+                else existing.get("default_other_roots")
+            ),
             recipes_path=(
                 recipes_path
                 if recipes_path is not None
@@ -2036,6 +2194,7 @@ class SettingsManager:
         default_checkpoint_root: str = "",
         default_unet_root: str = "",
         default_embedding_root: str = "",
+        default_other_roots: Optional[Mapping[str, str]] = None,
         recipes_path: str = "",
         metadata: Optional[Mapping[str, Any]] = None,
         activate: bool = False,
@@ -2054,6 +2213,7 @@ class SettingsManager:
             default_checkpoint_root=default_checkpoint_root,
             default_unet_root=default_unet_root,
             default_embedding_root=default_embedding_root,
+            default_other_roots=default_other_roots,
             recipes_path=recipes_path,
             metadata=metadata,
             activate=activate,
@@ -2114,6 +2274,7 @@ class SettingsManager:
         default_checkpoint_root: Optional[str] = None,
         default_unet_root: Optional[str] = None,
         default_embedding_root: Optional[str] = None,
+        default_other_roots: Optional[Mapping[str, str]] = None,
         recipes_path: Optional[str] = None,
     ) -> None:
         """Update folder paths for the active library."""
@@ -2127,6 +2288,7 @@ class SettingsManager:
             default_checkpoint_root=default_checkpoint_root,
             default_unet_root=default_unet_root,
             default_embedding_root=default_embedding_root,
+            default_other_roots=default_other_roots,
             recipes_path=recipes_path,
             activate=True,
         )
@@ -2151,6 +2313,7 @@ class SettingsManager:
                 "lora_scanner",
                 "checkpoint_scanner",
                 "embedding_scanner",
+                "other_scanner",
                 "recipe_scanner",
                 "model_update_service",
             ):
@@ -2173,10 +2336,14 @@ class SettingsManager:
         """Get download path template for specific model type
 
         Args:
-            model_type: The type of model ('lora', 'checkpoint', 'embedding')
+            model_type: The type of model ('lora', 'checkpoint', 'embedding',
+                'other')
 
         Returns:
-            Template string for the model type, defaults to '{base_model}/{first_tag}'
+            Template string for the model type. Falls back to the per-type
+            default in ``DEFAULT_DOWNLOAD_PATH_TEMPLATES``; unknown model types
+            resolve to an empty string (flat layout) rather than silently
+            nesting downloads under an unconfigured subfolder.
         """
         templates = self.settings.get("download_path_templates", {})
 
@@ -2200,27 +2367,19 @@ class SettingsManager:
                 logger.warning(
                     f"Failed to parse download_path_templates JSON string: {e}. Setting default values."
                 )
-                default_template = "{base_model}/{first_tag}"
-                templates = {
-                    "lora": default_template,
-                    "checkpoint": default_template,
-                    "embedding": default_template,
-                }
+                templates = dict(DEFAULT_DOWNLOAD_PATH_TEMPLATES)
                 self.settings["download_path_templates"] = templates
                 self._save_settings()
 
         # Ensure templates is a dictionary
         if not isinstance(templates, dict):
-            default_template = "{base_model}/{first_tag}"
-            templates = {
-                "lora": default_template,
-                "checkpoint": default_template,
-                "embedding": default_template,
-            }
+            templates = dict(DEFAULT_DOWNLOAD_PATH_TEMPLATES)
             self.settings["download_path_templates"] = templates
             self._save_settings()
 
-        return templates.get(model_type, "{base_model}/{first_tag}")
+        return templates.get(
+            model_type, DEFAULT_DOWNLOAD_PATH_TEMPLATES.get(model_type, "")
+        )
 
 
 _SETTINGS_MANAGER: Optional["SettingsManager"] = None

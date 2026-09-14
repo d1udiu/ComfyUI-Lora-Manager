@@ -149,6 +149,7 @@
             "copyCheckpointName": "העתק שם Checkpoint",
             "copyEmbeddingName": "העתק שם Embedding",
             "embeddingNameCopied": "תחביר Embedding הועתק",
+            "modelNameCopied": "שם המודל הועתק",
             "sendCheckpointToWorkflow": "שלח ל-ComfyUI",
             "sendEmbeddingToWorkflow": "שלח ל-ComfyUI"
         },
@@ -233,6 +234,7 @@
             "recipes": "מתכונים",
             "checkpoints": "Checkpoints",
             "embeddings": "Embeddings",
+            "other": "אחרים",
             "statistics": "סטטיסטיקה"
         },
         "search": {
@@ -533,6 +535,25 @@
             "defaultUnetRootHelp": "הגדר את ספריית השורש המוגדרת כברירת מחדל של Diffusion Model (UNET) להורדות, ייבוא והעברות",
             "defaultEmbeddingRoot": "תיקיית שורש Embedding",
             "defaultEmbeddingRootHelp": "הגדר את ספריית השורש המוגדרת כברירת מחדל של embedding להורדות, ייבוא והעברות",
+            "defaultVaeRoot": "תיקיית שורש VAE",
+            "defaultVaeRootHelp": "הגדר את ספריית השורש המוגדרת כברירת מחדל של VAE להורדות, ייבוא והעברות",
+            "defaultUpscalerRoot": "תיקיית שורש Upscaler",
+            "defaultUpscalerRootHelp": "הגדר את ספריית השורש המוגדרת כברירת מחדל של Upscaler להורדות, ייבוא והעברות",
+            "defaultTextEncoderRoot": "תיקיית שורש Text Encoder",
+            "defaultTextEncoderRootHelp": "הגדר את ספריית השורש המוגדרת כברירת מחדל של Text Encoder להורדות, ייבוא והעברות",
+            "defaultClipVisionRoot": "תיקיית שורש CLIP Vision",
+            "defaultClipVisionRootHelp": "הגדר את ספריית השורש המוגדרת כברירת מחדל של CLIP Vision להורדות, ייבוא והעברות",
+            "defaultControlnetRoot": "תיקיית שורש ControlNet",
+            "defaultControlnetRootHelp": "הגדר את ספריית השורש המוגדרת כברירת מחדל של ControlNet להורדות, ייבוא והעברות",
+            "enableOtherModels": "ניהול מודלים אחרים",
+            "enableOtherModelsHelp": "כשהאפשרות כבויה, תיקיות VAE / Upscaler / Text Encoder / CLIP Vision / ControlNet אינן נסרקות, עמוד המודלים האחרים נשאר מושבת ולא ניתן להוריד סוגי מודלים אלה.",
+            "otherSubTypes": "סוגי מודלים מנוהלים",
+            "otherSubTypesHelp": "בחר אילו קטגוריות של מודלים אחרים ייסרקו ויוצגו בעמוד המודלים האחרים.",
+            "subTypeVae": "VAE",
+            "subTypeUpscaler": "Upscaler",
+            "subTypeTextEncoder": "Text Encoder",
+            "subTypeClipVision": "CLIP Vision",
+            "subTypeControlnet": "ControlNet",
             "recipesPath": "נתיב אחסון מתכונים",
             "recipesPathHelp": "ספרייה מותאמת אישית אופציונלית למתכונים שנשמרו. השאר ריק כדי להשתמש בתיקיית recipes של שורש LoRA הראשון.",
             "recipesPathPlaceholder": "/path/to/recipes",
@@ -1200,6 +1221,26 @@
     },
     "embeddings": {
         "title": "מודלי Embedding"
+    },
+    "other": {
+        "title": "מודלים אחרים",
+        "disabled": {
+            "title": "ניהול המודלים האחרים כבוי",
+            "description": "הפעל כדי לסרוק ולנהל קבצי VAE, Upscaler, Text Encoder, CLIP Vision ו-ControlNet, ולהוריד אותם מ-CivitAI.",
+            "enableButton": "הפעל מודלים אחרים",
+            "hint": "ניתן לשנות את סוגי המודלים המנוהלים מאוחר יותר בהגדרות > ספרייה.",
+            "enableFailed": "הפעלת המודלים האחרים נכשלה",
+            "downloadBlocked": "ניהול המודלים האחרים מושבת עבור סוג מודל זה. הפעל אותו בהגדרות > ספרייה כדי להוריד קובץ זה.",
+            "enableAction": "הפעל מודלים אחרים"
+        },
+        "noPaths": {
+            "title": "לא נמצאו תיקיות של מודלים אחרים",
+            "descriptionStandalone": "ניהול המודלים האחרים פועל, אך אף אחת מתיקיות המודלים המוגדרות אינה קיימת בדיסק. הוסף את נתיבי התיקיות שלמטה ל-settings.json והפעל מחדש את LoRA Manager.",
+            "hintStandalone": "רק מפתחות התיקיות המפורטים למעלה נסרקים; ניתן להשמיט מפתחות שאינך צריך.",
+            "descriptionComfyUI": "ניהול המודלים האחרים פועל, אך אף אחת מתיקיות המודלים המוגדרות אינה קיימת בדיסק. הוסף את תיקיות המודלים המתאימות לנתיבי המודלים של ComfyUI וטען מחדש עמוד זה.",
+            "hintComfyUI": "מודלים אחרים נקראים מתיקיות vae, upscale_models, text_encoders, clip_vision ו-controlnet של ComfyUI.",
+            "openSettings": "פתח הגדרות"
+        }
     },
     "sidebar": {
         "modelRoot": "שורש",
@@ -1878,6 +1919,10 @@
             "title": "מאתחל מנהל Embedding",
             "message": "סורק ובונה מטמון embedding. זה עשוי לקחת מספר דקות..."
         },
+        "other": {
+            "title": "מאתחל את מנהל המודלים האחרים",
+            "message": "סורק ובונה מטמון מודלים. זה עשוי לקחת מספר דקות..."
+        },
         "recipes": {
             "title": "מאתחל מנהל מתכונים",
             "message": "טוען ומעבד מתכונים. זה עשוי לקחת מספר דקות..."
@@ -2333,6 +2378,7 @@
             "checkpointRootsFailed": "טעינת שורשי checkpoint נכשלה: {message}",
             "unetRootsFailed": "טעינת שורשי Diffusion Model נכשלה: {message}",
             "embeddingRootsFailed": "טעינת שורשי embedding נכשלה: {message}",
+            "otherRootsFailed": "טעינת שורשי המודלים האחרים נכשלה: {message}",
             "mappingsUpdated": "מיפויי נתיבי מודל בסיס עודכנו ({count})",
             "mappingsCleared": "מיפויי נתיבי מודל בסיס נוקו",
             "mappingSaveFailed": "שמירת מיפויי מודל בסיס נכשלה: {message}",
@@ -2595,6 +2641,12 @@
             "rebuilding": "בונה מחדש את המטמון...",
             "rebuildFailed": "נכשלה בניית המטמון מחדש: {error}",
             "retry": "נסה שוב"
+        },
+        "otherModels": {
+            "title": "ניהול המודלים האחרים זמין",
+            "content": "סרוק ונהל קבצי VAE, Upscaler, Text Encoder, CLIP Vision ו-ControlNet, והורד אותם מ-CivitAI — מהעמוד הייעודי.",
+            "enable": "הפעל מודלים אחרים",
+            "openSettings": "פתח הגדרות"
         }
     }
 }

@@ -345,6 +345,26 @@ def test_download_path_template_invalid_json(manager):
     )
 
 
+def test_download_path_template_defaults_flat_for_other(manager):
+    """'other' has no settings-UI row and no priority_tags entry, so an
+    unconfigured template must resolve to a flat layout rather than the
+    {base_model}/{first_tag} fallback (which scatters files into arbitrary
+    CivitAI-tag folders)."""
+    manager.settings["download_path_templates"] = {}
+
+    assert manager.get_download_path_template("other") == ""
+
+    # An explicit user configuration still wins.
+    manager.settings["download_path_templates"] = {"other": "{base_model}"}
+    assert manager.get_download_path_template("other") == "{base_model}"
+
+
+def test_download_path_template_unknown_type_is_flat(manager):
+    manager.settings["download_path_templates"] = {}
+
+    assert manager.get_download_path_template("not-a-model-type") == ""
+
+
 def test_auto_set_default_roots(manager):
     # Clear any previously auto-set values to test fresh behavior
     manager.settings["default_lora_root"] = ""
@@ -1208,3 +1228,192 @@ def test_skip_previously_downloaded_model_versions_coerces_string_input(manager)
 
     assert manager.get_skip_previously_downloaded_model_versions() is True
     assert manager.settings["skip_previously_downloaded_model_versions"] is True
+
+
+def test_default_other_roots_stay_empty_without_other_folders(manager):
+    assert manager._get_default_settings()["default_other_roots"] == {}
+
+    manager.settings["default_other_roots"] = {}
+    manager.settings["folder_paths"] = {}
+    manager.settings["extra_folder_paths"] = {}
+
+    manager._auto_set_default_roots()
+
+    assert manager.get("default_other_roots") == {}
+
+
+def test_other_models_disabled_by_default(manager):
+    assert manager.is_other_models_enabled() is False
+    assert manager.get_enabled_other_sub_types() == []
+    assert manager.is_other_sub_type_enabled("vae") is False
+
+
+def test_default_enabled_other_sub_types_are_the_dependency_trio(manager):
+    """clip_vision and controlnet are workflow-driven, so both stay opt-in."""
+    manager.settings["enable_other_models"] = True
+
+    assert manager.get_enabled_other_sub_types() == [
+        "vae",
+        "upscaler",
+        "text_encoder",
+    ]
+    assert manager.is_other_sub_type_enabled("clip_vision") is False
+    assert manager.is_other_sub_type_enabled("controlnet") is False
+
+
+def test_enabled_other_sub_types_falls_back_to_defaults(manager):
+    manager.settings["enable_other_models"] = True
+    manager.settings["enabled_other_sub_types"] = None
+
+    assert manager.get_enabled_other_sub_types() == [
+        "vae",
+        "upscaler",
+        "text_encoder",
+    ]
+
+
+def test_auto_set_default_other_roots_skipped_when_feature_off(manager):
+    manager.settings["enable_other_models"] = False
+    manager.settings["default_other_roots"] = {}
+    manager.settings["folder_paths"] = {"vae": ["/vae"]}
+
+    manager._auto_set_default_roots()
+
+    assert manager.get("default_other_roots") == {}
+
+
+def test_set_enabled_other_sub_types_normalizes(manager):
+    manager.settings["enable_other_models"] = True
+    manager.set("enabled_other_sub_types", ["controlnet", "vae", "nope", "vae", 42])
+
+    assert manager.get("enabled_other_sub_types") == ["vae", "controlnet"]
+    assert manager.is_other_sub_type_enabled("vae") is True
+    assert manager.is_other_sub_type_enabled("upscaler") is False
+
+
+def test_auto_set_default_other_roots(manager):
+    manager.settings["enable_other_models"] = True
+    manager.settings["default_other_roots"] = {}
+    # clip_vision is opt-in, so enable it explicitly for this iteration test.
+    manager.settings["enabled_other_sub_types"] = ["vae", "upscaler", "clip_vision"]
+    manager.settings["folder_paths"] = {
+        "vae": ["/vae"],
+        "upscale_models": ["/upscalers"],
+        "clip_vision": ["/clip_vision"],
+    }
+
+    manager._auto_set_default_roots()
+
+    roots = manager.get("default_other_roots")
+    assert roots["vae"] == "/vae"
+    assert roots["upscaler"] == "/upscalers"
+    assert roots["clip_vision"] == "/clip_vision"
+    # text_encoder has no configured folders -> no entry
+    assert "text_encoder" not in roots
+    assert "controlnet" not in roots
+
+
+def test_auto_set_default_other_roots_text_encoder_dual_key_union(manager):
+    """text_encoder candidates merge text_encoders and the legacy clip key."""
+    manager.settings["enable_other_models"] = True
+    manager.settings["default_other_roots"] = {}
+    manager.settings["folder_paths"] = {
+        "clip": ["/legacy-clip"],
+        "text_encoders": ["/text-encoders"],
+    }
+
+    manager._auto_set_default_roots()
+
+    roots = manager.get("default_other_roots")
+    assert roots["text_encoder"] in {"/legacy-clip", "/text-encoders"}
+
+    # A value pointing at either key's root is considered valid
+    manager.settings["default_other_roots"] = {"text_encoder": "/legacy-clip"}
+    manager._auto_set_default_roots()
+    assert manager.get("default_other_roots")["text_encoder"] == "/legacy-clip"
+
+
+def test_auto_set_default_other_roots_repairs_stale(manager):
+    manager.settings["enable_other_models"] = True
+    manager.settings["default_other_roots"] = {"vae": "/stale-vae"}
+    manager.settings["folder_paths"] = {"vae": ["/vae"]}
+
+    manager._auto_set_default_roots()
+
+    assert manager.get("default_other_roots")["vae"] == "/vae"
+
+
+def test_auto_set_default_other_roots_uses_extra_folder_paths(manager):
+    manager.settings["enable_other_models"] = True
+    manager.settings["default_other_roots"] = {}
+    manager.settings["folder_paths"] = {"vae": []}
+    manager.settings["extra_folder_paths"] = {"vae": ["/extra-vae"]}
+
+    manager._auto_set_default_roots()
+
+    assert manager.get("default_other_roots")["vae"] == "/extra-vae"
+
+
+def test_set_default_other_roots_syncs_active_library(manager):
+    manager.set("default_other_roots", {"vae": "/vae"})
+
+    libraries = manager.get_libraries()
+    active = manager.get_active_library_name()
+    assert libraries[active]["default_other_roots"] == {"vae": "/vae"}
+    assert manager.get("default_other_roots") == {"vae": "/vae"}
+
+
+def test_set_default_other_roots_rejects_illegal_sub_type(manager):
+    with pytest.raises(ValueError, match="Unknown other-model sub-type"):
+        manager.set("default_other_roots", {"vae": "/vae", "lora": "/loras"})
+
+
+def test_set_default_other_roots_normalizes_values(manager):
+    manager.set("default_other_roots", {"vae": "  /vae  ", "upscaler": ""})
+    assert manager.get("default_other_roots") == {"vae": "/vae"}
+
+
+def test_upsert_library_passthrough_default_other_roots(manager, tmp_path):
+    manager.upsert_library(
+        "studio",
+        folder_paths={"loras": ["/studio/loras"], "vae": ["/studio/vae"]},
+        default_other_roots={"vae": "/studio/vae"},
+        activate=True,
+    )
+
+    libraries = manager.get_libraries()
+    assert libraries["studio"]["default_other_roots"] == {"vae": "/studio/vae"}
+    assert manager.get("default_other_roots") == {"vae": "/studio/vae"}
+
+    # Omitting the argument preserves the stored value
+    manager.upsert_library("studio", folder_paths={"loras": ["/studio/loras"]})
+    libraries = manager.get_libraries()
+    assert libraries["studio"]["default_other_roots"] == {"vae": "/studio/vae"}
+
+
+def test_library_switch_restores_default_other_roots(manager):
+    manager.set("default_other_roots", {"vae": "/default-vae"})
+    manager.create_library(
+        "studio",
+        folder_paths={"loras": ["/studio/loras"]},
+        default_other_roots={"vae": "/studio-vae"},
+    )
+
+    manager.activate_library("studio")
+    assert manager.get("default_other_roots") == {"vae": "/studio-vae"}
+
+    manager.activate_library("default")
+    assert manager.get("default_other_roots") == {"vae": "/default-vae"}
+
+
+def test_migrate_sanitizes_legacy_libraries_includes_other_roots(tmp_path, monkeypatch):
+    initial = {
+        "libraries": {"legacy": "not-a-dict"},
+        "active_library": "legacy",
+        "folder_paths": {"loras": ["/old"]},
+    }
+
+    manager = _create_manager_with_settings(tmp_path, monkeypatch, initial)
+
+    payload = manager.get_libraries()["legacy"]
+    assert payload["default_other_roots"] == {}

@@ -53,6 +53,7 @@ from ...utils.constants import (
     PREVIEW_EXTENSIONS,
     SUPPORTED_MEDIA_EXTENSIONS,
     VALID_LORA_TYPES,
+    VALID_OTHER_CIVITAI_TYPES,
 )
 from .hf_handlers import HfHandler
 from .agent_handlers import AgentHandler
@@ -658,8 +659,20 @@ class HealthCheckHandler:
             "lora": ServiceRegistry.get_lora_scanner,
             "checkpoint": ServiceRegistry.get_checkpoint_scanner,
             "embedding": ServiceRegistry.get_embedding_scanner,
+            "other": ServiceRegistry.get_other_scanner,
             "recipe": ServiceRegistry.get_recipe_scanner,
         }
+
+    def _active_scanner_getters(
+        self,
+    ) -> Mapping[str, Callable[[], Awaitable[Any]]]:
+        """Drop the opt-in other scanner while Other Models is disabled."""
+        getters = self._scanner_getters
+        if "other" not in getters:
+            return getters
+        if get_settings_manager().is_other_models_enabled():
+            return getters
+        return {name: getter for name, getter in getters.items() if name != "other"}
 
     async def health_check(self, request: web.Request) -> web.Response:
         return web.json_response({"status": "ok"})
@@ -672,7 +685,7 @@ class HealthCheckHandler:
         page accepts the update and only reloads once all scanners are done.
         """
         pending: list[str] = []
-        for name, getter in self._scanner_getters.items():
+        for name, getter in self._active_scanner_getters().items():
             try:
                 scanner = await getter()
             except Exception:
@@ -757,9 +770,18 @@ class DoctorHandler:
                 ("lora", "LoRAs", ServiceRegistry.get_lora_scanner),
                 ("checkpoint", "Checkpoints", ServiceRegistry.get_checkpoint_scanner),
                 ("embedding", "Embeddings", ServiceRegistry.get_embedding_scanner),
+                ("other", "Other Models", ServiceRegistry.get_other_scanner),
             )
         )
         self._app_version_getter = app_version_getter
+
+    def _active_scanner_factories(
+        self,
+    ) -> Sequence[tuple[str, str, Callable[[], Awaitable[Any]]]]:
+        """Drop the opt-in other scanner while Other Models is disabled."""
+        if self._settings.is_other_models_enabled():
+            return self._scanner_factories
+        return tuple(entry for entry in self._scanner_factories if entry[0] != "other")
 
     async def get_doctor_diagnostics(self, request: web.Request) -> web.Response:
         try:
@@ -808,7 +830,7 @@ class DoctorHandler:
         repaired: list[dict[str, Any]] = []
         failures: list[dict[str, str]] = []
 
-        for model_type, label, factory in self._scanner_factories:
+        for model_type, label, factory in self._active_scanner_factories():
             try:
                 scanner = await factory()
                 await scanner.get_cached_data(force_refresh=True, rebuild_cache=True)
@@ -840,7 +862,7 @@ class DoctorHandler:
         renamed: list[dict[str, Any]] = []
 
         try:
-            for model_type, label, factory in self._scanner_factories:
+            for model_type, label, factory in self._active_scanner_factories():
                 try:
                     scanner = await factory()
                     hash_index = getattr(scanner, "_hash_index", None)
@@ -1072,7 +1094,7 @@ class DoctorHandler:
         overall_status = "ok"
         summary = "All model caches look healthy."
 
-        for model_type, label, factory in self._scanner_factories:
+        for model_type, label, factory in self._active_scanner_factories():
             try:
                 scanner = await factory()
                 persisted = None
@@ -1157,7 +1179,7 @@ class DoctorHandler:
         total_conflict_groups = 0
         total_conflict_files = 0
 
-        for model_type, label, factory in self._scanner_factories:
+        for model_type, label, factory in self._active_scanner_factories():
             # Duplicate filename detection targets LoRAs which use basename-only
             # syntax (<lora:name:strength>). Checkpoints/embeddings reference
             # models via relative paths with extensions, so conflicts there would
@@ -1537,6 +1559,22 @@ class SettingsHandler:
             response_data["civitai_api_key_set"] = bool(raw_key)
             raw_llm_key = self._settings.get("llm_api_key")
             response_data["llm_api_key_set"] = bool(raw_llm_key)
+            # Derived capability flag (not persisted): whether the host exposes
+            # any other-model folder at all. Standalone installs only know the
+            # folder_paths keys present in settings.json, so the announcement
+            # banner uses this to avoid promising a page that cannot list
+            # anything.
+            try:
+                availability = config.get_other_models_availability()
+                response_data["other_models_paths_available"] = bool(
+                    availability.get("available")
+                )
+            except Exception as availability_error:  # pragma: no cover - defensive
+                logger.debug(
+                    "Could not resolve Other Models availability: %s",
+                    availability_error,
+                )
+                response_data["other_models_paths_available"] = None
             settings_file = getattr(self._settings, "settings_file", None)
             if settings_file:
                 response_data["settings_file"] = settings_file
@@ -2066,6 +2104,7 @@ class ServiceRegistryAdapter:
     get_embedding_scanner: Callable[[], Awaitable[Any]]
     get_downloaded_version_history_service: Callable[[], Awaitable[Any]]
     get_backup_service: Callable[[], Awaitable[Any]] = _noop_backup_service
+    get_other_scanner: Callable[[], Awaitable[Any]] = ServiceRegistry.get_other_scanner
 
 
 class ModelLibraryHandler:
@@ -2090,6 +2129,8 @@ class ModelLibraryHandler:
             return "checkpoint"
         if normalized in {"embedding", "textualinversion"}:
             return "embedding"
+        if normalized in VALID_OTHER_CIVITAI_TYPES:
+            return "other"
         return None
 
     async def _get_scanner_for_type(self, model_type: str | None):
@@ -2100,6 +2141,13 @@ class ModelLibraryHandler:
             return normalized_type, await self._service_registry.get_checkpoint_scanner()
         if normalized_type == "embedding":
             return normalized_type, await self._service_registry.get_embedding_scanner()
+        if normalized_type == "other":
+            # Opt-in feature: the other scanner only resolves while the master
+            # switch is on, so callers keep returning the legacy "required"
+            # error (400) when it is off.
+            if not get_settings_manager().is_other_models_enabled():
+                return None, None
+            return normalized_type, await self._service_registry.get_other_scanner()
         return None, None
 
     async def _get_download_history_service(self):
@@ -2191,6 +2239,11 @@ class ModelLibraryHandler:
             lora_scanner = await self._service_registry.get_lora_scanner()
             checkpoint_scanner = await self._service_registry.get_checkpoint_scanner()
             embedding_scanner = await self._service_registry.get_embedding_scanner()
+            # Opt-in: probe the other scanner only while Other Models is enabled,
+            # so the disabled behaviour stays byte-identical to the legacy one.
+            other_scanner = None
+            if get_settings_manager().is_other_models_enabled():
+                other_scanner = await self._service_registry.get_other_scanner()
 
             if model_version_id_str:
                 try:
@@ -2229,6 +2282,13 @@ class ModelLibraryHandler:
                     exists = True
                     model_type = "embedding"
                     matched_scanner = embedding_scanner
+                elif (
+                    other_scanner
+                    and await other_scanner.check_model_version_exists(model_version_id)
+                ):
+                    exists = True
+                    model_type = "other"
+                    matched_scanner = other_scanner
 
                 if exists:
                     return web.json_response(
@@ -2246,7 +2306,7 @@ class ModelLibraryHandler:
                 history_service = await self._get_download_history_service()
                 has_been_downloaded = False
                 history_type = None
-                for candidate_type in ("lora", "checkpoint", "embedding"):
+                for candidate_type in ("lora", "checkpoint", "embedding", "other"):
                     if await history_service.has_been_downloaded(
                         candidate_type,
                         model_version_id,
@@ -2268,6 +2328,7 @@ class ModelLibraryHandler:
             lora_versions = await lora_scanner.get_model_versions_by_id(model_id)
             checkpoint_versions = []
             embedding_versions = []
+            other_versions = []
             if not lora_versions and checkpoint_scanner:
                 checkpoint_versions = await checkpoint_scanner.get_model_versions_by_id(
                     model_id
@@ -2276,6 +2337,13 @@ class ModelLibraryHandler:
                 embedding_versions = await embedding_scanner.get_model_versions_by_id(
                     model_id
                 )
+            if (
+                not lora_versions
+                and not checkpoint_versions
+                and not embedding_versions
+                and other_scanner
+            ):
+                other_versions = await other_scanner.get_model_versions_by_id(model_id)
 
             model_type = None
             versions = []
@@ -2307,9 +2375,18 @@ class ModelLibraryHandler:
                         "downloadedVersionIds": [],
                     }
                 )
+            if other_versions:
+                return web.json_response(
+                    {
+                        "success": True,
+                        "modelType": "other",
+                        "versions": self._with_downloaded_flag(other_versions),
+                        "downloadedVersionIds": [],
+                    }
+                )
 
             history_service = await self._get_download_history_service()
-            for candidate_type in ("lora", "checkpoint", "embedding"):
+            for candidate_type in ("lora", "checkpoint", "embedding", "other"):
                 candidate_downloaded_version_ids = (
                     await history_service.get_downloaded_version_ids(
                         candidate_type,
@@ -2364,6 +2441,11 @@ class ModelLibraryHandler:
             lora_scanner = await self._service_registry.get_lora_scanner()
             checkpoint_scanner = await self._service_registry.get_checkpoint_scanner()
             embedding_scanner = await self._service_registry.get_embedding_scanner()
+            # Opt-in: keep the other probe last so model cards for lora /
+            # checkpoint / embedding ids are unaffected by the extra scanner.
+            other_scanner = None
+            if get_settings_manager().is_other_models_enabled():
+                other_scanner = await self._service_registry.get_other_scanner()
 
             results: list[dict[str, Any]] = []
             for model_id in model_ids:
@@ -2395,6 +2477,17 @@ class ModelLibraryHandler:
                             "modelId": model_id,
                             "modelType": "embedding",
                             "versions": self._with_downloaded_flag(embedding_versions),
+                            "downloadedVersionIds": [],
+                        })
+                        continue
+
+                if other_scanner:
+                    other_versions = await other_scanner.get_model_versions_by_id(model_id)
+                    if other_versions:
+                        results.append({
+                            "modelId": model_id,
+                            "modelType": "other",
+                            "versions": self._with_downloaded_flag(other_versions),
                             "downloadedVersionIds": [],
                         })
                         continue
@@ -2787,12 +2880,32 @@ class ModelLibraryHandler:
                 model_type.lower() for model_type in CIVITAI_USER_MODEL_TYPES
             }
             lora_type_aliases = {model_type.lower() for model_type in VALID_LORA_TYPES}
+            other_type_aliases = {
+                model_type.lower() for model_type in VALID_OTHER_CIVITAI_TYPES
+            }
+
+            # Acquire the other scanner lazily so adapters without it only
+            # fail when the payload actually contains other-type models.
+            # While the opt-in feature is off the scanner still exists (its
+            # cache is empty), so other types simply report inLibrary=False.
+            needs_other_scanner = any(
+                isinstance(model, dict)
+                and str(model.get("type", "")).lower() in other_type_aliases
+                for model in models
+            )
+            other_scanner = None
+            if needs_other_scanner:
+                other_scanner = await self._service_registry.get_other_scanner()
 
             type_scanner_map: Dict[str, Any] = {
                 **{alias: lora_scanner for alias in lora_type_aliases},
                 "checkpoint": checkpoint_scanner,
                 "textualinversion": embedding_scanner,
             }
+            if other_scanner is not None:
+                type_scanner_map.update(
+                    {alias: other_scanner for alias in other_type_aliases}
+                )
 
             versions: list[dict[str, Any]] = []
             history_service = await self._get_download_history_service()
@@ -2816,12 +2929,17 @@ class ModelLibraryHandler:
                 "embedding",
                 model_ids,
             )
+            other_downloaded = await history_service.get_downloaded_version_ids_bulk(
+                "other",
+                model_ids,
+            )
             downloaded_version_map: Dict[str, Dict[int, set[int]]] = {
                 "lora": lora_downloaded,
                 "locon": lora_downloaded,
                 "dora": lora_downloaded,
                 "checkpoint": checkpoint_downloaded,
                 "textualinversion": embedding_downloaded,
+                **{alias: other_downloaded for alias in VALID_OTHER_CIVITAI_TYPES},
             }
             for model in models:
                 if not isinstance(model, dict):
@@ -3980,6 +4098,7 @@ def build_service_registry_adapter() -> ServiceRegistryAdapter:
         get_lora_scanner=ServiceRegistry.get_lora_scanner,
         get_checkpoint_scanner=ServiceRegistry.get_checkpoint_scanner,
         get_embedding_scanner=ServiceRegistry.get_embedding_scanner,
+        get_other_scanner=ServiceRegistry.get_other_scanner,
         get_downloaded_version_history_service=ServiceRegistry.get_downloaded_version_history_service,
         get_backup_service=ServiceRegistry.get_backup_service,
     )

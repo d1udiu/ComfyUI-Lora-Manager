@@ -15,6 +15,8 @@
       {% set current_page = 'checkpoints' %}
       {% elif current_path.startswith('/embeddings') %}
       {% set current_page = 'embeddings' %}
+      {% elif current_path.startswith('/other') %}
+      {% set current_page = 'other' %}
       {% elif current_path.startswith('/statistics') %}
       {% set current_page = 'statistics' %}
       {% else %}
@@ -35,6 +37,10 @@
         <a href="/embeddings" class="nav-item{% if current_path.startswith('/embeddings') %} active{% endif %}"
           id="embeddingsNavItem">
           <i class="fas fa-code"></i> <span>{{ t('header.navigation.embeddings') }}</span>
+        </a>
+        <a href="/other" class="nav-item{% if current_path.startswith('/other') %} active{% endif %}{% if not settings.get('enable_other_models') %} nav-item--hidden{% endif %}"
+          id="otherNavItem">
+          <i class="fas fa-shapes"></i> <span>{{ t('header.navigation.other') }}</span>
         </a>
         <a href="/statistics" class="nav-item{% if current_path.startswith('/statistics') %} active{% endif %}"
           id="statisticsNavItem">
@@ -68,23 +74,28 @@
     <!-- Right section: Controls -->
     <div class="header-right">
       <div class="header-controls" id="headerControls">
-        <div class="theme-toggle" title="{{ t('header.theme.toggle') }}">
+        <div class="theme-toggle" role="button" tabindex="0" title="{{ t('header.theme.toggle') }}"
+          aria-label="{{ t('header.theme.toggle') }}">
           <i class="fas fa-moon dark-icon"></i>
           <i class="fas fa-sun light-icon"></i>
           <i class="fas fa-adjust auto-icon"></i>
         </div>
-        <div class="settings-toggle" title="{{ t('common.actions.settings') }}">
+        <div class="settings-toggle" role="button" tabindex="0" title="{{ t('common.actions.settings') }}"
+          aria-label="{{ t('common.actions.settings') }}">
           <i class="fas fa-cog"></i>
         </div>
-        <div class="help-toggle" id="helpToggleBtn" title="{{ t('common.actions.help') }}">
+        <div class="help-toggle" id="helpToggleBtn" role="button" tabindex="0" title="{{ t('common.actions.help') }}"
+          aria-label="{{ t('common.actions.help') }}">
           <i class="fas fa-question-circle"></i>
           <span class="update-badge"></span>
         </div>
-        <div class="update-toggle" id="updateToggleBtn" title="{{ t('header.actions.notifications') }}">
+        <div class="update-toggle" id="updateToggleBtn" role="button" tabindex="0"
+          title="{{ t('header.actions.notifications') }}" aria-label="{{ t('header.actions.notifications') }}">
           <i class="fas fa-bell"></i>
           <span class="update-badge"></span>
         </div>
-        <div class="support-toggle" id="supportToggleBtn" title="{{ t('header.actions.support') }}">
+        <div class="support-toggle" id="supportToggleBtn" role="button" tabindex="0"
+          title="{{ t('header.actions.support') }}" aria-label="{{ t('header.actions.support') }}">
           <i class="fas fa-heart"></i>
         </div>
       </div>
@@ -193,7 +204,7 @@
       <div class="search-option-tag active" data-option="tags">{{ t('header.search.filters.tags') }}</div>
       <div class="search-option-tag" data-option="creator">{{ t('header.search.filters.creator') }}</div>
       <div class="search-option-tag" data-option="hash">{{ t('header.search.filters.hash') }}</div>
-      {% elif request.path == '/embeddings' %}
+      {% elif request.path == '/embeddings' or request.path == '/other' %}
       <div class="search-option-tag active" data-option="filename">{{ t('header.search.filters.filename') }}</div>
       <div class="search-option-tag active" data-option="modelname">{{ t('header.search.filters.modelname') }}</div>
       <div class="search-option-tag active" data-option="tags">{{ t('header.search.filters.tags') }}</div>
@@ -280,7 +291,7 @@
     </div>
   </div>
   {% endif %}
-  {% if current_page == 'loras' or current_page == 'checkpoints' %}
+  {% if current_page == 'loras' or current_page == 'checkpoints' or current_page == 'other' %}
   <div class="filter-section">
     <h4>{{ t('header.filter.modelTypes') }}</h4>
     <div class="filter-tags" id="modelTypeTags">

@@ -6,9 +6,11 @@ import {
 import { translate } from '../utils/i18nHelpers.js';
 import { state } from '../state/index.js';
 import { getModelApiClient } from '../api/modelApiFactory.js';
+import { enableOtherModels, openOtherModelsSettings } from '../utils/otherModels.js';
 
 const COMMUNITY_SUPPORT_BANNER_ID = 'community-support';
 const CACHE_HEALTH_BANNER_ID = 'cache-health-warning';
+const OTHER_MODELS_BANNER_ID = 'other-models-announcement';
 const COMMUNITY_SUPPORT_BANNER_DELAY_MS = 5 * 24 * 60 * 60 * 1000; // 5 days
 const COMMUNITY_SUPPORT_FIRST_SEEN_AT_KEY = 'community_support_banner_first_seen_at';
 const COMMUNITY_SUPPORT_VERSION_KEY = 'community_support_banner_state_version';
@@ -80,6 +82,7 @@ class BannerService {
         });
 
         this.prepareCommunitySupportBanner();
+        this.prepareOtherModelsBanner();
 
         await this.showActiveBanners();
         this.initialized = true;
@@ -424,12 +427,13 @@ class BannerService {
 
     /**
      * Get the current page type from the URL
-     * @returns {string} Page type (loras, checkpoints, embeddings, recipes)
+     * @returns {string} Page type (loras, checkpoints, embeddings, other, recipes)
      */
     getCurrentPageType() {
         const path = window.location.pathname;
         if (path.includes('/checkpoints')) return 'checkpoints';
         if (path.includes('/embeddings')) return 'embeddings';
+        if (path.includes('/other')) return 'other';
         if (path.includes('/recipes')) return 'recipes';
         return 'loras';
     }
@@ -443,7 +447,8 @@ class BannerService {
         const endpoints = {
             'loras': '/api/lm/loras/reload?rebuild=true',
             'checkpoints': '/api/lm/checkpoints/reload?rebuild=true',
-            'embeddings': '/api/lm/embeddings/reload?rebuild=true'
+            'embeddings': '/api/lm/embeddings/reload?rebuild=true',
+            'other': '/api/lm/other/reload?rebuild=true'
         };
         return endpoints[pageType] || endpoints['loras'];
     }
@@ -537,6 +542,99 @@ class BannerService {
         });
 
         this.updateContainerVisibility();
+    }
+
+    /**
+     * Announce the opt-in Other Models management to users who have not turned
+     * it on yet. Dismissal is persisted through the shared dismissed_banners
+     * setting, so users who are not interested are not nagged again.
+     */
+    prepareOtherModelsBanner() {
+        if (state.global.settings.enable_other_models) {
+            return;
+        }
+        // Only announce when the host can actually resolve other-model folders.
+        // Standalone installs only know the folder_paths keys present in
+        // settings.json, so announcing there would land the user on an empty
+        // page. `=== false` (not falsy) keeps older payloads working.
+        if (state.global.settings.other_models_paths_available === false) {
+            return;
+        }
+        if (this.isBannerDismissed(OTHER_MODELS_BANNER_ID)) {
+            return;
+        }
+
+        this.registerBanner(OTHER_MODELS_BANNER_ID, {
+            id: OTHER_MODELS_BANNER_ID,
+            title: translate(
+                'banners.otherModels.title',
+                {},
+                'Other Models Management is available'
+            ),
+            content: translate(
+                'banners.otherModels.content',
+                {},
+                'Scan and manage VAE, upscaler, text encoder and CLIP vision files — and download them from CivitAI — from one dedicated page.'
+            ),
+            actions: [
+                {
+                    text: translate(
+                        'banners.otherModels.enable',
+                        {},
+                        'Enable Other Models'
+                    ),
+                    icon: 'fas fa-shapes',
+                    type: 'primary',
+                    action: 'enable-other-models'
+                },
+                {
+                    text: translate(
+                        'banners.otherModels.openSettings',
+                        {},
+                        'Open Settings'
+                    ),
+                    icon: 'fas fa-cog',
+                    type: 'secondary',
+                    action: 'open-other-models-settings'
+                }
+            ],
+            dismissible: true,
+            priority: 0,
+            onRegister: (bannerElement) => {
+                const enableButton = bannerElement.querySelector(
+                    '.banner-action[data-action="enable-other-models"]'
+                );
+                if (enableButton) {
+                    enableButton.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        enableOtherModels().catch((error) => {
+                            console.error('Failed to enable Other Models:', error);
+                        });
+                    });
+                }
+
+                const settingsButton = bannerElement.querySelector(
+                    '.banner-action[data-action="open-other-models-settings"]'
+                );
+                if (settingsButton) {
+                    settingsButton.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        openOtherModelsSettings();
+                    });
+                }
+            }
+        });
+
+        this.updateContainerVisibility();
+    }
+
+    /**
+     * Drop the Other Models announcement once the feature is enabled.
+     * Dismissal is deliberately NOT persisted, so the announcement can come
+     * back if the user switches the feature off again.
+     */
+    removeOtherModelsAnnouncement() {
+        this.removeBannerElement(OTHER_MODELS_BANNER_ID);
     }
 
     initializeCommunitySupportState() {

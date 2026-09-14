@@ -106,6 +106,12 @@ export const MODEL_SUBTYPE_DISPLAY_NAMES = {
     diffusion_model: "Diffusion Model",
     // Embedding sub-types
     embedding: "Embedding",
+    // Other model sub-types
+    vae: "VAE",
+    upscaler: "Upscaler",
+    text_encoder: "Text Encoder",
+    clip_vision: "CLIP Vision",
+    controlnet: "ControlNet",
 };
 
 // Backward compatibility alias
@@ -119,6 +125,11 @@ export const MODEL_SUBTYPE_ABBREVIATIONS = {
     checkpoint: "CKPT",
     diffusion_model: "DM",
     embedding: "EMB",
+    vae: "VAE",
+    upscaler: "UPS",
+    text_encoder: "TE",
+    clip_vision: "CV",
+    controlnet: "CN",
 };
 
 export function getSubTypeAbbreviation(subType) {
@@ -342,7 +353,11 @@ export const DEFAULT_PATH_TEMPLATES = {
     lora: '{base_model}/{first_tag}',
     checkpoint: '{base_model}',
     unet: '{base_model}',
-    embedding: '{first_tag}'
+    embedding: '{first_tag}',
+    // Other models (VAE/upscaler/...) default to a flat layout: their root is
+    // already split per sub_type, and priority_tags has no "other" entry, so
+    // {first_tag} would resolve to an arbitrary CivitAI tag.
+    other: ''
 };
 
 // Model type labels for UI

@@ -1153,6 +1153,10 @@ export class SettingsManager {
         // Load default unet root
         await this.loadUnetRoots();
 
+        // Load default other-model roots (per sub_type)
+        await this.loadOtherRoots();
+        this.updateOtherModelsControls();
+
         // Load extra folder paths
         this.loadExtraFolderPaths();
 
@@ -1655,6 +1659,51 @@ export class SettingsManager {
             console.error('Error loading diffusion model roots:', error);
             this.showNoRootsPlaceholder(defaultUnetRootSelect);
             showToast('toast.settings.unetRootsFailed', { message: error.message }, 'error');
+        }
+    }
+
+    async loadOtherRoots() {
+        const selects = document.querySelectorAll('select[data-other-root-subtype]');
+        if (!selects.length) return;
+
+        try {
+            // Fetch other-model roots grouped by sub_type
+            const response = await fetch('/api/lm/other/roots_by_subtype');
+            if (!response.ok) {
+                throw new Error('Failed to fetch other model roots');
+            }
+
+            const data = await response.json();
+            const groupedRoots = data.roots_by_subtype || {};
+            const defaultRoots = state.global.settings.default_other_roots || {};
+
+            selects.forEach((select) => {
+                const subType = select.dataset.otherRootSubtype;
+                const roots = groupedRoots[subType] || [];
+                if (!roots.length) {
+                    this.showNoRootsPlaceholder(select);
+                    return;
+                }
+
+                select.innerHTML = '';
+                select.disabled = false;
+
+                // Add options for each root
+                roots.forEach(root => {
+                    const option = document.createElement('option');
+                    option.value = root;
+                    option.textContent = root;
+                    select.appendChild(option);
+                });
+
+                const defaultRoot = defaultRoots[subType] || '';
+                select.value = roots.includes(defaultRoot) ? defaultRoot : roots[0];
+            });
+
+        } catch (error) {
+            console.error('Error loading other model roots:', error);
+            selects.forEach((select) => this.showNoRootsPlaceholder(select));
+            showToast('toast.settings.otherRootsFailed', { message: error.message }, 'error');
         }
     }
 
@@ -2256,6 +2305,16 @@ export class SettingsManager {
                 await this.updateBackupStatus();
             }
 
+            if (settingKey === 'enable_other_models') {
+                // Roots only exist while the feature is on, so re-fetch them
+                // after the backend rebuilt the other-model root set.
+                this.updateOtherModelsControls();
+                await this.loadOtherRoots();
+                this.updateOtherModelsControls();
+                this.updateOtherModelsNavVisibility(value);
+                this.removeOtherModelsAnnouncement(value);
+            }
+
             showToast('toast.settings.settingsUpdated', { setting: settingKey.replace(/_/g, ' ') }, 'success');
 
             // Apply frontend settings immediately
@@ -2337,6 +2396,103 @@ export class SettingsManager {
         } catch (error) {
             showToast('toast.settings.settingSaveFailed', { message: error.message }, 'error');
         }
+    }
+
+    /**
+     * Save one sub_type entry of the default_other_roots dict setting
+     * (read-modify-write: the backend stores the whole mapping).
+     */
+    async saveOtherRootSetting(subType, value) {
+        try {
+            const defaultRoots = { ...(state.global.settings.default_other_roots || {}) };
+            if (value) {
+                defaultRoots[subType] = value;
+            } else {
+                delete defaultRoots[subType];
+            }
+
+            await this.saveSetting('default_other_roots', defaultRoots);
+
+            showToast('toast.settings.settingsUpdated', { setting: `default ${subType} root` }, 'success');
+        } catch (error) {
+            showToast('toast.settings.settingSaveFailed', { message: error.message }, 'error');
+        }
+    }
+
+    /**
+     * Reflect the opt-in Other Models state in the settings UI: the master
+     * toggle gates every sub_type checkbox, and a switched-off sub_type has
+     * its default-root select disabled. Never force-enables a select (the
+     * no-roots placeholder owns that state).
+     */
+    updateOtherModelsControls() {
+        const enableOtherModels = !!state.global.settings.enable_other_models;
+        const enabledSubTypes = new Set(
+            state.global.settings.enabled_other_sub_types
+            || ['vae', 'upscaler', 'text_encoder']
+        );
+
+        document.querySelectorAll('[data-other-subtype-toggle]').forEach((input) => {
+            input.checked = enabledSubTypes.has(input.value);
+            input.disabled = !enableOtherModels;
+        });
+
+        const container = document.getElementById('otherSubTypeToggles');
+        if (container) {
+            container.classList.toggle('is-disabled', !enableOtherModels);
+        }
+
+        document.querySelectorAll('select[data-other-root-subtype]').forEach((select) => {
+            const subType = select.dataset.otherRootSubtype;
+            if (!enableOtherModels || !enabledSubTypes.has(subType)) {
+                select.disabled = true;
+            }
+        });
+    }
+
+    /**
+     * Persist the whole enabled_other_sub_types list (the backend stores an
+     * allow-list) and refresh the per-sub_type default-root selects.
+     */
+    async saveEnabledOtherSubTypes() {
+        const values = Array.from(
+            document.querySelectorAll('[data-other-subtype-toggle]')
+        )
+            .filter((input) => input.checked)
+            .map((input) => input.value);
+
+        try {
+            await this.saveSetting('enabled_other_sub_types', values);
+            this.updateOtherModelsControls();
+            await this.loadOtherRoots();
+            this.updateOtherModelsControls();
+
+            showToast('toast.settings.settingsUpdated', { setting: 'other model types' }, 'success');
+        } catch (error) {
+            showToast('toast.settings.settingSaveFailed', { message: error.message }, 'error');
+        }
+    }
+
+    /**
+     * Show or hide the Other Models nav entry. The nav is server-rendered, so
+     * toggling the class here keeps it in sync when the switch is flipped from
+     * the settings modal (no reload needed).
+     */
+    updateOtherModelsNavVisibility(enabled) {
+        const navItem = document.getElementById('otherNavItem');
+        if (navItem) {
+            navItem.classList.toggle('nav-item--hidden', !enabled);
+        }
+    }
+
+    /**
+     * Drop the Other Models announcement banner once the feature is on.
+     */
+    removeOtherModelsAnnouncement(enabled) {
+        if (!enabled) {
+            return;
+        }
+        bannerService.removeOtherModelsAnnouncement();
     }
 
     /**
@@ -3359,6 +3515,9 @@ export class SettingsManager {
             await resetAndReload(false);
         } else if (this.currentPage === 'embeddings') {
             // Reload the embeddings without updating folders
+            await resetAndReload(false);
+        } else if (this.currentPage === 'other') {
+            // Reload the other models without updating folders
             await resetAndReload(false);
         }
     }

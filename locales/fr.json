@@ -149,6 +149,7 @@
             "copyCheckpointName": "Copier le nom du checkpoint",
             "copyEmbeddingName": "Copier le nom de l'embedding",
             "embeddingNameCopied": "Syntaxe dembedding copiée",
+            "modelNameCopied": "Nom du modèle copié",
             "sendCheckpointToWorkflow": "Envoyer vers ComfyUI",
             "sendEmbeddingToWorkflow": "Envoyer vers ComfyUI"
         },
@@ -233,6 +234,7 @@
             "recipes": "Recipes",
             "checkpoints": "Checkpoints",
             "embeddings": "Embeddings",
+            "other": "Autres",
             "statistics": "Statistiques"
         },
         "search": {
@@ -533,6 +535,25 @@
             "defaultUnetRootHelp": "Définir le répertoire racine Diffusion Model (UNET) par défaut pour les téléchargements, imports et déplacements",
             "defaultEmbeddingRoot": "Racine Embedding",
             "defaultEmbeddingRootHelp": "Définir le répertoire racine embedding par défaut pour les téléchargements, imports et déplacements",
+            "defaultVaeRoot": "Racine VAE",
+            "defaultVaeRootHelp": "Définir le répertoire racine VAE par défaut pour les téléchargements, imports et déplacements",
+            "defaultUpscalerRoot": "Racine Upscaler",
+            "defaultUpscalerRootHelp": "Définir le répertoire racine Upscaler par défaut pour les téléchargements, imports et déplacements",
+            "defaultTextEncoderRoot": "Racine Text Encoder",
+            "defaultTextEncoderRootHelp": "Définir le répertoire racine Text Encoder par défaut pour les téléchargements, imports et déplacements",
+            "defaultClipVisionRoot": "Racine CLIP Vision",
+            "defaultClipVisionRootHelp": "Définir le répertoire racine CLIP Vision par défaut pour les téléchargements, imports et déplacements",
+            "defaultControlnetRoot": "Racine ControlNet",
+            "defaultControlnetRootHelp": "Définir le répertoire racine ControlNet par défaut pour les téléchargements, imports et déplacements",
+            "enableOtherModels": "Gestion des autres modèles",
+            "enableOtherModelsHelp": "Lorsque cette option est désactivée, les dossiers VAE / Upscaler / Text Encoder / CLIP Vision / ControlNet ne sont pas analysés, la page Autres modèles reste désactivée et ces types de modèles ne peuvent pas être téléchargés.",
+            "otherSubTypes": "Types de modèles gérés",
+            "otherSubTypesHelp": "Choisissez les catégories d’autres modèles analysées et affichées sur la page Autres modèles.",
+            "subTypeVae": "VAE",
+            "subTypeUpscaler": "Upscaler",
+            "subTypeTextEncoder": "Text Encoder",
+            "subTypeClipVision": "CLIP Vision",
+            "subTypeControlnet": "ControlNet",
             "recipesPath": "Chemin de stockage des Recipes",
             "recipesPathHelp": "Dossier personnalisé facultatif pour les Recipes enregistrées. Laissez vide pour utiliser le dossier recipes de la première racine LoRA.",
             "recipesPathPlaceholder": "/path/to/recipes",
@@ -1200,6 +1221,26 @@
     },
     "embeddings": {
         "title": "Modèles Embedding"
+    },
+    "other": {
+        "title": "Autres modèles",
+        "disabled": {
+            "title": "La gestion des autres modèles est désactivée",
+            "description": "Activez-la pour analyser et gérer les fichiers VAE, Upscaler, Text Encoder, CLIP Vision et ControlNet, et pour les télécharger depuis CivitAI.",
+            "enableButton": "Activer les autres modèles",
+            "hint": "Vous pourrez modifier les types de modèles gérés plus tard dans Paramètres > Bibliothèque.",
+            "enableFailed": "Échec de l’activation des autres modèles",
+            "downloadBlocked": "La gestion des autres modèles est désactivée pour ce type de modèle. Activez-la dans Paramètres > Bibliothèque pour télécharger ce fichier.",
+            "enableAction": "Activer les autres modèles"
+        },
+        "noPaths": {
+            "title": "Aucun dossier d’autres modèles trouvé",
+            "descriptionStandalone": "La gestion des autres modèles est activée, mais aucun des dossiers de modèles configurés n’existe sur le disque. Ajoutez les chemins de dossiers ci-dessous à settings.json, puis redémarrez LoRA Manager.",
+            "hintStandalone": "Seules les clés de dossiers listées ci-dessus sont analysées ; les clés inutiles peuvent être omises.",
+            "descriptionComfyUI": "La gestion des autres modèles est activée, mais aucun des dossiers de modèles configurés n’existe sur le disque. Ajoutez les dossiers de modèles correspondants à vos chemins de modèles ComfyUI, puis rechargez cette page.",
+            "hintComfyUI": "Les autres modèles sont lus depuis les dossiers vae, upscale_models, text_encoders, clip_vision et controlnet de ComfyUI.",
+            "openSettings": "Ouvrir les paramètres"
+        }
     },
     "sidebar": {
         "modelRoot": "Racine",
@@ -1878,6 +1919,10 @@
             "title": "Initialisation du gestionnaire Embedding",
             "message": "Scan et construction du cache embedding. Cela peut prendre quelques minutes..."
         },
+        "other": {
+            "title": "Initialisation du gestionnaire Autres modèles",
+            "message": "Analyse et construction du cache de modèles. Cela peut prendre quelques minutes..."
+        },
         "recipes": {
             "title": "Initialisation du gestionnaire de recipes",
             "message": "Chargement et traitement des recipes. Cela peut prendre quelques minutes..."
@@ -2333,6 +2378,7 @@
             "checkpointRootsFailed": "Échec du chargement des racines checkpoint : {message}",
             "unetRootsFailed": "Échec du chargement des racines Diffusion Model : {message}",
             "embeddingRootsFailed": "Échec du chargement des racines embedding : {message}",
+            "otherRootsFailed": "Échec du chargement des racines des autres modèles : {message}",
             "mappingsUpdated": "Mappages de chemin de modèle de base mis à jour ({count} mappage{plural})",
             "mappingsCleared": "Mappages de chemin de modèle de base effacés",
             "mappingSaveFailed": "Échec de la sauvegarde des mappages de modèle de base : {message}",
@@ -2595,6 +2641,12 @@
             "rebuilding": "Reconstruction du cache...",
             "rebuildFailed": "Échec de la reconstruction du cache : {error}",
             "retry": "Réessayer"
+        },
+        "otherModels": {
+            "title": "La gestion des autres modèles est disponible",
+            "content": "Analysez et gérez les fichiers VAE, Upscaler, Text Encoder, CLIP Vision et ControlNet, et téléchargez-les depuis CivitAI, le tout depuis une page dédiée.",
+            "enable": "Activer les autres modèles",
+            "openSettings": "Ouvrir les paramètres"
         }
     }
 }

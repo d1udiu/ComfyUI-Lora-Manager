@@ -4,7 +4,7 @@ This document is the canonical set of conventions for translating LoRA Manager U
 It applies to **human translators and AI agents** alike. Read it before editing anything in
 `locales/`.
 
-Source of truth: `locales/en.json` (10 locales, 1810 leaf keys; all locales share the exact
+Source of truth: `locales/en.json` (10 locales, 1982 leaf keys; all locales share the exact
 same key structure).
 
 Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
@@ -13,6 +13,26 @@ Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
 > stale-text, and untranslated-block fixes described in §2–§6 were applied across all locales
 > (commits `3c3ac49f` … `fd1227d3`). The tables below are now the **normative target state**,
 > not a to-do list — future edits should preserve these renderings and only add what is new.
+>
+> **Status (2026-09, Other Models):** the `other` model type (VAE / Upscaler / Text Encoder /
+> CLIP Vision / ControlNet) and the Other Models opt-in toggles added 36 new keys; all of them
+> are now translated in all 9 locales (terminology in §2 "Other Models feature"). There are no
+> remaining `[TODO: Translate]` placeholders in any locale.
+>
+> **Status (2026-09, revision):** `other.disabled.description`, `banners.otherModels.content` and
+> `settings.folderSettings.enableOtherModelsHelp` were refreshed in `en.json` to name all five
+> sub_types (they had listed four, which read as "these are what enabling manages") and
+> re-translated in all 9 locales in the same pass. `clip_vision` and `controlnet` are now both
+> opt-in, so the first two describe **capability** and the third the **master switch**, not the
+> default set — keep all three enumerating the full five (`VAE / upscaler / text encoder /
+> CLIP vision / ControlNet` in `en`; locale slash-list casing follows each file's existing
+> `VAE / Upscaler / Text Encoder / …` style, de compounds as `CLIP-Vision- und ControlNet-Ordner`).
+>
+> **Status (2026-09, "no folders found" state):** the Other Models page gained an *enabled but
+> nothing to scan* empty state with 6 new keys (`other.noPaths.*`); translated in all 9 locales
+> in the same pass. The `folder_paths` JSON snippet shown in that state lives in
+> `templates/other.html`, **not** in the locale files, so it is never translated — only the
+> surrounding prose is. Terminology added in §2.
 
 ---
 
@@ -222,6 +242,56 @@ and must be normalized. `en` = keep the English word as-is.
 | hash | 哈希 (哈希值 variant OK) | 雜湊 ✓ |
 | register | 你 (fix 5×您 → 你) | 您 (fix 18×你 → 您) |
 
+### Other Models feature (VAE / Upscaler / Text Encoder / CLIP Vision / ControlNet)
+
+The `other` model type exposes five sub_types. They are **model-type names**, so they follow
+R3 and stay in Latin in every locale. The `settings.folderSettings.subType*` values are
+therefore **intentionally byte-identical to `en.json`** (same precedent as
+`settings.priorityTags.modelTypes` / `checkpoints.modelTypes.checkpoint`) — a §6 sweep must
+not "fix" them.
+
+| Term | Rendering | Note |
+|---|---|---|
+| VAE | `VAE` everywhere | acronym, always upper-case |
+| Upscaler | `Upscaler` everywhere | CivitAI `ModelType` name |
+| Text Encoder | `Text Encoder` everywhere | de compounds as `Text-Encoder-Stammordner` |
+| CLIP Vision | `CLIP Vision` everywhere | de compounds as `CLIP-Vision-Stammordner` |
+| ControlNet | `ControlNet` everywhere | brand casing, capital N |
+
+In prose these names sit next to localized nouns the same way `Diffusion Model` does
+(zh `VAE 根目录`, ja `VAEルート`, ko `VAE 루트`, ru `Корневая папка VAE`).
+
+**"Other Models" is the page/feature name, not a model type — translate it:**
+
+| Locale | `other.title` | `header.navigation.other` |
+|---|---|---|
+| fr | Autres modèles | Autres |
+| zh-CN | 其他模型 | 其他 |
+| zh-TW | 其他模型 | 其他 |
+| ja | その他のモデル | その他 |
+| ko | 기타 모델 | 기타 |
+| de | Weitere Modelle | Andere |
+| es | Otros modelos | Otros |
+| ru | Другие модели | Другое |
+| he | מודלים אחרים | אחרים |
+
+`settings.folderSettings.otherSubTypes` ("Managed Types") must name **model** types, matching
+each locale's `header.filter.modelTypes` rendering (zh `管理的模型类型`, ja `管理するモデルタイプ`,
+de `Verwaltete Modelltypen`, …).
+
+The "no folders found" empty state (`other.noPaths.*`) uses two phrases that must stay
+consistent whenever that copy is edited. `folder key` means the `folder_paths` key name
+(`vae`, `upscale_models`, … — Latin per the table above); `on disk` means the folder must
+physically exist:
+
+| Phrase | Rendering |
+|---|---|
+| folder key | zh-CN 文件夹键 · zh-TW 資料夾鍵 · ja フォルダーキー · ko 폴더 키 · fr clé de dossier · de Ordnerschlüssel · es clave de carpeta · ru ключ папки · he מפתח תיקייה |
+| on disk | zh-CN 在磁盘上 · zh-TW 在磁碟上 · ja ディスク上 · ko 디스크에 · fr sur le disque · de auf dem Datenträger · es en el disco · ru на диске · he בדיסק |
+
+`settings.json` and `ComfyUI` stay verbatim in every locale; "reload this page" / "restart
+LoRA Manager" reuse each locale's existing restart wording (`settings.extraFolderPaths.*`).
+
 ---
 
 ## 3. Cross-cutting confusion hot-spots (must-fix list)
@@ -312,8 +382,9 @@ blocks are translated** in every locale: `recipes.batchImport.*` + `toast.recipe
 The only values that remain intentionally identical to `en.json` are non-translatable:
 URL/path placeholders (`https://…`, `C:/…`), numeric presets (`5 (1080p), 6 (2K), 8 (4K)`),
 example token lists (`character, concept, style(toon|toon_style)`), service/provider names
-(`CivitAI → CivArchive → Archive DB`), and the external playlist title
-(`help.updateVlogs.playlistTitle`, de: translated to "LoRA Manager-Update-Playlist").
+(`CivitAI → CivArchive → Archive DB`), model-type names (`settings.priorityTags.modelTypes.*`,
+`settings.folderSettings.subTypeVae` … `subTypeControlnet` — see §2), and the external playlist
+title (`help.updateVlogs.playlistTitle`, de: translated to "LoRA Manager-Update-Playlist").
 
 Rule for `uiHelpers.workflow.noPromptTargets`: the second line (`Mark as → Send Prompt
 Target`) quotes literal ComfyUI context-menu items — keep those menu labels in English in

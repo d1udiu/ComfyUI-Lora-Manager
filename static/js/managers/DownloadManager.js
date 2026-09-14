@@ -1,5 +1,5 @@
 import { modalManager } from './ModalManager.js';
-import { showToast, setupAutoNewlineOnPaste } from '../utils/uiHelpers.js';
+import { showToast, showActionToast, setupAutoNewlineOnPaste } from '../utils/uiHelpers.js';
 import { state } from '../state/index.js';
 import { LoadingManager } from './LoadingManager.js';
 import { getModelApiClient, resetAndReload } from '../api/modelApiFactory.js';
@@ -8,9 +8,11 @@ import { isModelWeightFile } from '../utils/modelFileTypes.js';
 import { getStorageItem, setStorageItem } from '../utils/storageHelpers.js';
 import { FolderTreeManager } from '../components/FolderTreeManager.js';
 import { translate } from '../utils/i18nHelpers.js';
+import { MODEL_SUBTYPE_DISPLAY_NAMES } from '../utils/constants.js';
 import { buildCivitaiUrl, extractCivitaiModelUrlParts, normalizeCivitaiPageHost } from '../utils/civitaiUtils.js';
 import { formatFileSize } from '../utils/formatters.js';
 import { showDownloadBatchSummary } from '../components/DownloadBatchSummaryModal.js';
+import { openOtherModelsSettings } from '../utils/otherModels.js';
 
 export class DownloadManager {
     constructor() {
@@ -956,11 +958,17 @@ export class DownloadManager {
 
         try {
             this._isDiffusionModel = await this._resolveIsDiffusionModel();
+            this._otherSubType = await this._resolveOtherSubType();
 
             let rootsData;
             if (this._isDiffusionModel && this.apiClient.modelType === 'checkpoints') {
                 rootsData = await this.apiClient.fetchModelRoots('diffusion_model');
+            } else if (this.apiClient.modelType === 'other' && this._otherSubType) {
+                rootsData = await this.apiClient.fetchModelRoots(this._otherSubType);
             } else {
+                // An undecidable other sub_type (null) intentionally lands
+                // here: fetchModelRoots() lists all other roots so the user
+                // can pick manually.
                 rootsData = await this.apiClient.fetchModelRoots();
             }
             const modelRoot = document.getElementById('modelRoot');
@@ -968,19 +976,29 @@ export class DownloadManager {
                 `<option value="${root}">${root}</option>`
             ).join('');
 
-            const singularType = this._isDiffusionModel
-                ? 'unet'
-                : this.apiClient.modelType.replace(/s$/, '');
-            const defaultRootKey = `default_${singularType}_root`;
-            const defaultRoot = state.global.settings[defaultRootKey];
-            console.log(`Default root for ${singularType}:`, defaultRoot);
+            let defaultRoot;
+            let subtypeDisplay;
+            if (this.apiClient.modelType === 'other') {
+                const otherDefaultRoots = state.global.settings.default_other_roots || {};
+                defaultRoot = this._otherSubType ? (otherDefaultRoots[this._otherSubType] || '') : '';
+                subtypeDisplay = this._otherSubType
+                    ? (MODEL_SUBTYPE_DISPLAY_NAMES[this._otherSubType] || this._otherSubType)
+                    : this.apiClient.apiConfig.config.displayName;
+            } else {
+                const singularType = this._isDiffusionModel
+                    ? 'unet'
+                    : this.apiClient.modelType.replace(/s$/, '');
+                const defaultRootKey = `default_${singularType}_root`;
+                defaultRoot = state.global.settings[defaultRootKey];
+                subtypeDisplay = this._isDiffusionModel ? 'Diffusion Model' : this.apiClient.apiConfig.config.displayName;
+            }
+            console.log('Default root:', defaultRoot);
             console.log('Available roots:', rootsData.roots);
             if (defaultRoot && rootsData.roots.includes(defaultRoot)) {
                 console.log(`Setting default root: ${defaultRoot}`);
                 modelRoot.value = defaultRoot;
             }
 
-            const subtypeDisplay = this._isDiffusionModel ? 'Diffusion Model' : this.apiClient.apiConfig.config.displayName;
             document.getElementById('modelRootLabel').textContent =
                 translate('modals.download.selectTypeRoot', { type: subtypeDisplay });
 
@@ -1063,6 +1081,60 @@ export class DownloadManager {
                 + 'falling back to local file-type check:', error);
         }
         return localFileTypeCheck;
+    }
+
+    /**
+     * Resolve which other-page sub_type (vae/upscaler/text_encoder/
+     * clip_vision/controlnet) this download routes to. The backend owns the
+     * routing rule (explicit file pick first, model.type next, file.type
+     * fallback), so the location step sends both the picked file's type
+     * (selected_file_type) and the version's full file-type list and lets
+     * the backend apply its priority chain. Returns null when the sub_type
+     * cannot be decided; the location step then lists all other roots for
+     * manual selection instead of guessing a folder.
+     */
+    async _resolveOtherSubType() {
+        // Only other-page downloads route by sub_type; without version
+        // metadata (e.g. Hugging Face downloads) there is nothing to route on.
+        if (this.apiClient.modelType !== 'other'
+            || (!this.selectedFile && !this.currentVersion)) {
+            return null;
+        }
+
+        try {
+            const fileTypes = (this.currentVersion?.files || []).map(f => f.type);
+            const response = await fetch(DOWNLOAD_ENDPOINTS.routing, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model_type: 'other',
+                    base_model: this.currentVersion?.baseModel || '',
+                    file_types: fileTypes,
+                    ...(this.selectedFile
+                        ? { selected_file_type: this.selectedFile.type }
+                        : {}),
+                }),
+            });
+            if (!response.ok) {
+                throw new Error(`routing endpoint returned ${response.status}`);
+            }
+            const data = await response.json();
+            if (data.disabled) {
+                // The matching sub_type (or the whole Other Models feature) is
+                // switched off: auto-routing is refused, so offer the settings
+                // shortcut while the user's intent is clear.
+                showActionToast('other.disabled.downloadBlocked', {}, 'warning', {
+                    actionText: translate('other.disabled.enableAction', {}, 'Enable Other Models'),
+                    onAction: () => openOtherModelsSettings(),
+                });
+                return null;
+            }
+            return data.sub_type || null;
+        } catch (error) {
+            console.warn('[download] other routing endpoint unavailable, '
+                + 'falling back to manual root selection:', error);
+            return null;
+        }
     }
 
     loadDefaultPathSetting() {
@@ -2448,9 +2520,14 @@ export class DownloadManager {
                     const singularType = this._isDiffusionModel
                         ? 'unet'
                         : this.apiClient.modelType.replace(/s$/, '');
-                    const templates = state.global.settings.download_path_templates;
-                    const template = templates[singularType];
-                    fullPath += `/${template}`;
+                    const templates = state.global?.settings?.download_path_templates;
+                    const template = templates?.[singularType];
+                    // An empty or absent template means a flat layout: keep the
+                    // root as-is instead of appending "/undefined" or a
+                    // dangling slash.
+                    if (template) {
+                        fullPath += `/${template}`;
+                    }
                 } catch (error) {
                     console.error('Failed to fetch template:', error);
                     fullPath += '/' + translate('modals.download.autoOrganizedPath');
