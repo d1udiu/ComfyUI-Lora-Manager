@@ -1910,6 +1910,11 @@ class ModelDownloadHandler:
                 response_payload["status"] = status
                 if "message" in progress_data:
                     response_payload["message"] = progress_data["message"]
+                # Post-transfer stage (indexing / source metadata); polling
+                # consumers need it to tell "working" from "stuck".
+                for field in ("stage", "platform"):
+                    if field in progress_data:
+                        response_payload[field] = progress_data[field]
             elif status is None and "message" in progress_data:
                 response_payload["message"] = progress_data["message"]
 
@@ -2478,6 +2483,90 @@ class ModelMoveHandler:
     ) -> None:
         self._move_service = move_service
         self._logger = logger
+
+    async def create_folder(self, request: web.Request) -> web.Response:
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response(
+                {"success": False, "error": "Invalid JSON body"}, status=400
+            )
+        try:
+            folder_path = data.get("folder_path")
+            if not folder_path:
+                return web.json_response(
+                    {"success": False, "error": "Folder path is required"}, status=400
+                )
+            result = await self._move_service.create_folder(folder_path)
+            status = 200 if result.get("success") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error creating folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def delete_folder(self, request: web.Request) -> web.Response:
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response(
+                {"success": False, "error": "Invalid JSON body"}, status=400
+            )
+        try:
+            folder_path = data.get("folder_path")
+            if not folder_path:
+                return web.json_response(
+                    {"success": False, "error": "Folder path is required"}, status=400
+                )
+            dry_run = bool(data.get("dry_run"))
+            result = await self._move_service.delete_folder(
+                folder_path, dry_run=dry_run
+            )
+            if result.get("success"):
+                if not dry_run:
+                    _broadcast_models_changed()
+                return web.json_response(result, status=200)
+
+            # "not_empty" / "busy" are conflicts between the tree the client
+            # rendered and the on-disk truth; everything else is a bad request.
+            code = result.get("code")
+            status = 409 if code in ("not_empty", "busy") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error deleting folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def rename_folder(self, request: web.Request) -> web.Response:
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response(
+                {"success": False, "error": "Invalid JSON body"}, status=400
+            )
+        try:
+            folder_path = data.get("folder_path")
+            new_name = data.get("new_name")
+            if not folder_path:
+                return web.json_response(
+                    {"success": False, "error": "Folder path is required"}, status=400
+                )
+            if not new_name:
+                return web.json_response(
+                    {"success": False, "error": "New folder name is required"}, status=400
+                )
+            result = await self._move_service.rename_folder(folder_path, new_name)
+            if result.get("success"):
+                if result.get("renamed"):
+                    _broadcast_models_changed()
+                return web.json_response(result, status=200)
+
+            # A name collision or a staged delete inside the subtree is a
+            # conflict with the state the client rendered, not a bad request.
+            code = result.get("code")
+            status = 409 if code in ("target_exists", "busy") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error renaming folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
 
     async def move_model(self, request: web.Request) -> web.Response:
         try:
@@ -3429,6 +3518,9 @@ class ModelHandlerSet:
             "get_civitai_model_by_hash": self.civitai.get_civitai_model_by_hash,
             "move_model": self.move.move_model,
             "move_models_bulk": self.move.move_models_bulk,
+            "create_folder": self.move.create_folder,
+            "delete_folder": self.move.delete_folder,
+            "rename_folder": self.move.rename_folder,
             "auto_organize_models": self.auto_organize.auto_organize_models,
             "get_auto_organize_progress": self.auto_organize.get_auto_organize_progress,
             "get_model_notes": self.query.get_model_notes,

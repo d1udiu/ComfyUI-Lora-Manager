@@ -964,6 +964,8 @@ def _make_cache_entry(**overrides) -> Dict[str, Any]:
         "civitai": {"id": 111, "modelId": 222, "name": "v1"},
         "civitai_deleted": False,
         "skip_metadata_refresh": False,
+        "source_platform": "",
+        "source_url": "",
         "hf_url": "",
         "license_flags": 113,
         "hash_status": "completed",
@@ -1496,6 +1498,270 @@ async def test_get_all_folders_backfills_when_never_recorded(tmp_path: Path):
     assert "empty" in cache.all_folders
     all_folders = await scanner.get_all_folders()
     assert "empty" in all_folders
+
+
+@pytest.mark.asyncio
+async def test_add_known_folder_records_folder_and_parents(tmp_path: Path):
+    _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+
+    await scanner.add_known_folder("new/nested")
+
+    assert "new" in cache.all_folders
+    assert "new/nested" in cache.all_folders
+    # Models-only folder list is unaffected by empty directory creation
+    assert "new" not in cache.folders
+    # Idempotent: recording the same folder again keeps the list stable
+    await scanner.add_known_folder("new/nested")
+    assert cache.all_folders.count("new") == 1
+
+
+@pytest.mark.asyncio
+async def test_add_known_folder_noop_without_recorded_folders(tmp_path: Path):
+    _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    cache.all_folders = None
+
+    # Legacy snapshot without recorded folders: the scheduled backfill walk
+    # discovers the directory from disk instead.
+    await scanner.add_known_folder("new")
+
+    assert cache.all_folders is None
+
+
+@pytest.mark.asyncio
+async def test_add_known_folder_ignores_empty_input(tmp_path: Path):
+    _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    before = list(cache.all_folders)
+
+    await scanner.add_known_folder("")
+    await scanner.add_known_folder("/")
+
+    assert cache.all_folders == before
+
+
+@pytest.mark.asyncio
+async def test_remove_known_folder_drops_subtree_and_keeps_ancestors(tmp_path: Path):
+    _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    await scanner.add_known_folder("nested/deep/leaf")
+
+    await scanner.remove_known_folder("nested/deep")
+
+    assert "nested/deep" not in cache.all_folders
+    assert "nested/deep/leaf" not in cache.all_folders
+    # The ancestor directory still exists on disk in its own right
+    assert "nested" in cache.all_folders
+
+
+@pytest.mark.asyncio
+async def test_remove_known_folder_purges_stale_cache_entries(tmp_path: Path):
+    _, second, _ = _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    assert "nested" in cache.folders
+
+    await scanner.remove_known_folder("nested")
+
+    assert "nested" not in cache.all_folders
+    assert "nested" not in cache.folders
+    assert _normalize_path(second) not in {
+        item["file_path"] for item in cache.raw_data
+    }
+
+
+@pytest.mark.asyncio
+async def test_remove_known_folder_noop_without_recorded_folders(tmp_path: Path):
+    _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    cache.all_folders = None
+
+    # Legacy snapshot without recorded folders: nothing to prune, and the
+    # scheduled backfill walk rebuilds the list from disk.
+    await scanner.remove_known_folder("nested")
+
+    assert cache.all_folders is None
+
+
+@pytest.mark.asyncio
+async def test_remove_known_folder_ignores_empty_input(tmp_path: Path):
+    _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    before = list(cache.all_folders)
+
+    await scanner.remove_known_folder("")
+    await scanner.remove_known_folder("/")
+
+    assert cache.all_folders == before
+
+
+@pytest.mark.asyncio
+async def test_rename_known_folder_rekeys_folders_cache_and_sidecar(tmp_path: Path):
+    _, second, _ = _create_files(tmp_path)
+    nested = tmp_path / "nested"
+    preview = nested / "two.preview.png"
+    preview.write_text("png", encoding="utf-8")
+    (nested / "two.metadata.json").write_text(
+        json.dumps(
+            {
+                "file_path": _normalize_path(second),
+                "preview_url": _normalize_path(preview),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+
+    entry = next(item for item in cache.raw_data if item["model_name"] == "two")
+    entry["preview_url"] = _normalize_path(preview)
+
+    renamed = tmp_path / "renamed"
+    old_abs = _normalize_path(nested)
+    new_abs = _normalize_path(renamed)
+    os.rename(nested, renamed)
+
+    changed = await scanner.rename_known_folder(
+        "nested", "renamed", previous_path=old_abs, new_path=new_abs
+    )
+
+    assert changed is True
+    assert "renamed" in cache.all_folders
+    assert "nested" not in cache.all_folders
+    assert "renamed" in cache.folders
+    assert "nested" not in cache.folders
+    assert entry["folder"] == "renamed"
+    assert entry["file_path"] == _normalize_path(renamed / "two.txt")
+    assert entry["preview_url"] == _normalize_path(renamed / "two.preview.png")
+    assert scanner._hash_index.get_path("hash-two") == _normalize_path(
+        renamed / "two.txt"
+    )
+
+    # The sidecar travelled with the directory and was re-pointed in place
+    payload = json.loads(
+        (renamed / "two.metadata.json").read_text(encoding="utf-8")
+    )
+    assert payload["file_path"] == _normalize_path(renamed / "two.txt")
+    assert payload["preview_url"] == _normalize_path(renamed / "two.preview.png")
+
+
+@pytest.mark.asyncio
+async def test_rename_known_folder_handles_nested_targets(tmp_path: Path):
+    (tmp_path / "a" / "b" / "c").mkdir(parents=True)
+    model = tmp_path / "a" / "b" / "c" / "m.txt"
+    model.write_text("m", encoding="utf-8")
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+
+    old_abs = _normalize_path(tmp_path / "a" / "b")
+    new_abs = _normalize_path(tmp_path / "a" / "z")
+    os.rename(tmp_path / "a" / "b", tmp_path / "a" / "z")
+
+    await scanner.rename_known_folder(
+        "a/b", "a/z", previous_path=old_abs, new_path=new_abs
+    )
+
+    assert "a/b" not in cache.all_folders
+    assert "a/b/c" not in cache.all_folders
+    assert "a/z" in cache.all_folders
+    assert "a/z/c" in cache.all_folders
+    # The parent is an untouched directory in its own right
+    assert "a" in cache.all_folders
+
+    entry = next(item for item in cache.raw_data if item["model_name"] == "m")
+    assert entry["folder"] == "a/z/c"
+    assert entry["file_path"] == _normalize_path(tmp_path / "a" / "z" / "c" / "m.txt")
+
+
+@pytest.mark.asyncio
+async def test_rename_known_folder_keeps_unrelated_entries(tmp_path: Path):
+    first, _, _ = _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+
+    old_abs = _normalize_path(tmp_path / "nested")
+    new_abs = _normalize_path(tmp_path / "renamed")
+    os.rename(tmp_path / "nested", tmp_path / "renamed")
+
+    await scanner.rename_known_folder(
+        "nested", "renamed", previous_path=old_abs, new_path=new_abs
+    )
+
+    root_entry = next(item for item in cache.raw_data if item["model_name"] == "one")
+    assert root_entry["folder"] == ""
+    assert root_entry["file_path"] == _normalize_path(first)
+
+
+@pytest.mark.asyncio
+async def test_rename_known_folder_rekeys_excluded_models(tmp_path: Path):
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (nested / "one.txt").write_text("one", encoding="utf-8")
+    (nested / "skip-me.txt").write_text("skip", encoding="utf-8")
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+
+    assert scanner._excluded_models == [_normalize_path(nested / "skip-me.txt")]
+
+    old_abs = _normalize_path(nested)
+    new_abs = _normalize_path(tmp_path / "renamed")
+    os.rename(nested, tmp_path / "renamed")
+
+    await scanner.rename_known_folder(
+        "nested", "renamed", previous_path=old_abs, new_path=new_abs
+    )
+
+    assert scanner._excluded_models == [
+        _normalize_path(tmp_path / "renamed" / "skip-me.txt")
+    ]
+
+
+@pytest.mark.asyncio
+async def test_rename_known_folder_ignores_unchanged_or_empty_names(tmp_path: Path):
+    _create_files(tmp_path)
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    before = list(cache.all_folders)
+
+    assert (
+        await scanner.rename_known_folder(
+            "nested",
+            "nested",
+            previous_path=_normalize_path(tmp_path / "nested"),
+            new_path=_normalize_path(tmp_path / "nested"),
+        )
+        is False
+    )
+    assert (
+        await scanner.rename_known_folder(
+            "",
+            "renamed",
+            previous_path=_normalize_path(tmp_path),
+            new_path=_normalize_path(tmp_path / "renamed"),
+        )
+        is False
+    )
+
+    assert cache.all_folders == before
 
 
 @pytest.mark.asyncio

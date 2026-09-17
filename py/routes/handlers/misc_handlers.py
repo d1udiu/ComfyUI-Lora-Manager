@@ -55,7 +55,7 @@ from ...utils.constants import (
     VALID_LORA_TYPES,
     VALID_OTHER_CIVITAI_TYPES,
 )
-from .hf_handlers import HfHandler
+from .model_source_handlers import ModelSourceHandler
 from .agent_handlers import AgentHandler
 from .download_routing_handlers import DownloadRoutingHandler
 from .model_handlers import ModelCivitaiHandler
@@ -419,6 +419,11 @@ def _wsl_to_windows_path(wsl_path: str) -> str | None:
         return result.stdout.strip()
     except (subprocess.CalledProcessError, FileNotFoundError, OSError):
         return None
+
+
+def _has_gui_display() -> bool:
+    """Check whether a GUI session is reachable for xdg-open."""
+    return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
 class PromptServerProtocol(Protocol):
@@ -3393,6 +3398,18 @@ class FileSystemHandler:
                     subprocess.Popen(["open", "-R", settings_file])
                 else:
                     folder = os.path.dirname(settings_file)
+                    if not _has_gui_display():
+                        # Headless/SSH session: xdg-open cannot open a file
+                        # manager, so hand the path to the browser for copying
+                        # instead of reporting a success that never happened.
+                        return web.json_response(
+                            {
+                                "success": True,
+                                "message": "Headless session: path available for copying",
+                                "path": settings_file,
+                                "mode": "clipboard",
+                            }
+                        )
                     subprocess.Popen(["xdg-open", folder])
 
             return web.json_response(
@@ -4001,7 +4018,7 @@ class MiscHandlerSet:
         doctor: DoctorHandler,
         example_workflows: ExampleWorkflowsHandler,
         base_model: BaseModelHandlerSet,
-        hf_handler: Any = None,
+        model_source_handler: Any = None,
         agent_handler: Any = None,
         download_routing: Any = None,
     ) -> None:
@@ -4022,7 +4039,7 @@ class MiscHandlerSet:
         self.doctor = doctor
         self.example_workflows = example_workflows
         self.base_model = base_model
-        self.hf_handler = hf_handler
+        self.model_source_handler = model_source_handler
         self.agent_handler = agent_handler
         self.download_routing = download_routing
 
@@ -4076,9 +4093,13 @@ class MiscHandlerSet:
             "get_example_workflows": self.example_workflows.get_example_workflows,
             "get_example_workflow": self.example_workflows.get_example_workflow,
             # Hugging Face handlers
-            "get_hf_repo_files": self.hf_handler.get_hf_repo_files,
-            "download_hf_model": self.hf_handler.download_hf_model,
-            "set_hf_url": self.hf_handler.set_hf_url,
+            # External model sources (Hugging Face / ModelScope)
+            "list_model_source_files": self.model_source_handler.list_model_source_files,
+            "download_model_source": self.model_source_handler.download_model_source,
+            "get_hf_repo_files": self.model_source_handler.list_model_source_files,
+            "download_hf_model": self.model_source_handler.download_model_source,
+            "set_hf_url": self.model_source_handler.set_hf_url,
+            "get_model_sources": self.model_source_handler.get_model_sources,
             # Agent skill handlers
             "get_agent_skills": self.agent_handler.get_agent_skills,
             "execute_agent_skill": self.agent_handler.execute_agent_skill,

@@ -2,6 +2,9 @@
   "common": {
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "reorder": {
+      "dragHandle": "Drag to reorder"
+    },
     "actions": {
       "save": "Save",
       "cancel": "Cancel",
@@ -139,6 +142,7 @@
       "viewOnCivitai": "View on CivitAI",
       "notAvailableFromCivitai": "Not available from CivitAI",
       "viewOnHuggingFace": "View on Hugging Face",
+      "viewOnSource": "View on {source}",
       "sendToWorkflow": "Send to ComfyUI (Click: Append, Shift+Click: Replace)",
       "copyLoRASyntax": "Copy LoRA Syntax",
       "checkpointNameCopied": "Checkpoint name copied",
@@ -867,14 +871,14 @@
         "complete": "Auto-organize complete",
         "error": "Error: {error}"
       },
-      "enrichHfAgent": "Enrich HF Metadata (AI)"
+      "enrichHfAgent": "Enrich Metadata with AI"
     },
     "contextMenu": {
       "refreshMetadata": "Refresh CivitAI Data",
       "checkUpdates": "Check Updates",
       "linkModel": "Link Model",
       "linkCivitai": "Link to CivitAI",
-      "linkHuggingFace": "Link to HuggingFace",
+      "linkModelSource": "Link to Model Source",
       "copySyntax": "Copy LoRA Syntax",
       "copyFilename": "Copy Model Filename",
       "copyRecipeSyntax": "Copy Recipe Syntax",
@@ -896,7 +900,7 @@
       "viewAllLoras": "View All LoRAs",
       "downloadMissingLoras": "Download Missing LoRAs",
       "deleteRecipe": "Delete Recipe",
-      "enrichHfAgent": "Enrich HF Metadata (AI)"
+      "enrichHfAgent": "Enrich Metadata with AI"
     }
   },
   "recipes": {
@@ -914,7 +918,9 @@
     },
     "modal": {
       "metadata": {
-        "id": "ID"
+        "id": "ID",
+        "baseModel": "Base Model",
+        "unknown": "Unknown"
       },
       "actions": {
         "openFileLocation": "Open File Location",
@@ -1235,38 +1241,74 @@
     },
     "noPaths": {
       "title": "No other-model folders found",
-      "descriptionStandalone": "Other Models management is on, but none of the configured model folders exist on disk. Add the folder paths below to settings.json and restart LoRA Manager.",
+      "descriptionStandalone": "Other Models management is on, but no other-model folders were found. Add the folder keys you need to the folder_paths section of your settings.json, then restart LoRA Manager.",
       "hintStandalone": "Only the folder keys listed above are scanned; keys you do not need can be omitted.",
       "descriptionComfyUI": "Other Models management is on, but none of the configured model folders exist on disk. Add the matching model folders to your ComfyUI model paths, then reload this page.",
       "hintComfyUI": "Other models are read from ComfyUI's vae, upscale_models, text_encoders, clip_vision and controlnet folders.",
-      "openSettings": "Open Settings"
+      "openSettings": "Open Settings",
+      "openSettingsFolder": "Open Settings Folder"
     }
   },
   "sidebar": {
     "modelRoot": "Root",
     "collapseAll": "Collapse All Folders",
+    "collapseAllDisabled": "Not available in list view",
     "hideOnThisPage": "Hide sidebar on this page",
     "showSidebar": "Show sidebar",
     "sidebarHiddenNotification": "Folder sidebar hidden on {page} page",
-    "switchToListView": "Switch to List View",
-    "switchToTreeView": "Switch to Tree View",
+    "viewOptions": "View options",
+    "treeView": "Tree view",
+    "listView": "List view",
     "recursiveOn": "Include subfolders",
-    "recursiveOff": "Current folder only",
-    "recursiveUnavailable": "Recursive search is available in tree view only",
-    "collapseAllDisabled": "Not available in list view",
+    "createFolder": "New folder",
+    "newSubfolder": "New subfolder",
+    "showEmptyFolders": "Show empty folders",
+    "createFolderResult": {
+      "success": "Folder \"{name}\" created",
+      "failed": "Failed to create folder: {message}",
+      "unsupported": "Folder creation is not supported on this page",
+      "noRoot": "No model root is configured"
+    },
+    "deleteFolder": "Delete folder",
+    "deleteFolderModal": {
+      "title": "Delete folder?",
+      "message": "The folder and everything inside it will be permanently removed from disk.",
+      "folderLabel": "Folder",
+      "emptyNote": "This folder contains no models. Any other files it holds will be deleted too.",
+      "notEmptyTitle": "Folder is not empty",
+      "notEmptyMessage": "This folder still contains models. Delete or move them first — deleting a folder never cascades over model files.",
+      "confirm": "Delete folder"
+    },
+    "deleteFolderResult": {
+      "success": "Folder \"{name}\" deleted",
+      "successWithFiles": "Folder \"{name}\" deleted along with {count} other item(s)",
+      "restored": "Folder restored",
+      "failed": "Failed to delete folder: {message}",
+      "notEmpty": "This folder still contains models. Refresh the sidebar and try again.",
+      "busy": "A deletion is still pending inside this folder. Wait for the undo window to expire.",
+      "unsupported": "Folder deletion is not supported on this page",
+      "noRoot": "No model root is configured"
+    },
+    "renameFolder": "Rename folder",
+    "renameFolderResult": {
+      "success": "Folder renamed to \"{name}\"",
+      "failed": "Failed to rename folder: {message}",
+      "targetExists": "A folder with that name already exists here",
+      "busy": "A deletion is still pending inside this folder. Wait for the undo window to expire.",
+      "unsupported": "Folder renaming is not supported on this page",
+      "noRoot": "No model root is configured"
+    },
     "dragDrop": {
       "unableToResolveRoot": "Unable to determine destination path for move.",
       "moveUnsupported": "Move is not supported for this item.",
-      "createFolderHint": "Release to create new folder",
       "newFolderName": "New folder name",
-      "folderNameHint": "Press Enter to confirm, Escape to cancel",
       "emptyFolderName": "Please enter a folder name",
       "invalidFolderName": "Folder name contains invalid characters",
       "noDragState": "No pending drag operation found"
     },
     "empty": {
       "noFolders": "No folders found",
-      "dragHint": "Drag items here to create folders"
+      "createHint": "Click the New Folder button above to create folders"
     },
     "folderUpdateCheck": {
       "label": "Check for updates in this folder",
@@ -1394,9 +1436,9 @@
     "download": {
       "title": "Download Model from URL",
       "titleWithType": "Download {type} from URL",
-      "civitaiUrl": "CivitAI URL(s):",
+      "civitaiUrl": "Model URL(s):",
       "placeholder": "https://civitai.com/models/...",
-      "urlHint": "Enter one CivitAI, CivArchive, or Hugging Face URL per line. Supports multiple URLs for batch download.",
+      "urlHint": "Enter one CivitAI, CivArchive, Hugging Face, or ModelScope URL per line. Supports multiple URLs for batch download.",
       "selectHfFiles": "Select file(s) to download from this repository:",
       "selectAll": "Select All",
       "fetchingRepoFiles": "Fetching repository files...",
@@ -1429,9 +1471,9 @@
         "inLibrary": "In Library"
       },
       "errors": {
-        "invalidUrl": "Invalid CivitAI URL format",
+        "invalidUrl": "Invalid model URL format",
         "noVersions": "No versions available for this model",
-        "mixedSources": "Cannot mix CivitAI and Hugging Face URLs in the same batch.",
+        "mixedSources": "Cannot mix CivitAI and Hugging Face / ModelScope URLs in the same batch.",
         "noModelFiles": "No model files found in this repository."
       },
       "status": {
@@ -1445,6 +1487,10 @@
       "progress": {
         "currentFile": "Current file:",
         "downloading": "Downloading: {name}",
+        "metadata": "Metadata: {name}",
+        "indexingFile": "Reading model file...",
+        "fetchingSourceMetadata": "Fetching metadata from {source}...",
+        "fetchingMetadata": "Fetching metadata...",
         "transferred": "Transferred: {downloaded} / {total}",
         "transferredSimple": "Transferred: {downloaded}",
         "transferredUnknown": "Transferred: --",
@@ -1596,12 +1642,16 @@
       "pathPlaceholder": "Type folder path or select from tree below...",
       "root": "Root"
     },
-    "linkHuggingFace": {
-      "title": "Link to HuggingFace",
-      "infoText": "Paste the HuggingFace repository URL to associate this model with its source. This enables AI-powered metadata enrichment.",
-      "urlLabel": "HuggingFace Repository URL:",
+    "linkModelSource": {
+      "title": "Link to Model Source",
+      "infoText": "Paste the model page URL to associate this model with its source. Linking enables AI-powered metadata enrichment for Hugging Face and ModelScope models.",
+      "urlLabel": "Model Page URL:",
       "urlPlaceholder": "https://huggingface.co/user/repo",
-      "helpText": "Enter the full URL of the HuggingFace repository.",
+      "helpText": "Enter the full URL of the model page. Supported sites:",
+      "enrichNote": "AI enrichment needs a readable model card. Sites that don't expose one (currently TensorArt) can only be linked.",
+      "urlRequired": "Please enter a model page URL.",
+      "invalidUrl": "Unsupported URL. Supported sites: Hugging Face, ModelScope, TensorArt.",
+      "linking": "Linking model source...",
       "confirmAction": "Save & Link"
     },
     "relinkCivitai": {
@@ -1847,7 +1897,7 @@
         "empty": "No version history available for this model yet.",
         "error": "Failed to load versions.",
         "missingModelId": "This model is missing a CivitAI model id.",
-        "hfGroupInfo": "This is a HuggingFace model group. Open the library to see all versions in the grid.",
+        "sourceGroupInfo": "This is a {source} model group. Open the library to see all versions in the grid.",
         "confirm": {
           "delete": "Delete this version from your library?"
         },
@@ -2478,12 +2528,14 @@
       "contentRatingFailed": "Failed to set content rating: {message}",
       "relinkSuccess": "Model successfully re-linked to CivitAI",
       "relinkFailed": "Error: {message}",
-      "linkHfSuccess": "Model successfully linked to HuggingFace",
+      "linkHfSuccess": "Model successfully linked to its model source",
       "linkHfFailed": "Error: {message}",
       "linkCivArchSuccess": "Model successfully re-linked via CivitArchive",
       "fetchMetadataFirst": "Please fetch metadata from CivitAI first",
       "noCivitaiInfo": "No CivitAI information available",
-      "missingHash": "Model hash not available"
+      "missingHash": "Model hash not available",
+      "enrichNeedsSource": "Link this model to a model source first (Link Model → Link to Model Source)",
+      "enrichUnsupportedSource": "AI enrichment is not available for {source} models"
     },
     "exampleImages": {
       "pathUpdated": "Example images path updated successfully",

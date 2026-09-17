@@ -2,6 +2,9 @@
     "common": {
         "cancel": "キャンセル",
         "confirm": "確認",
+        "reorder": {
+            "dragHandle": "ドラッグして並べ替え"
+        },
         "actions": {
             "save": "保存",
             "cancel": "キャンセル",
@@ -139,6 +142,7 @@
             "viewOnCivitai": "CivitAIで表示",
             "notAvailableFromCivitai": "CivitAIでは利用できません",
             "viewOnHuggingFace": "Hugging Face で見る",
+            "viewOnSource": "{source} で見る",
             "sendToWorkflow": "ComfyUIに送信（クリック：追加、Shift+クリック：置換）",
             "copyLoRASyntax": "LoRA構文をコピー",
             "checkpointNameCopied": "Checkpointの名前をコピーしました",
@@ -867,14 +871,14 @@
                 "complete": "自動整理が完了しました",
                 "error": "エラー：{error}"
             },
-            "enrichHfAgent": "HF メタデータをAIで補完"
+            "enrichHfAgent": "メタデータをAIで補完"
         },
         "contextMenu": {
             "refreshMetadata": "CivitAIデータを更新",
             "checkUpdates": "更新確認",
             "linkModel": "モデルをリンク",
             "linkCivitai": "CivitAI にリンク",
-            "linkHuggingFace": "HuggingFace にリンク",
+            "linkModelSource": "モデルソースにリンク",
             "copySyntax": "LoRA構文をコピー",
             "copyFilename": "モデルファイル名をコピー",
             "copyRecipeSyntax": "レシピ構文をコピー",
@@ -896,7 +900,7 @@
             "viewAllLoras": "すべてのLoRAを表示",
             "downloadMissingLoras": "不足しているLoRAをダウンロード",
             "deleteRecipe": "レシピを削除",
-            "enrichHfAgent": "HF メタデータをAIで補完"
+            "enrichHfAgent": "メタデータをAIで補完"
         }
     },
     "recipes": {
@@ -914,7 +918,9 @@
         },
         "modal": {
             "metadata": {
-                "id": "ID"
+                "id": "ID",
+                "baseModel": "ベースモデル",
+                "unknown": "不明"
             },
             "actions": {
                 "openFileLocation": "ファイルの場所を開く",
@@ -1235,38 +1241,74 @@
         },
         "noPaths": {
             "title": "その他のモデルのフォルダーが見つかりません",
-            "descriptionStandalone": "その他のモデル管理はオンですが、設定されたモデルフォルダーがディスク上に存在しません。以下のフォルダーパスをsettings.jsonに追加し、LoRA Managerを再起動してください。",
+            "descriptionStandalone": "その他のモデル管理はオンですが、その他のモデルのフォルダーが見つかりません。必要なフォルダーキーをsettings.jsonのfolder_pathsセクションに追加し、LoRA Managerを再起動してください。",
             "hintStandalone": "スキャンされるのは上記のフォルダーキーのみです。不要なキーは省略できます。",
             "descriptionComfyUI": "その他のモデル管理はオンですが、設定されたモデルフォルダーがディスク上に存在しません。該当するモデルフォルダーをComfyUIのモデルパスに追加し、このページを再読み込みしてください。",
             "hintComfyUI": "その他のモデルは、ComfyUIのvae、upscale_models、text_encoders、clip_vision、controlnetフォルダーから読み込まれます。",
-            "openSettings": "設定を開く"
+            "openSettings": "設定を開く",
+            "openSettingsFolder": "設定フォルダーを開く"
         }
     },
     "sidebar": {
         "modelRoot": "ルート",
         "collapseAll": "すべてのフォルダを折りたたむ",
+        "collapseAllDisabled": "リスト表示では利用できません",
         "hideOnThisPage": "このページでサイドバーを非表示",
         "showSidebar": "サイドバーを表示",
         "sidebarHiddenNotification": "{page}ページでサイドバーが非表示になっています",
-        "switchToListView": "リストビューに切り替え",
-        "switchToTreeView": "ツリー表示に切り替え",
+        "viewOptions": "表示オプション",
+        "treeView": "ツリー表示",
+        "listView": "リスト表示",
         "recursiveOn": "サブフォルダーを含める",
-        "recursiveOff": "現在のフォルダーのみ",
-        "recursiveUnavailable": "再帰検索はツリービューでのみ利用できます",
-        "collapseAllDisabled": "リストビューでは利用できません",
+        "createFolder": "新規フォルダ",
+        "newSubfolder": "新規サブフォルダ",
+        "showEmptyFolders": "空のフォルダを表示",
+        "createFolderResult": {
+            "success": "フォルダ \"{name}\" を作成しました",
+            "failed": "フォルダの作成に失敗しました: {message}",
+            "unsupported": "このページではフォルダを作成できません",
+            "noRoot": "モデルルートが設定されていません"
+        },
+        "deleteFolder": "フォルダを削除",
+        "deleteFolderModal": {
+            "title": "フォルダを削除しますか？",
+            "message": "フォルダとその内容はすべてディスクから完全に削除されます。",
+            "folderLabel": "フォルダ",
+            "emptyNote": "このフォルダにはモデルがありません。他のファイルもすべて削除されます。",
+            "notEmptyTitle": "フォルダが空ではありません",
+            "notEmptyMessage": "このフォルダにはまだモデルがあります。先に削除するか移動してください —— フォルダを削除してもモデルファイルがまとめて削除されることはありません。",
+            "confirm": "フォルダを削除"
+        },
+        "deleteFolderResult": {
+            "success": "フォルダ \"{name}\" を削除しました",
+            "successWithFiles": "フォルダ \"{name}\" を削除し、他に {count} 件の項目も削除しました",
+            "restored": "フォルダを復元しました",
+            "failed": "フォルダの削除に失敗しました: {message}",
+            "notEmpty": "このフォルダにはまだモデルがあります。サイドバーを再読み込みしてからもう一度お試しください。",
+            "busy": "このフォルダ内に保留中の削除があります。取り消し可能な時間が過ぎるまでお待ちください。",
+            "unsupported": "このページではフォルダを削除できません",
+            "noRoot": "モデルルートが設定されていません"
+        },
+        "renameFolder": "フォルダ名を変更",
+        "renameFolderResult": {
+            "success": "フォルダ名を \"{name}\" に変更しました",
+            "failed": "フォルダ名の変更に失敗しました: {message}",
+            "targetExists": "同じ名前のフォルダが既に存在します",
+            "busy": "このフォルダ内に保留中の削除があります。取り消し可能な時間が過ぎるまでお待ちください。",
+            "unsupported": "このページではフォルダ名を変更できません",
+            "noRoot": "モデルルートが設定されていません"
+        },
         "dragDrop": {
             "unableToResolveRoot": "移動先のパスを特定できません。",
             "moveUnsupported": "この項目の移動はサポートされていません。",
-            "createFolderHint": "放して新しいフォルダを作成",
             "newFolderName": "新しいフォルダ名",
-            "folderNameHint": "Enterで確定、Escでキャンセル",
             "emptyFolderName": "フォルダ名を入力してください",
             "invalidFolderName": "フォルダ名に無効な文字が含まれています",
             "noDragState": "保留中のドラッグ操作が見つかりません"
         },
         "empty": {
             "noFolders": "フォルダが見つかりません",
-            "dragHint": "ここへアイテムをドラッグしてフォルダを作成します"
+            "createHint": "上部の新規フォルダボタンからフォルダを作成できます"
         },
         "folderUpdateCheck": {
             "label": "このフォルダのアップデートを確認",
@@ -1394,9 +1436,9 @@
         "download": {
             "title": "URLからモデルをダウンロード",
             "titleWithType": "URLから{type}をダウンロード",
-            "civitaiUrl": "CivitAI URL：",
+            "civitaiUrl": "モデル URL：",
             "placeholder": "https://civitai.com/models/...",
-            "urlHint": "1行に1つのCivitAI、CivArchive、またはHugging Face URLを入力してください。複数のURLを一括ダウンロードできます。",
+            "urlHint": "1行に1つのCivitAI、CivArchive、Hugging Face、またはModelScope URLを入力してください。複数のURLを一括ダウンロードできます。",
             "selectHfFiles": "このリポジトリからダウンロードするファイルを選択してください：",
             "selectAll": "すべて選択",
             "fetchingRepoFiles": "リポジトリのファイルを取得中...",
@@ -1429,9 +1471,9 @@
                 "inLibrary": "ライブラリ内"
             },
             "errors": {
-                "invalidUrl": "無効なCivitAI URL形式",
+                "invalidUrl": "無効なモデル URL 形式",
                 "noVersions": "このモデルの利用可能なバージョンがありません",
-                "mixedSources": "同じバッチ内でCivitAIとHugging FaceのURLを混在させることはできません。",
+                "mixedSources": "同じバッチ内でCivitAIとHugging Face / ModelScopeのURLを混在させることはできません。",
                 "noModelFiles": "このリポジトリにモデルファイルが見つかりませんでした。"
             },
             "status": {
@@ -1445,6 +1487,10 @@
             "progress": {
                 "currentFile": "現在のファイル:",
                 "downloading": "ダウンロード中: {name}",
+                "metadata": "メタデータ: {name}",
+                "indexingFile": "モデルファイルを読み込み中...",
+                "fetchingSourceMetadata": "{source} からメタデータを取得中...",
+                "fetchingMetadata": "メタデータを取得中...",
                 "transferred": "ダウンロード済み: {downloaded} / {total}",
                 "transferredSimple": "ダウンロード済み: {downloaded}",
                 "transferredUnknown": "ダウンロード済み: --",
@@ -1596,12 +1642,16 @@
             "pathPlaceholder": "フォルダパスを入力するか、下のツリーから選択...",
             "root": "ルート"
         },
-        "linkHuggingFace": {
-            "title": "HuggingFace にリンク",
-            "infoText": "HuggingFace リポジトリの URL を貼り付けてモデルを関連付けます。AI によるメタデータ補完が有効になります。",
-            "urlLabel": "HuggingFace リポジトリ URL：",
+        "linkModelSource": {
+            "title": "モデルソースにリンク",
+            "infoText": "モデルページの URL を貼り付けて、このモデルをソースに関連付けます。リンクすると、Hugging Face と ModelScope のモデルで AI によるメタデータ補完が有効になります。",
+            "urlLabel": "モデルページ URL：",
             "urlPlaceholder": "https://huggingface.co/user/repo",
-            "helpText": "完全な HuggingFace リポジトリ URL を入力してください。",
+            "helpText": "完全なモデルページ URL を入力してください。対応サイト：",
+            "enrichNote": "AI 補完には読み取り可能なモデルカードが必要です。モデルカードを公開していないサイト（現在は TensorArt）はリンクのみ可能です。",
+            "urlRequired": "モデルページの URL を入力してください。",
+            "invalidUrl": "サポートされていない URL です。対応サイト：Hugging Face、ModelScope、TensorArt。",
+            "linking": "モデルソースをリンクしています...",
             "confirmAction": "保存＆リンク"
         },
         "relinkCivitai": {
@@ -1847,7 +1897,7 @@
                 "empty": "このモデルにはまだバージョン履歴がありません。",
                 "error": "バージョンの読み込みに失敗しました。",
                 "missingModelId": "このモデルにはCivitAIのモデルIDがありません。",
-                "hfGroupInfo": "これは HuggingFace モデルグループです。ライブラリを開いてグリッドですべてのバージョンを表示してください。",
+                "sourceGroupInfo": "これは {source} モデルグループです。ライブラリを開いてグリッドですべてのバージョンを表示してください。",
                 "confirm": {
                     "delete": "このバージョンをライブラリから削除しますか？"
                 },
@@ -2483,7 +2533,9 @@
             "linkCivArchSuccess": "モデルがCivitArchive経由で正常に再リンクされました",
             "fetchMetadataFirst": "最初にCivitAIからメタデータを取得してください",
             "noCivitaiInfo": "CivitAI情報が利用できません",
-            "missingHash": "モデルハッシュが利用できません"
+            "missingHash": "モデルハッシュが利用できません",
+            "enrichNeedsSource": "まずこのモデルをモデルソースにリンクしてください（モデルをリンク → モデルソースにリンク）",
+            "enrichUnsupportedSource": "{source} モデルでは AI 補完を利用できません"
         },
         "exampleImages": {
             "pathUpdated": "例画像パスが正常に更新されました",

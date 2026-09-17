@@ -2,6 +2,9 @@
     "common": {
         "cancel": "Отмена",
         "confirm": "Подтвердить",
+        "reorder": {
+            "dragHandle": "Перетащите, чтобы изменить порядок"
+        },
         "actions": {
             "save": "Сохранить",
             "cancel": "Отмена",
@@ -139,6 +142,7 @@
             "viewOnCivitai": "Посмотреть на CivitAI",
             "notAvailableFromCivitai": "Недоступно на CivitAI",
             "viewOnHuggingFace": "Открыть Hugging Face",
+            "viewOnSource": "Открыть {source}",
             "sendToWorkflow": "Отправить в ComfyUI (Клик: Добавить, Shift+Клик: Заменить)",
             "copyLoRASyntax": "Копировать синтаксис LoRA",
             "checkpointNameCopied": "Имя checkpoint скопировано",
@@ -867,14 +871,14 @@
                 "complete": "Автоматическая организация завершена",
                 "error": "Ошибка: {error}"
             },
-            "enrichHfAgent": "Обогатить HF метаданные (ИИ)"
+            "enrichHfAgent": "Обогатить метаданные с помощью ИИ"
         },
         "contextMenu": {
             "refreshMetadata": "Обновить данные CivitAI",
             "checkUpdates": "Проверить обновления",
             "linkModel": "Связать модель",
             "linkCivitai": "Пересвязать с CivitAI",
-            "linkHuggingFace": "Связать с HuggingFace",
+            "linkModelSource": "Связать с источником модели",
             "copySyntax": "Копировать синтаксис LoRA",
             "copyFilename": "Копировать имя файла модели",
             "copyRecipeSyntax": "Копировать синтаксис рецепта",
@@ -896,7 +900,7 @@
             "viewAllLoras": "Посмотреть все LoRAs",
             "downloadMissingLoras": "Загрузить отсутствующие LoRAs",
             "deleteRecipe": "Удалить рецепт",
-            "enrichHfAgent": "Обогатить HF метаданные (ИИ)"
+            "enrichHfAgent": "Обогатить метаданные с помощью ИИ"
         }
     },
     "recipes": {
@@ -914,7 +918,9 @@
         },
         "modal": {
             "metadata": {
-                "id": "ID"
+                "id": "ID",
+                "baseModel": "Базовая модель",
+                "unknown": "Неизвестно"
             },
             "actions": {
                 "openFileLocation": "Открыть расположение файла",
@@ -1235,38 +1241,74 @@
         },
         "noPaths": {
             "title": "Папки других моделей не найдены",
-            "descriptionStandalone": "Управление другими моделями включено, но ни одна из настроенных папок моделей не существует на диске. Добавьте указанные ниже пути к папкам в settings.json и перезапустите LoRA Manager.",
+            "descriptionStandalone": "Управление другими моделями включено, но папки других моделей не найдены. Добавьте нужные ключи папок в раздел folder_paths файла settings.json и перезапустите LoRA Manager.",
             "hintStandalone": "Сканируются только перечисленные выше ключи папок; ненужные ключи можно опустить.",
             "descriptionComfyUI": "Управление другими моделями включено, но ни одна из настроенных папок моделей не существует на диске. Добавьте соответствующие папки моделей в пути к моделям ComfyUI и перезагрузите эту страницу.",
             "hintComfyUI": "Другие модели читаются из папок vae, upscale_models, text_encoders, clip_vision и controlnet в ComfyUI.",
-            "openSettings": "Открыть настройки"
+            "openSettings": "Открыть настройки",
+            "openSettingsFolder": "Открыть папку настроек"
         }
     },
     "sidebar": {
         "modelRoot": "Корень",
         "collapseAll": "Свернуть все папки",
+        "collapseAllDisabled": "Недоступно в виде списка",
         "hideOnThisPage": "Скрыть боковую панель на этой странице",
         "showSidebar": "Показать боковую панель",
         "sidebarHiddenNotification": "Боковая панель скрыта на странице {page}",
-        "switchToListView": "Переключить на вид списка",
-        "switchToTreeView": "Переключить на древовидный вид",
+        "viewOptions": "Параметры отображения",
+        "treeView": "Дерево",
+        "listView": "Список",
         "recursiveOn": "Включать вложенные папки",
-        "recursiveOff": "Только текущая папка",
-        "recursiveUnavailable": "Рекурсивный поиск доступен только в режиме дерева",
-        "collapseAllDisabled": "Недоступно в виде списка",
+        "createFolder": "Новая папка",
+        "newSubfolder": "Новая вложенная папка",
+        "showEmptyFolders": "Показывать пустые папки",
+        "createFolderResult": {
+            "success": "Папка \"{name}\" создана",
+            "failed": "Не удалось создать папку: {message}",
+            "unsupported": "Создание папок не поддерживается на этой странице",
+            "noRoot": "Корневая папка моделей не настроена"
+        },
+        "deleteFolder": "Удалить папку",
+        "deleteFolderModal": {
+            "title": "Удалить папку?",
+            "message": "Папка и всё её содержимое будут безвозвратно удалены с диска.",
+            "folderLabel": "Папка",
+            "emptyNote": "В этой папке нет моделей. Остальные файлы в ней тоже будут удалены.",
+            "notEmptyTitle": "Папка не пуста",
+            "notEmptyMessage": "В этой папке ещё есть модели. Сначала удалите или переместите их — удаление папки никогда не затрагивает файлы моделей.",
+            "confirm": "Удалить папку"
+        },
+        "deleteFolderResult": {
+            "success": "Папка \"{name}\" удалена",
+            "successWithFiles": "Папка \"{name}\" удалена вместе с ещё {count} элемент(ами)",
+            "restored": "Папка восстановлена",
+            "failed": "Не удалось удалить папку: {message}",
+            "notEmpty": "В этой папке ещё есть модели. Обновите боковую панель и повторите попытку.",
+            "busy": "В этой папке всё ещё есть отложенное удаление. Дождитесь окончания окна отмены.",
+            "unsupported": "Удаление папок не поддерживается на этой странице",
+            "noRoot": "Корневая папка моделей не настроена"
+        },
+        "renameFolder": "Переименовать папку",
+        "renameFolderResult": {
+            "success": "Папка переименована в \"{name}\"",
+            "failed": "Не удалось переименовать папку: {message}",
+            "targetExists": "Папка с таким именем уже существует здесь",
+            "busy": "В этой папке всё ещё есть отложенное удаление. Дождитесь окончания окна отмены.",
+            "unsupported": "Переименование папок не поддерживается на этой странице",
+            "noRoot": "Корневая папка моделей не настроена"
+        },
         "dragDrop": {
             "unableToResolveRoot": "Не удалось определить путь назначения для перемещения.",
             "moveUnsupported": "Перемещение этого элемента не поддерживается.",
-            "createFolderHint": "Отпустите, чтобы создать новую папку",
             "newFolderName": "Имя новой папки",
-            "folderNameHint": "Нажмите Enter для подтверждения, Escape для отмены",
             "emptyFolderName": "Пожалуйста, введите имя папки",
             "invalidFolderName": "Имя папки содержит недопустимые символы",
             "noDragState": "Ожидающая операция перетаскивания не найдена"
         },
         "empty": {
             "noFolders": "Папки не найдены",
-            "dragHint": "Перетащите элементы сюда, чтобы создать папки"
+            "createHint": "Нажмите кнопку «Новая папка» вверху, чтобы создать папки"
         },
         "folderUpdateCheck": {
             "label": "Проверить обновления в этой папке",
@@ -1394,9 +1436,9 @@
         "download": {
             "title": "Скачать модель по URL",
             "titleWithType": "Скачать {type} по URL",
-            "civitaiUrl": "CivitAI URL:",
+            "civitaiUrl": "URL модели:",
             "placeholder": "https://civitai.com/models/...",
-            "urlHint": "Введите один URL CivitAI, CivArchive или Hugging Face в каждой строке. Поддерживает несколько URL для пакетной загрузки.",
+            "urlHint": "Введите один URL CivitAI, CivArchive, Hugging Face или ModelScope в каждой строке. Поддерживает несколько URL для пакетной загрузки.",
             "selectHfFiles": "Выберите файл(ы) для загрузки из этого репозитория:",
             "selectAll": "Выбрать все",
             "fetchingRepoFiles": "Получение файлов репозитория...",
@@ -1429,9 +1471,9 @@
                 "inLibrary": "В библиотеке"
             },
             "errors": {
-                "invalidUrl": "Неверный формат URL CivitAI",
+                "invalidUrl": "Неверный формат URL модели",
                 "noVersions": "Нет доступных версий для этой модели",
-                "mixedSources": "Нельзя смешивать URL-адреса CivitAI и Hugging Face в одном пакете.",
+                "mixedSources": "Нельзя смешивать URL-адреса CivitAI и Hugging Face / ModelScope в одном пакете.",
                 "noModelFiles": "В этом репозитории не найдено файлов моделей."
             },
             "status": {
@@ -1445,6 +1487,10 @@
             "progress": {
                 "currentFile": "Текущий файл:",
                 "downloading": "Скачивается: {name}",
+                "metadata": "Метаданные: {name}",
+                "indexingFile": "Чтение файла модели...",
+                "fetchingSourceMetadata": "Получение метаданных из {source}...",
+                "fetchingMetadata": "Получение метаданных...",
                 "transferred": "Скачано: {downloaded} / {total}",
                 "transferredSimple": "Скачано: {downloaded}",
                 "transferredUnknown": "Скачано: --",
@@ -1596,12 +1642,16 @@
             "pathPlaceholder": "Введите путь к папке или выберите из дерева ниже...",
             "root": "Корень"
         },
-        "linkHuggingFace": {
-            "title": "Связать с HuggingFace",
-            "infoText": "Вставьте URL репозитория HuggingFace, чтобы связать эту модель с её источником. Это позволит обогащать метаданные с помощью ИИ.",
-            "urlLabel": "URL репозитория HuggingFace:",
+        "linkModelSource": {
+            "title": "Связать с источником модели",
+            "infoText": "Вставьте URL страницы модели, чтобы связать эту модель с её источником. Связывание включает обогащение метаданных с помощью ИИ для моделей Hugging Face и ModelScope.",
+            "urlLabel": "URL страницы модели:",
             "urlPlaceholder": "https://huggingface.co/user/repo",
-            "helpText": "Введите полный URL репозитория HuggingFace.",
+            "helpText": "Введите полный URL страницы модели. Поддерживаемые сайты:",
+            "enrichNote": "Для обогащения с помощью ИИ нужна читаемая карточка модели. Сайты, которые её не предоставляют (сейчас TensorArt), можно только связать.",
+            "urlRequired": "Введите URL страницы модели.",
+            "invalidUrl": "Неподдерживаемый URL. Поддерживаемые сайты: Hugging Face, ModelScope, TensorArt.",
+            "linking": "Связывание с источником модели...",
             "confirmAction": "Сохранить и связать"
         },
         "relinkCivitai": {
@@ -1847,7 +1897,7 @@
                 "empty": "Для этой модели пока нет истории версий.",
                 "error": "Не удалось загрузить версии.",
                 "missingModelId": "У этой модели отсутствует идентификатор модели CivitAI.",
-                "hfGroupInfo": "Это группа моделей HuggingFace. Откройте библиотеку, чтобы увидеть все версии в сетке.",
+                "sourceGroupInfo": "Это группа моделей {source}. Откройте библиотеку, чтобы увидеть все версии в сетке.",
                 "confirm": {
                     "delete": "Удалить эту версию из библиотеки?"
                 },
@@ -2483,7 +2533,9 @@
             "linkCivArchSuccess": "Модель успешно пересвязана через CivitArchive",
             "fetchMetadataFirst": "Пожалуйста, сначала получите метаданные с CivitAI",
             "noCivitaiInfo": "Информация CivitAI недоступна",
-            "missingHash": "Хеш модели недоступен"
+            "missingHash": "Хеш модели недоступен",
+            "enrichNeedsSource": "Сначала свяжите эту модель с источником модели (Связать модель → Связать с источником модели)",
+            "enrichUnsupportedSource": "Обогащение с помощью ИИ недоступно для моделей {source}"
         },
         "exampleImages": {
             "pathUpdated": "Путь к примерам изображений успешно обновлен",

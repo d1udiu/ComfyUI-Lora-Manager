@@ -2,6 +2,9 @@
     "common": {
         "cancel": "取消",
         "confirm": "确认",
+        "reorder": {
+            "dragHandle": "拖拽以调整顺序"
+        },
         "actions": {
             "save": "保存",
             "cancel": "取消",
@@ -139,6 +142,7 @@
             "viewOnCivitai": "在 CivitAI 查看",
             "notAvailableFromCivitai": "CivitAI 上不可用",
             "viewOnHuggingFace": "在 Hugging Face 查看",
+            "viewOnSource": "在 {source} 查看",
             "sendToWorkflow": "发送到 ComfyUI（点击：追加，Shift+点击：替换）",
             "copyLoRASyntax": "复制 LoRA 语法",
             "checkpointNameCopied": "Checkpoint 名称已复制",
@@ -867,14 +871,14 @@
                 "complete": "自动整理已完成",
                 "error": "错误：{error}"
             },
-            "enrichHfAgent": "AI HF 元数据增强"
+            "enrichHfAgent": "AI 元数据增强"
         },
         "contextMenu": {
             "refreshMetadata": "刷新 CivitAI 数据",
             "checkUpdates": "检查更新",
             "linkModel": "链接模型",
             "linkCivitai": "链接到 CivitAI",
-            "linkHuggingFace": "链接到 HuggingFace",
+            "linkModelSource": "链接到模型来源",
             "copySyntax": "复制 LoRA 语法",
             "copyFilename": "复制模型文件名",
             "copyRecipeSyntax": "复制配方语法",
@@ -896,7 +900,7 @@
             "viewAllLoras": "查看所有 LoRA",
             "downloadMissingLoras": "下载缺失的 LoRA",
             "deleteRecipe": "删除配方",
-            "enrichHfAgent": "AI HF 元数据增强"
+            "enrichHfAgent": "AI 元数据增强"
         }
     },
     "recipes": {
@@ -914,7 +918,9 @@
         },
         "modal": {
             "metadata": {
-                "id": "ID"
+                "id": "ID",
+                "baseModel": "基础模型",
+                "unknown": "未知"
             },
             "actions": {
                 "openFileLocation": "打开文件位置",
@@ -1235,38 +1241,74 @@
         },
         "noPaths": {
             "title": "未找到其他模型文件夹",
-            "descriptionStandalone": "其他模型管理已开启，但配置的模型文件夹在磁盘上都不存在。请将下面的文件夹路径添加到 settings.json，然后重启 LoRA Manager。",
+            "descriptionStandalone": "其他模型管理已开启，但未找到其他模型文件夹。请将你需要的文件夹键添加到 settings.json 的 folder_paths 部分，然后重启 LoRA Manager。",
             "hintStandalone": "只会扫描上面列出的文件夹键；不需要的键可以省略。",
             "descriptionComfyUI": "其他模型管理已开启，但配置的模型文件夹在磁盘上都不存在。请将对应的模型文件夹添加到 ComfyUI 的模型路径，然后重新加载此页面。",
             "hintComfyUI": "其他模型从 ComfyUI 的 vae、upscale_models、text_encoders、clip_vision 和 controlnet 文件夹中读取。",
-            "openSettings": "打开设置"
+            "openSettings": "打开设置",
+            "openSettingsFolder": "打开设置文件夹"
         }
     },
     "sidebar": {
         "modelRoot": "根目录",
         "collapseAll": "折叠所有文件夹",
+        "collapseAllDisabled": "列表视图下不可用",
         "hideOnThisPage": "隐藏此页面侧边栏",
         "showSidebar": "显示侧边栏",
         "sidebarHiddenNotification": "{page}页面的文件夹侧边栏已隐藏",
-        "switchToListView": "切换到列表视图",
-        "switchToTreeView": "切换到树状视图",
+        "viewOptions": "视图选项",
+        "treeView": "树形视图",
+        "listView": "列表视图",
         "recursiveOn": "包含子文件夹",
-        "recursiveOff": "仅当前文件夹",
-        "recursiveUnavailable": "仅在树形视图中可使用递归搜索",
-        "collapseAllDisabled": "列表视图下不可用",
+        "createFolder": "新建文件夹",
+        "newSubfolder": "新建子文件夹",
+        "showEmptyFolders": "显示空文件夹",
+        "createFolderResult": {
+            "success": "已创建文件夹 \"{name}\"",
+            "failed": "创建文件夹失败: {message}",
+            "unsupported": "此页面不支持创建文件夹",
+            "noRoot": "未配置模型根目录"
+        },
+        "deleteFolder": "删除文件夹",
+        "deleteFolderModal": {
+            "title": "删除文件夹？",
+            "message": "该文件夹及其中所有内容都将从磁盘上永久删除。",
+            "folderLabel": "文件夹",
+            "emptyNote": "该文件夹中没有模型，其中的其他文件也会一并删除。",
+            "notEmptyTitle": "文件夹不为空",
+            "notEmptyMessage": "该文件夹中仍有模型，请先删除或移出这些模型 —— 删除文件夹不会级联删除模型文件。",
+            "confirm": "删除文件夹"
+        },
+        "deleteFolderResult": {
+            "success": "已删除文件夹 \"{name}\"",
+            "successWithFiles": "已删除文件夹 \"{name}\"，同时删除了另外 {count} 项内容",
+            "restored": "文件夹已恢复",
+            "failed": "删除文件夹失败: {message}",
+            "notEmpty": "该文件夹中仍有模型。请刷新侧边栏后重试。",
+            "busy": "该文件夹内仍有待处理的删除操作，请等待撤销窗口结束。",
+            "unsupported": "此页面不支持删除文件夹",
+            "noRoot": "未配置模型根目录"
+        },
+        "renameFolder": "重命名文件夹",
+        "renameFolderResult": {
+            "success": "文件夹已重命名为 \"{name}\"",
+            "failed": "重命名文件夹失败: {message}",
+            "targetExists": "此处已存在同名文件夹",
+            "busy": "该文件夹内仍有待处理的删除操作，请等待撤销窗口结束。",
+            "unsupported": "此页面不支持重命名文件夹",
+            "noRoot": "未配置模型根目录"
+        },
         "dragDrop": {
             "unableToResolveRoot": "无法确定移动的目标路径。",
             "moveUnsupported": "此条目不支持移动。",
-            "createFolderHint": "释放以创建新文件夹",
             "newFolderName": "新文件夹名称",
-            "folderNameHint": "按 Enter 确认，Escape 取消",
             "emptyFolderName": "请输入文件夹名称",
             "invalidFolderName": "文件夹名称包含无效字符",
             "noDragState": "未找到待处理的拖放操作"
         },
         "empty": {
             "noFolders": "未找到文件夹",
-            "dragHint": "拖拽项目到此处以创建文件夹"
+            "createHint": "点击上方的新建文件夹按钮即可创建文件夹"
         },
         "folderUpdateCheck": {
             "label": "检查此文件夹的更新",
@@ -1394,9 +1436,9 @@
         "download": {
             "title": "从 URL 下载模型",
             "titleWithType": "从 URL 下载 {type}",
-            "civitaiUrl": "CivitAI URL:",
+            "civitaiUrl": "模型 URL：",
             "placeholder": "https://civitai.com/models/...",
-            "urlHint": "每行输入一个 CivitAI、CivArchive 或 Hugging Face URL。支持批量下载多个 URL。",
+            "urlHint": "每行输入一个 CivitAI、CivArchive、Hugging Face 或 ModelScope URL。支持批量下载多个 URL。",
             "selectHfFiles": "选择从此仓库下载的文件：",
             "selectAll": "全选",
             "fetchingRepoFiles": "正在获取仓库文件...",
@@ -1429,9 +1471,9 @@
                 "inLibrary": "已在库中"
             },
             "errors": {
-                "invalidUrl": "无效的 CivitAI URL 格式",
+                "invalidUrl": "无效的模型 URL 格式",
                 "noVersions": "此模型没有可用版本",
-                "mixedSources": "无法在同一批次中混合使用 CivitAI 和 Hugging Face URL。",
+                "mixedSources": "无法在同一批次中混合使用 CivitAI 和 Hugging Face / ModelScope URL。",
                 "noModelFiles": "在此仓库中未找到模型文件。"
             },
             "status": {
@@ -1445,6 +1487,10 @@
             "progress": {
                 "currentFile": "当前文件：",
                 "downloading": "下载中：{name}",
+                "metadata": "元数据：{name}",
+                "indexingFile": "正在读取模型文件...",
+                "fetchingSourceMetadata": "正在从 {source} 获取元数据...",
+                "fetchingMetadata": "正在获取元数据...",
                 "transferred": "已下载：{downloaded} / {total}",
                 "transferredSimple": "已下载：{downloaded}",
                 "transferredUnknown": "已下载：--",
@@ -1596,12 +1642,16 @@
             "pathPlaceholder": "输入文件夹路径或从下方树中选择...",
             "root": "根目录"
         },
-        "linkHuggingFace": {
-            "title": "链接到 HuggingFace",
-            "infoText": "粘贴 HuggingFace 仓库 URL 以关联此模型。关联后可启用 AI 元数据增强功能。",
-            "urlLabel": "HuggingFace 仓库 URL：",
+        "linkModelSource": {
+            "title": "链接到模型来源",
+            "infoText": "粘贴模型页面 URL 以关联此模型与其来源。关联后可对 Hugging Face 和 ModelScope 模型启用 AI 元数据增强。",
+            "urlLabel": "模型页面 URL：",
             "urlPlaceholder": "https://huggingface.co/user/repo",
-            "helpText": "请输入完整的 HuggingFace 仓库 URL。",
+            "helpText": "请输入完整的模型页面 URL。支持的站点：",
+            "enrichNote": "AI 增强需要可读取的模型卡。未提供模型卡的站点（目前为 TensorArt）只能建立链接。",
+            "urlRequired": "请输入模型页面 URL。",
+            "invalidUrl": "URL 不受支持。支持的站点：Hugging Face、ModelScope、TensorArt。",
+            "linking": "正在链接模型来源...",
             "confirmAction": "保存并链接"
         },
         "relinkCivitai": {
@@ -1847,7 +1897,7 @@
                 "empty": "该模型还没有版本历史。",
                 "error": "加载版本失败。",
                 "missingModelId": "该模型缺少 CivitAI 模型 ID。",
-                "hfGroupInfo": "这是一个 HuggingFace 模型组。打开库页面即可在网格中查看所有版本。",
+                "sourceGroupInfo": "这是一个 {source} 模型组。打开库页面即可在网格中查看所有版本。",
                 "confirm": {
                     "delete": "从库中删除此版本？"
                 },
@@ -2483,7 +2533,9 @@
             "linkCivArchSuccess": "模型已成功通过 CivitArchive 重新关联",
             "fetchMetadataFirst": "请先从 CivitAI 获取元数据",
             "noCivitaiInfo": "无 CivitAI 信息",
-            "missingHash": "模型哈希不可用"
+            "missingHash": "模型哈希不可用",
+            "enrichNeedsSource": "请先将此模型链接到模型来源（链接模型 → 链接到模型来源）",
+            "enrichUnsupportedSource": "{source} 模型不支持 AI 增强"
         },
         "exampleImages": {
             "pathUpdated": "示例图片路径更新成功",

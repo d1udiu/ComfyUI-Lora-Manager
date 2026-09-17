@@ -2,6 +2,9 @@
     "common": {
         "cancel": "Annuler",
         "confirm": "Confirmer",
+        "reorder": {
+            "dragHandle": "Glisser pour réordonner"
+        },
         "actions": {
             "save": "Enregistrer",
             "cancel": "Annuler",
@@ -139,6 +142,7 @@
             "viewOnCivitai": "Voir sur CivitAI",
             "notAvailableFromCivitai": "Non disponible sur CivitAI",
             "viewOnHuggingFace": "Voir sur Hugging Face",
+            "viewOnSource": "Voir sur {source}",
             "sendToWorkflow": "Envoyer vers ComfyUI (Clic: Ajouter, Maj+Clic: Remplacer)",
             "copyLoRASyntax": "Copier la syntaxe LoRA",
             "checkpointNameCopied": "Nom du checkpoint copié",
@@ -867,14 +871,14 @@
                 "complete": "Auto-organisation terminée",
                 "error": "Erreur : {error}"
             },
-            "enrichHfAgent": "Enrichir les métadonnées HF (IA)"
+            "enrichHfAgent": "Enrichir les métadonnées avec l'IA"
         },
         "contextMenu": {
             "refreshMetadata": "Actualiser les données CivitAI",
             "checkUpdates": "Vérifier les mises à jour",
             "linkModel": "Lier le modèle",
             "linkCivitai": "Relier à nouveau à CivitAI",
-            "linkHuggingFace": "Lier à HuggingFace",
+            "linkModelSource": "Lier à une source de modèle",
             "copySyntax": "Copier la syntaxe LoRA",
             "copyFilename": "Copier le nom de fichier du modèle",
             "copyRecipeSyntax": "Copier la syntaxe de la recipe",
@@ -896,7 +900,7 @@
             "viewAllLoras": "Voir tous les LoRAs",
             "downloadMissingLoras": "Télécharger les LoRAs manquants",
             "deleteRecipe": "Supprimer la recipe",
-            "enrichHfAgent": "Enrichir les métadonnées HF (IA)"
+            "enrichHfAgent": "Enrichir les métadonnées avec l'IA"
         }
     },
     "recipes": {
@@ -914,7 +918,9 @@
         },
         "modal": {
             "metadata": {
-                "id": "ID"
+                "id": "ID",
+                "baseModel": "Modèle de base",
+                "unknown": "Inconnu"
             },
             "actions": {
                 "openFileLocation": "Ouvrir l’emplacement du fichier",
@@ -1235,38 +1241,74 @@
         },
         "noPaths": {
             "title": "Aucun dossier d’autres modèles trouvé",
-            "descriptionStandalone": "La gestion des autres modèles est activée, mais aucun des dossiers de modèles configurés n’existe sur le disque. Ajoutez les chemins de dossiers ci-dessous à settings.json, puis redémarrez LoRA Manager.",
+            "descriptionStandalone": "La gestion des autres modèles est activée, mais aucun dossier d’autres modèles n’a été trouvé. Ajoutez les clés de dossiers dont vous avez besoin à la section folder_paths de votre settings.json, puis redémarrez LoRA Manager.",
             "hintStandalone": "Seules les clés de dossiers listées ci-dessus sont analysées ; les clés inutiles peuvent être omises.",
             "descriptionComfyUI": "La gestion des autres modèles est activée, mais aucun des dossiers de modèles configurés n’existe sur le disque. Ajoutez les dossiers de modèles correspondants à vos chemins de modèles ComfyUI, puis rechargez cette page.",
             "hintComfyUI": "Les autres modèles sont lus depuis les dossiers vae, upscale_models, text_encoders, clip_vision et controlnet de ComfyUI.",
-            "openSettings": "Ouvrir les paramètres"
+            "openSettings": "Ouvrir les paramètres",
+            "openSettingsFolder": "Ouvrir le dossier des paramètres"
         }
     },
     "sidebar": {
         "modelRoot": "Racine",
         "collapseAll": "Réduire tous les dossiers",
+        "collapseAllDisabled": "Non disponible en vue liste",
         "hideOnThisPage": "Masquer la barre latérale sur cette page",
         "showSidebar": "Afficher la barre latérale",
         "sidebarHiddenNotification": "Barre latérale masquée sur la page {page}",
-        "switchToListView": "Passer en vue liste",
-        "switchToTreeView": "Passer en vue arborescence",
+        "viewOptions": "Options d’affichage",
+        "treeView": "Vue arborescente",
+        "listView": "Vue liste",
         "recursiveOn": "Inclure les sous-dossiers",
-        "recursiveOff": "Dossier actuel uniquement",
-        "recursiveUnavailable": "La recherche récursive n'est disponible qu'en vue arborescente",
-        "collapseAllDisabled": "Non disponible en vue liste",
+        "createFolder": "Nouveau dossier",
+        "newSubfolder": "Nouveau sous-dossier",
+        "showEmptyFolders": "Afficher les dossiers vides",
+        "createFolderResult": {
+            "success": "Dossier \"{name}\" créé",
+            "failed": "Échec de la création du dossier : {message}",
+            "unsupported": "La création de dossiers n’est pas prise en charge sur cette page",
+            "noRoot": "Aucune racine de modèle n’est configurée"
+        },
+        "deleteFolder": "Supprimer le dossier",
+        "deleteFolderModal": {
+            "title": "Supprimer le dossier ?",
+            "message": "Le dossier et tout son contenu seront définitivement supprimés du disque.",
+            "folderLabel": "Dossier",
+            "emptyNote": "Ce dossier ne contient aucun modèle. Les autres fichiers qu’il contient seront également supprimés.",
+            "notEmptyTitle": "Le dossier n’est pas vide",
+            "notEmptyMessage": "Ce dossier contient encore des modèles. Supprimez-les ou déplacez-les d’abord — la suppression d’un dossier n’entraîne jamais celle des fichiers de modèles.",
+            "confirm": "Supprimer le dossier"
+        },
+        "deleteFolderResult": {
+            "success": "Dossier \"{name}\" supprimé",
+            "successWithFiles": "Dossier \"{name}\" supprimé, ainsi que {count} autre(s) élément(s)",
+            "restored": "Dossier restauré",
+            "failed": "Échec de la suppression du dossier : {message}",
+            "notEmpty": "Ce dossier contient encore des modèles. Actualisez la barre latérale et réessayez.",
+            "busy": "Une suppression est encore en attente dans ce dossier. Attendez la fin de la fenêtre d’annulation.",
+            "unsupported": "La suppression de dossiers n’est pas prise en charge sur cette page",
+            "noRoot": "Aucune racine de modèle n’est configurée"
+        },
+        "renameFolder": "Renommer le dossier",
+        "renameFolderResult": {
+            "success": "Dossier renommé en \"{name}\"",
+            "failed": "Échec du renommage du dossier : {message}",
+            "targetExists": "Un dossier portant ce nom existe déjà ici",
+            "busy": "Une suppression est encore en attente dans ce dossier. Attendez la fin de la fenêtre d’annulation.",
+            "unsupported": "Le renommage de dossiers n’est pas pris en charge sur cette page",
+            "noRoot": "Aucune racine de modèle n’est configurée"
+        },
         "dragDrop": {
             "unableToResolveRoot": "Impossible de déterminer le chemin de destination pour le déplacement.",
             "moveUnsupported": "Le déplacement n'est pas pris en charge pour cet élément.",
-            "createFolderHint": "Relâcher pour créer un nouveau dossier",
             "newFolderName": "Nom du nouveau dossier",
-            "folderNameHint": "Appuyez sur Entrée pour confirmer, Échap pour annuler",
             "emptyFolderName": "Veuillez saisir un nom de dossier",
             "invalidFolderName": "Le nom du dossier contient des caractères invalides",
             "noDragState": "Aucune opération de glissement en attente trouvée"
         },
         "empty": {
             "noFolders": "Aucun dossier trouvé",
-            "dragHint": "Faites glisser des éléments ici pour créer des dossiers"
+            "createHint": "Cliquez sur le bouton Nouveau dossier ci-dessus pour créer des dossiers"
         },
         "folderUpdateCheck": {
             "label": "Vérifier les mises à jour dans ce dossier",
@@ -1394,9 +1436,9 @@
         "download": {
             "title": "Télécharger un modèle depuis une URL",
             "titleWithType": "Télécharger {type} depuis une URL",
-            "civitaiUrl": "URL CivitAI :",
+            "civitaiUrl": "URL du modèle :",
             "placeholder": "https://civitai.com/models/...",
-            "urlHint": "Entrez une URL CivitAI, CivArchive ou Hugging Face par ligne. Prend en charge plusieurs URL pour le téléchargement par lot.",
+            "urlHint": "Entrez une URL CivitAI, CivArchive, Hugging Face ou ModelScope par ligne. Prend en charge plusieurs URL pour le téléchargement par lot.",
             "selectHfFiles": "Sélectionnez le(s) fichier(s) à télécharger depuis ce dépôt :",
             "selectAll": "Tout sélectionner",
             "fetchingRepoFiles": "Récupération des fichiers du dépôt...",
@@ -1429,9 +1471,9 @@
                 "inLibrary": "Dans la bibliothèque"
             },
             "errors": {
-                "invalidUrl": "Format d'URL CivitAI invalide",
+                "invalidUrl": "Format d'URL de modèle invalide",
                 "noVersions": "Aucune version disponible pour ce modèle",
-                "mixedSources": "Impossible de mélanger les URL CivitAI et Hugging Face dans le même lot.",
+                "mixedSources": "Impossible de mélanger les URL CivitAI et Hugging Face / ModelScope dans le même lot.",
                 "noModelFiles": "Aucun fichier de modèle trouvé dans ce dépôt."
             },
             "status": {
@@ -1445,6 +1487,10 @@
             "progress": {
                 "currentFile": "Fichier actuel :",
                 "downloading": "Téléchargement : {name}",
+                "metadata": "Métadonnées : {name}",
+                "indexingFile": "Lecture du fichier de modèle...",
+                "fetchingSourceMetadata": "Récupération des métadonnées depuis {source}...",
+                "fetchingMetadata": "Récupération des métadonnées...",
                 "transferred": "Téléchargé : {downloaded} / {total}",
                 "transferredSimple": "Téléchargé : {downloaded}",
                 "transferredUnknown": "Téléchargé : --",
@@ -1596,12 +1642,16 @@
             "pathPlaceholder": "Tapez le chemin du dossier ou sélectionnez dans l'arbre ci-dessous...",
             "root": "Racine"
         },
-        "linkHuggingFace": {
-            "title": "Lier à HuggingFace",
-            "infoText": "Collez l'URL du dépôt HuggingFace pour associer ce modèle à sa source. Cela permet l'enrichissement des métadonnées par IA.",
-            "urlLabel": "URL du dépôt HuggingFace :",
+        "linkModelSource": {
+            "title": "Lier à une source de modèle",
+            "infoText": "Collez l'URL de la page du modèle pour associer ce modèle à sa source. La liaison permet l'enrichissement des métadonnées par IA pour les modèles Hugging Face et ModelScope.",
+            "urlLabel": "URL de la page du modèle :",
             "urlPlaceholder": "https://huggingface.co/user/repo",
-            "helpText": "Entrez l'URL complète du dépôt HuggingFace.",
+            "helpText": "Entrez l'URL complète de la page du modèle. Sites pris en charge :",
+            "enrichNote": "L'enrichissement par IA nécessite une fiche de modèle lisible. Les sites qui n'en exposent pas (actuellement TensorArt) ne peuvent être que liés.",
+            "urlRequired": "Veuillez saisir l'URL de la page du modèle.",
+            "invalidUrl": "URL non prise en charge. Sites pris en charge : Hugging Face, ModelScope, TensorArt.",
+            "linking": "Liaison de la source du modèle...",
             "confirmAction": "Enregistrer & lier"
         },
         "relinkCivitai": {
@@ -1847,7 +1897,7 @@
                 "empty": "Aucun historique de versions n'est disponible pour ce modèle pour le moment.",
                 "error": "Échec du chargement des versions.",
                 "missingModelId": "Ce modèle ne possède pas d'identifiant de modèle CivitAI.",
-                "hfGroupInfo": "Ceci est un groupe de modèles HuggingFace. Ouvrez la bibliothèque pour voir toutes les versions dans la grille.",
+                "sourceGroupInfo": "Ceci est un groupe de modèles {source}. Ouvrez la bibliothèque pour voir toutes les versions dans la grille.",
                 "confirm": {
                     "delete": "Supprimer cette version de votre bibliothèque ?"
                 },
@@ -2483,7 +2533,9 @@
             "linkCivArchSuccess": "Modèle relié via CivitArchive avec succès",
             "fetchMetadataFirst": "Veuillez d'abord récupérer les métadonnées depuis CivitAI",
             "noCivitaiInfo": "Aucune information CivitAI disponible",
-            "missingHash": "Hash du modèle non disponible"
+            "missingHash": "Hash du modèle non disponible",
+            "enrichNeedsSource": "Liez d'abord ce modèle à une source de modèle (Lier le modèle → Lier à une source de modèle)",
+            "enrichUnsupportedSource": "L'enrichissement par IA n'est pas disponible pour les modèles {source}"
         },
         "exampleImages": {
             "pathUpdated": "Chemin des images d'exemple mis à jour avec succès",

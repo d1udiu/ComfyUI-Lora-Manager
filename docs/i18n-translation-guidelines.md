@@ -4,7 +4,7 @@ This document is the canonical set of conventions for translating LoRA Manager U
 It applies to **human translators and AI agents** alike. Read it before editing anything in
 `locales/`.
 
-Source of truth: `locales/en.json` (10 locales, 1982 leaf keys; all locales share the exact
+Source of truth: `locales/en.json` (10 locales, 2025 leaf keys; all locales share the exact
 same key structure).
 
 Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
@@ -33,6 +33,38 @@ Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
 > in the same pass. The `folder_paths` JSON snippet shown in that state lives in
 > `templates/other.html`, **not** in the locale files, so it is never translated — only the
 > surrounding prose is. Terminology added in §2.
+>
+> **Status (2026-09, model sources):** models can now be linked to ModelScope and TensorArt
+> alongside Hugging Face, which added 15 keys (`modelCard.actions.viewOnSource`,
+> `loras.contextMenu.linkModelSource`, `modals.linkModelSource.*`,
+> `modals.model.versions.sourceGroupInfo`, `toast.contextMenu.enrichNeedsSource`,
+> `toast.contextMenu.enrichUnsupportedSource`) and refreshed the two `enrichHfAgent` labels,
+> which had hardcoded "HF" for a button that now also enriches ModelScope models. The
+> `modals.linkModelSource.urlPlaceholder` value stays byte-identical to `en.json` (it is a URL,
+> the §6 exception). Terminology in §2, "Model source feature".
+>
+> **Status (2026-09, folder sidebar):** the model-root sidebar gained on-disk folder management
+> (create / rename / delete folders, show empty folders, tree vs list view) plus its `...`
+> view-options menu, adding 35 `sidebar.*` keys. Those were the only `[TODO: Translate]`
+> placeholders left behind by the feature series, and all 35 are now translated in all 9
+> locales, so the "no remaining placeholders" claim above holds again. Terminology in §2,
+> "Folder sidebar feature".
+>
+> **Status (2026-09, chip reordering):** model tags and trigger words now share one drag/`⠿`
+> grip reorder affordance, which added the single `common.reorder.dragHandle` key (it lives
+> under `common` because both editors render it). All 9 locales are translated (renderings in
+> §2, "Chip reordering"). Reordering is pointer-only by design: an `Alt + Arrow` shortcut was
+> prototyped and removed because it collided with the browser's Alt + Arrow handling and the
+> modal's arrow-key navigation.
+
+> **Status (2026-09, standalone no-paths guidance):** the standalone branch of the
+> `other.noPaths` empty state now shows the real `settings.json` path plus an
+> `other.noPaths.openSettingsFolder` button (each locale reuses its
+> `settings.openSettingsFileLocation.label` rendering), and `descriptionStandalone` was
+> reworded in `en.json` — from "none of the configured folders exist on disk" to "no
+> other-model folders were found; add the folder keys you need to the `folder_paths`
+> section" — and re-translated in all 9 locales. The `on disk` phrase now survives only in
+> the ComfyUI variant (`descriptionComfyUI`).
 
 ---
 
@@ -291,6 +323,73 @@ physically exist:
 
 `settings.json` and `ComfyUI` stay verbatim in every locale; "reload this page" / "restart
 LoRA Manager" reuse each locale's existing restart wording (`settings.extraFolderPaths.*`).
+
+### Model source feature (Hugging Face / ModelScope / TensorArt)
+
+A model file can be linked to the page of an external model site. **Hugging Face**,
+**ModelScope** and **TensorArt** are brand names and stay Latin in every locale (R3); the
+generic nouns around them are translated:
+
+| Term | Rendering |
+|---|---|
+| model source | zh-CN 模型来源 · zh-TW 模型來源 · ja モデルソース · ko 모델 소스 · fr source de modèle · de Modellquelle · es fuente de modelo · ru источник модели · he מקור מודל |
+| model page | zh-CN 模型页面 · zh-TW 模型頁面 · ja モデルページ · ko 모델 페이지 · fr page du modèle · de Modellseite · es página del modelo · ru страница модели · he עמוד המודל |
+| model card | zh-CN 模型卡 · zh-TW 模型卡 · ja モデルカード · ko 모델 카드 · fr fiche de modèle · de Modellkarte · es ficha de modelo · ru карточка модели · he כרטיס מודל |
+| AI enrichment (noun) | reuse the existing pair per locale: zh-CN 增强 · zh-TW 增強 · ja 補完 · ko 보강 · fr enrichissement (par IA) · de Anreicherung (KI-) · es enriquecimiento (con IA) · ru обогащение (с помощью ИИ) · he העשרה (AI) |
+
+`modelCard.actions.viewOnSource` ("View on {source}") follows each locale's existing
+`viewOnHuggingFace` pattern — de `Auf … ansehen`, ru `Открыть …`, he `צפייה ב-…`,
+ja `… で見る`, ko `…에서 보기`, zh `在 … 查看`, fr `Voir sur …`, es `Ver en …`. `{source}` is
+replaced at runtime with the untranslated platform name, so the brand never appears inside the
+translated text.
+
+`modals.linkModelSource.enrichNote` states the rule that only sites exposing a readable model
+card can be enriched and names TensorArt as the current exception. Keep the parenthetical
+exception in sync if another link-only source is ever added — the sentence is deliberately
+phrased as a rule, not as an apology for one site.
+
+The context-menu and bulk-operation enrichment entry points read **"Enrich Metadata with AI"**
+in `en`, not "Enrich HF Metadata": they cover ModelScope as well, so no locale may reintroduce
+an `HF` qualifier in `loras.contextMenu.enrichHfAgent` / `loras.bulkOperations.enrichHfAgent`
+(the key names keep the historical `Hf`; only the values changed).
+
+### Folder sidebar feature (create / rename / delete folders, empty folders, view options)
+
+The model-root sidebar manages on-disk folders. "Folder" reuses the noun already fixed in §2
+(the `folder key` row); the rest is new surface:
+
+| Term | Rendering |
+|---|---|
+| folder | zh-CN 文件夹 · zh-TW 資料夾 · ja フォルダ · ko 폴더 · fr dossier · de Ordner · es carpeta · ru папка · he תיקייה |
+| model root (as in "no model root is configured") | zh-CN 模型根目录 · zh-TW 模型根目錄 · ja モデルルート · ko 모델 루트 · fr racine de modèle · de Modell-Stammverzeichnis · es raíz de modelo · ru корневая папка моделей · he שורש מודלים — note `sidebar.modelRoot` alone is the shorter 根目录 / 根目錄 / ルート / 루트 / Racine / Stammverzeichnis / Raíz / Корень / שורש |
+| tree view / list view | zh-CN 树形视图 / 列表视图 · zh-TW 樹狀檢視 / 清單檢視 · ja ツリー表示 / リスト表示 · ko 트리 보기 / 목록 보기 · fr Vue arborescente / Vue liste · de Baumansicht / Listenansicht · es Vista de árbol / Vista de lista · ru Дерево / Список · he תצוגת עץ / תצוגת רשימה |
+| sidebar | reuse each locale's `sidebar.hideOnThisPage` noun: zh-CN 侧边栏 · zh-TW 側邊欄 · ja サイドバー · ko 사이드바 · fr barre latérale · de Seitenleiste · es barra lateral · ru боковая панель · he סרגל צד |
+
+Deleting a folder **never cascades over model files** — the backend refuses it and
+`sidebar.deleteFolderModal.notEmptyMessage` states the rule in every locale, so keep that
+clause (and its `—`) when the copy is edited. The `{name}` / `{count}` / `{message}` tokens in
+`sidebar.createFolderResult.*`, `sidebar.deleteFolderResult.*` and `sidebar.renameFolderResult.*`
+are verbatim §1-R2 placeholders; `successWithFiles` is the only key carrying `{count}`.
+
+### Chip reordering (model tags / trigger words)
+
+Model tags and trigger-word chips share a single reorder affordance (drag the chip, or its
+`⠿` grip where the chip body is click-to-edit), so the copy sits in `common.reorder.dragHandle`
+instead of a feature namespace. It is used twice per editor: as the grip tooltip and as the
+hint shown in the edit controls row. There is deliberately **no keyboard shortcut** — an
+`Alt + Arrow` binding fought the browser's own Alt + Arrow handling and the modal's arrow-key
+navigation, so reordering is pointer-only and the grip is a decorative, non-focusable
+affordance. Do not reintroduce a shortcut or a "position X of Y" screen-reader string without
+re-adding the corresponding keys.
+
+`dragHandle` is a fragment, not a sentence: it labels both the grip and the hint, so keep it
+short and imperative and do not append a keyboard hint in any locale.
+
+| Term | Rendering |
+|---|---|
+| drag to reorder | zh-CN 拖拽以调整顺序 · zh-TW 拖曳以調整順序 · ja ドラッグして並べ替え · ko 드래그하여 순서 변경 · fr Glisser pour réordonner · de Zum Neuordnen ziehen · es Arrastra para reordenar · ru Перетащите, чтобы изменить порядок · he גרור כדי לשנות סדר |
+
+The grip itself is an icon and is never translated.
 
 ---
 

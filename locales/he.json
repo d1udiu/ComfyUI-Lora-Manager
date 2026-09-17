@@ -2,6 +2,9 @@
     "common": {
         "cancel": "ביטול",
         "confirm": "אישור",
+        "reorder": {
+            "dragHandle": "גרור כדי לשנות סדר"
+        },
         "actions": {
             "save": "שמירה",
             "cancel": "ביטול",
@@ -139,6 +142,7 @@
             "viewOnCivitai": "הצג ב-CivitAI",
             "notAvailableFromCivitai": "לא זמין מ-CivitAI",
             "viewOnHuggingFace": "צפייה ב-Hugging Face",
+            "viewOnSource": "צפייה ב-{source}",
             "sendToWorkflow": "שלח ל-ComfyUI (לחיצה: הוסף, Shift+לחיצה: החלף)",
             "copyLoRASyntax": "העתק תחביר LoRA",
             "checkpointNameCopied": "שם Checkpoint הועתק",
@@ -867,14 +871,14 @@
                 "complete": "ארגון אוטומטי הושלם",
                 "error": "שגיאה: {error}"
             },
-            "enrichHfAgent": "העשרת HF מטא-נתונים (AI)"
+            "enrichHfAgent": "העשרת מטא-נתונים ב-AI"
         },
         "contextMenu": {
             "refreshMetadata": "רענן נתוני CivitAI",
             "checkUpdates": "בדוק עדכונים",
             "linkModel": "קישור מודל",
             "linkCivitai": "קשר מחדש ל-CivitAI",
-            "linkHuggingFace": "קישור ל-HuggingFace",
+            "linkModelSource": "קישור למקור מודל",
             "copySyntax": "העתק תחביר LoRA",
             "copyFilename": "העתק שם קובץ מודל",
             "copyRecipeSyntax": "העתק תחביר מתכון",
@@ -896,7 +900,7 @@
             "viewAllLoras": "הצג את כל ה-LoRAs",
             "downloadMissingLoras": "הורד LoRAs חסרים",
             "deleteRecipe": "מחק מתכון",
-            "enrichHfAgent": "העשרת HF מטא-נתונים (AI)"
+            "enrichHfAgent": "העשרת מטא-נתונים ב-AI"
         }
     },
     "recipes": {
@@ -914,7 +918,9 @@
         },
         "modal": {
             "metadata": {
-                "id": "ID"
+                "id": "ID",
+                "baseModel": "מודל בסיס",
+                "unknown": "לא ידוע"
             },
             "actions": {
                 "openFileLocation": "פתח מיקום קובץ",
@@ -1235,38 +1241,74 @@
         },
         "noPaths": {
             "title": "לא נמצאו תיקיות של מודלים אחרים",
-            "descriptionStandalone": "ניהול המודלים האחרים פועל, אך אף אחת מתיקיות המודלים המוגדרות אינה קיימת בדיסק. הוסף את נתיבי התיקיות שלמטה ל-settings.json והפעל מחדש את LoRA Manager.",
+            "descriptionStandalone": "ניהול המודלים האחרים פועל, אך לא נמצאו תיקיות של מודלים אחרים. הוסף את מפתחות התיקיות הדרושים למקטע folder_paths ב-settings.json והפעל מחדש את LoRA Manager.",
             "hintStandalone": "רק מפתחות התיקיות המפורטים למעלה נסרקים; ניתן להשמיט מפתחות שאינך צריך.",
             "descriptionComfyUI": "ניהול המודלים האחרים פועל, אך אף אחת מתיקיות המודלים המוגדרות אינה קיימת בדיסק. הוסף את תיקיות המודלים המתאימות לנתיבי המודלים של ComfyUI וטען מחדש עמוד זה.",
             "hintComfyUI": "מודלים אחרים נקראים מתיקיות vae, upscale_models, text_encoders, clip_vision ו-controlnet של ComfyUI.",
-            "openSettings": "פתח הגדרות"
+            "openSettings": "פתח הגדרות",
+            "openSettingsFolder": "פתח תיקיית הגדרות"
         }
     },
     "sidebar": {
         "modelRoot": "שורש",
         "collapseAll": "כווץ את כל התיקיות",
+        "collapseAllDisabled": "לא זמין בתצוגת רשימה",
         "hideOnThisPage": "הסתר סרגל צד בדף זה",
         "showSidebar": "הצג סרגל צד",
         "sidebarHiddenNotification": "סרגל הצד מוסתר בדף {page}",
-        "switchToListView": "עבור לתצוגת רשימה",
-        "switchToTreeView": "תצוגת עץ",
+        "viewOptions": "אפשרויות תצוגה",
+        "treeView": "תצוגת עץ",
+        "listView": "תצוגת רשימה",
         "recursiveOn": "כלול תיקיות משנה",
-        "recursiveOff": "רק התיקייה הנוכחית",
-        "recursiveUnavailable": "חיפוש רקורסיבי זמין רק בתצוגת עץ",
-        "collapseAllDisabled": "לא זמין בתצוגת רשימה",
+        "createFolder": "תיקייה חדשה",
+        "newSubfolder": "תיקיית משנה חדשה",
+        "showEmptyFolders": "הצג תיקיות ריקות",
+        "createFolderResult": {
+            "success": "התיקייה \"{name}\" נוצרה",
+            "failed": "יצירת התיקייה נכשלה: {message}",
+            "unsupported": "יצירת תיקיות אינה נתמכת בדף זה",
+            "noRoot": "לא הוגדר שורש מודלים"
+        },
+        "deleteFolder": "מחק תיקייה",
+        "deleteFolderModal": {
+            "title": "למחוק את התיקייה?",
+            "message": "התיקייה וכל תוכנה יימחקו לצמיתות מהדיסק.",
+            "folderLabel": "תיקייה",
+            "emptyNote": "אין מודלים בתיקייה זו. קבצים אחרים שבה יימחקו גם הם.",
+            "notEmptyTitle": "התיקייה אינה ריקה",
+            "notEmptyMessage": "בתיקייה זו עדיין יש מודלים. מחק או העבר אותם תחילה — מחיקת תיקייה לעולם אינה מוחקת קובצי מודלים.",
+            "confirm": "מחק תיקייה"
+        },
+        "deleteFolderResult": {
+            "success": "התיקייה \"{name}\" נמחקה",
+            "successWithFiles": "התיקייה \"{name}\" נמחקה יחד עם {count} פריטים נוספים",
+            "restored": "התיקייה שוחזרה",
+            "failed": "מחיקת התיקייה נכשלה: {message}",
+            "notEmpty": "בתיקייה זו עדיין יש מודלים. רענן את סרגל הצד ונסה שוב.",
+            "busy": "מחיקה עדיין ממתינה בתיקייה זו. המתן לסיום חלון הביטול.",
+            "unsupported": "מחיקת תיקיות אינה נתמכת בדף זה",
+            "noRoot": "לא הוגדר שורש מודלים"
+        },
+        "renameFolder": "שנה שם תיקייה",
+        "renameFolderResult": {
+            "success": "שם התיקייה שונה ל-\"{name}\"",
+            "failed": "שינוי שם התיקייה נכשל: {message}",
+            "targetExists": "תיקייה בשם זה כבר קיימת כאן",
+            "busy": "מחיקה עדיין ממתינה בתיקייה זו. המתן לסיום חלון הביטול.",
+            "unsupported": "שינוי שם תיקיות אינו נתמך בדף זה",
+            "noRoot": "לא הוגדר שורש מודלים"
+        },
         "dragDrop": {
             "unableToResolveRoot": "לא ניתן לקבוע את נתיב היעד להעברה.",
             "moveUnsupported": "העברה אינה נתמכת עבור פריט זה.",
-            "createFolderHint": "שחרר כדי ליצור תיקייה חדשה",
             "newFolderName": "שם תיקייה חדשה",
-            "folderNameHint": "הקש Enter לאישור, Escape לביטול",
             "emptyFolderName": "אנא הזן שם תיקייה",
             "invalidFolderName": "שם התיקייה מכיל תווים לא חוקיים",
             "noDragState": "לא נמצאה פעולת גרירה ממתינה"
         },
         "empty": {
             "noFolders": "לא נמצאו תיקיות",
-            "dragHint": "גרור פריטים לכאן כדי ליצור תיקיות"
+            "createHint": "לחץ על כפתור תיקייה חדשה למעלה כדי ליצור תיקיות"
         },
         "folderUpdateCheck": {
             "label": "בדוק עדכונים בתיקייה זו",
@@ -1394,9 +1436,9 @@
         "download": {
             "title": "הורד מודל מכתובת URL",
             "titleWithType": "הורד {type} מכתובת URL",
-            "civitaiUrl": "כתובת URL של CivitAI:",
+            "civitaiUrl": "כתובת URL של מודל:",
             "placeholder": "https://civitai.com/models/...",
-            "urlHint": "יש להזין כתובת URL אחת של CivitAI, CivArchive או Hugging Face בכל שורה. תומך במספר כתובות URL להורדה בקבוצה.",
+            "urlHint": "יש להזין כתובת URL אחת של CivitAI, CivArchive, Hugging Face או ModelScope בכל שורה. תומך במספר כתובות URL להורדה בקבוצה.",
             "selectHfFiles": "בחר קבצים להורדה ממאגר זה:",
             "selectAll": "בחר הכל",
             "fetchingRepoFiles": "מביא קבצים מהמאגר...",
@@ -1429,9 +1471,9 @@
                 "inLibrary": "בספרייה"
             },
             "errors": {
-                "invalidUrl": "פורמט URL של CivitAI לא חוקי",
+                "invalidUrl": "פורמט URL של מודל לא חוקי",
                 "noVersions": "אין גרסאות זמינות למודל זה",
-                "mixedSources": "לא ניתן לערבב כתובות URL של CivitAI ו-Hugging Face באותה קבוצה.",
+                "mixedSources": "לא ניתן לערבב כתובות URL של CivitAI ו-Hugging Face / ModelScope באותה קבוצה.",
                 "noModelFiles": "לא נמצאו קבצי מודל במאגר זה."
             },
             "status": {
@@ -1445,6 +1487,10 @@
             "progress": {
                 "currentFile": "הקובץ הנוכחי:",
                 "downloading": "מוריד: {name}",
+                "metadata": "מטא-נתונים: {name}",
+                "indexingFile": "קורא קובץ מודל...",
+                "fetchingSourceMetadata": "מביא מטא-נתונים מ-{source}...",
+                "fetchingMetadata": "מביא מטא-נתונים...",
                 "transferred": "הורד: {downloaded} / {total}",
                 "transferredSimple": "הורד: {downloaded}",
                 "transferredUnknown": "הורד: --",
@@ -1596,12 +1642,16 @@
             "pathPlaceholder": "הקלד נתיב תיקייה או בחר מהעץ למטה...",
             "root": "שורש"
         },
-        "linkHuggingFace": {
-            "title": "קישור ל-HuggingFace",
-            "infoText": "הדבק את כתובת ה-URL של מאגר HuggingFace כדי לשייך מודל זה למקורו. פעולה זו מאפשרת העשרת מטא-נתונים באמצעות AI.",
-            "urlLabel": "כתובת URL של מאגר HuggingFace:",
+        "linkModelSource": {
+            "title": "קישור למקור מודל",
+            "infoText": "הדבק את כתובת ה-URL של עמוד המודל כדי לשייך מודל זה למקורו. הקישור מאפשר העשרת מטא-נתונים באמצעות AI עבור מודלים של Hugging Face ו-ModelScope.",
+            "urlLabel": "כתובת URL של עמוד המודל:",
             "urlPlaceholder": "https://huggingface.co/user/repo",
-            "helpText": "הזן את כתובת ה-URL המלאה של מאגר HuggingFace.",
+            "helpText": "הזן את כתובת ה-URL המלאה של עמוד המודל. אתרים נתמכים:",
+            "enrichNote": "העשרת AI דורשת כרטיס מודל קריא. אתרים שאינם חושפים אותו (נכון להיום TensorArt) ניתנים לקישור בלבד.",
+            "urlRequired": "הזן כתובת URL של עמוד המודל.",
+            "invalidUrl": "כתובת URL לא נתמכת. אתרים נתמכים: Hugging Face, ModelScope, TensorArt.",
+            "linking": "מקשר את מקור המודל...",
             "confirmAction": "שמור וקשר"
         },
         "relinkCivitai": {
@@ -1847,7 +1897,7 @@
                 "empty": "אין עדיין היסטוריית גרסאות למודל זה.",
                 "error": "טעינת הגרסאות נכשלה.",
                 "missingModelId": "למודל זה אין מזהה מודל של CivitAI.",
-                "hfGroupInfo": "זוהי קבוצת מודלים של HuggingFace. פתח את הספרייה כדי לראות את כל הגרסאות ברשת.",
+                "sourceGroupInfo": "זוהי קבוצת מודלים של {source}. פתח את הספרייה כדי לראות את כל הגרסאות ברשת.",
                 "confirm": {
                     "delete": "למחוק גרסה זו מהספרייה שלך?"
                 },
@@ -2483,7 +2533,9 @@
             "linkCivArchSuccess": "המודל קושר מחדש דרך CivitArchive בהצלחה",
             "fetchMetadataFirst": "אנא אחזר מטא-נתונים מ-CivitAI תחילה",
             "noCivitaiInfo": "אין מידע מ-CivitAI זמין",
-            "missingHash": "ה-hash של המודל אינו זמין"
+            "missingHash": "ה-hash של המודל אינו זמין",
+            "enrichNeedsSource": "קשר מודל זה למקור מודל תחילה (קישור מודל → קישור למקור מודל)",
+            "enrichUnsupportedSource": "העשרת AI אינה זמינה עבור מודלים של {source}"
         },
         "exampleImages": {
             "pathUpdated": "נתיב תמונות הדוגמה עודכן בהצלחה",
