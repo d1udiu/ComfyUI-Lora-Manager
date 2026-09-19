@@ -382,7 +382,8 @@
         "nav": {
             "general": "כללי",
             "interface": "ממשק",
-            "library": "ספרייה"
+            "library": "ספרייה",
+            "modelPaths": "נתיבי מודלים"
         },
         "search": {
             "placeholder": "חיפוש בהגדרות...",
@@ -582,6 +583,46 @@
                 "checkpointUnetOverlap": "לא ניתן להשתמש באותו נתיב עבור checkpoints ומודלי דיפוזיה: {paths}",
                 "checkpointUnetOverlapInline": "הנתיב הזה כבר נמצא בשימוש עבור סוג מודל אחר. יש להשתמש בתיקיות נפרדות עבור checkpoints ומודלי דיפוזיה."
             }
+        },
+        "modelPaths": {
+            "title": "נתיבי ספריית המודלים",
+            "description": "תיקיות שורש ש-LoRA Manager סורק לאיתור המודלים שלך. אלו מיקומי המודלים הראשיים הנקראים מ-settings.json במצב עצמאי.",
+            "restartRequired": "נדרש אתחול כדי שהשינוי ייכנס לתוקף",
+            "coreTypes": "סוגי מודלים מרכזיים",
+            "otherTypes": "סוגי מודלים אחרים",
+            "otherTypesDisabledHint": "לא מופעלים סוגי מודלים אחרים. הפעל למעלה את הסוגים הדרושים לך כדי להגדיר את התיקיות שלהם.",
+            "saveSuccessRestart": "נתיבי ספריית המודלים עודכנו. נדרשת הפעלה מחדש כדי להחיל את השינויים.",
+            "pendingRestartNotice": "שינויי הנתיבים נשמרו. הפעל מחדש את LoRA Manager כדי שייכנסו לתוקף.",
+            "pendingRestartBannerTitle": "נדרשת הפעלה מחדש כדי להחיל את שינויי הנתיבים",
+            "pendingRestartBannerMessage": "נתיבי ספריית המודלים עודכנו. הפעל מחדש את שרת LoRA Manager כדי לסרוק את התיקיות החדשות.",
+            "folderKeys": {
+                "loras": "נתיבי LoRA",
+                "checkpoints": "נתיבי Checkpoint",
+                "unet": "נתיבי מודל דיפוזיה",
+                "embeddings": "נתיבי Embedding",
+                "vae": "נתיבי VAE",
+                "upscale_models": "נתיבי Upscaler",
+                "text_encoders": "נתיבי Text Encoder",
+                "clip": "נתיבי CLIP (ישן)",
+                "clip_vision": "נתיבי CLIP Vision",
+                "controlnet": "נתיבי ControlNet"
+            }
+        },
+        "directoryPicker": {
+            "title": "עיון בתיקיות",
+            "selectFolder": "בחר תיקייה זו",
+            "goUp": "למעלה",
+            "pathPlaceholder": "הזן נתיב...",
+            "go": "עבור",
+            "emptyFolder": "אין תתי-תיקיות",
+            "loadError": "טעינת התיקייה נכשלה"
+        },
+        "pathValidation": {
+            "valid": "הנתיב תקין",
+            "pathNotFound": "הנתיב לא קיים",
+            "notADirectory": "לא תיקייה",
+            "notReadable": "הנתיב לא ניתן לקריאה",
+            "notWritable": "הנתיב לא ניתן לכתיבה"
         },
         "priorityTags": {
             "title": "תגיות עדיפות",
@@ -1241,11 +1282,12 @@
         },
         "noPaths": {
             "title": "לא נמצאו תיקיות של מודלים אחרים",
-            "descriptionStandalone": "ניהול המודלים האחרים פועל, אך לא נמצאו תיקיות של מודלים אחרים. הוסף את מפתחות התיקיות הדרושים למקטע folder_paths ב-settings.json והפעל מחדש את LoRA Manager.",
-            "hintStandalone": "רק מפתחות התיקיות המפורטים למעלה נסרקים; ניתן להשמיט מפתחות שאינך צריך.",
+            "descriptionStandalone": "ניהול המודלים האחרים פועל, אך לא נמצאו תיקיות של מודלים אחרים. הוסף את תיקיות המודלים שלך תחת הגדרות > נתיבי מודלים, ולאחר מכן הפעל מחדש את LoRA Manager.",
+            "hintStandalone": "נסרקים רק סוגי מודלים מופעלים; הפעל את הסוגים הדרושים לך תחת ספרייה > תיקיות ברירת מחדל.",
             "descriptionComfyUI": "ניהול המודלים האחרים פועל, אך אף אחת מתיקיות המודלים המוגדרות אינה קיימת בדיסק. הוסף את תיקיות המודלים המתאימות לנתיבי המודלים של ComfyUI וטען מחדש עמוד זה.",
             "hintComfyUI": "מודלים אחרים נקראים מתיקיות vae, upscale_models, text_encoders, clip_vision ו-controlnet של ComfyUI.",
             "openSettings": "פתח הגדרות",
+            "openModelPaths": "הגדר תיקיות מודלים",
             "openSettingsFolder": "פתח תיקיית הגדרות"
         }
     },
@@ -2699,6 +2741,11 @@
             "content": "סרוק ונהל קבצי VAE, Upscaler, Text Encoder, CLIP Vision ו-ControlNet, והורד אותם מ-CivitAI — מהעמוד הייעודי.",
             "enable": "הפעל מודלים אחרים",
             "openSettings": "פתח הגדרות"
+        },
+        "pager": {
+            "previous": "הודעה קודמת",
+            "next": "הודעה הבאה",
+            "position": "הודעה {current} מתוך {total}"
         }
     }
 }

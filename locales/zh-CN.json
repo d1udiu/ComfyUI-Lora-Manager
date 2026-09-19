@@ -382,7 +382,8 @@
         "nav": {
             "general": "通用",
             "interface": "界面",
-            "library": "库"
+            "library": "库",
+            "modelPaths": "模型路径"
         },
         "search": {
             "placeholder": "搜索设置...",
@@ -582,6 +583,46 @@
                 "checkpointUnetOverlap": "checkpoints 和 diffusion models 不能使用相同的路径：{paths}",
                 "checkpointUnetOverlapInline": "此路径已被用于另一种模型类型。请为 checkpoints 和 diffusion models 使用不同的文件夹。"
             }
+        },
+        "modelPaths": {
+            "title": "模型库路径",
+            "description": "LoRA Manager 扫描模型所用的根文件夹。独立模式下，这些是从 settings.json 读取的主要模型位置。",
+            "restartRequired": "需要重启才能生效",
+            "coreTypes": "核心模型类型",
+            "otherTypes": "其他模型类型",
+            "otherTypesDisabledHint": "未启用任何其他模型类型。请在上方启用你需要的类型，然后为其配置文件夹。",
+            "saveSuccessRestart": "模型库路径已更新，需要重启才能生效。",
+            "pendingRestartNotice": "路径更改已保存。重启 LoRA Manager 后生效。",
+            "pendingRestartBannerTitle": "需要重启以应用路径更改",
+            "pendingRestartBannerMessage": "模型库路径已更新。请重启 LoRA Manager 服务器以扫描新文件夹。",
+            "folderKeys": {
+                "loras": "LoRA 路径",
+                "checkpoints": "Checkpoint 路径",
+                "unet": "Diffusion 模型路径",
+                "embeddings": "Embedding 路径",
+                "vae": "VAE 路径",
+                "upscale_models": "Upscaler 路径",
+                "text_encoders": "Text Encoder 路径",
+                "clip": "CLIP 路径（旧版）",
+                "clip_vision": "CLIP Vision 路径",
+                "controlnet": "ControlNet 路径"
+            }
+        },
+        "directoryPicker": {
+            "title": "浏览文件夹",
+            "selectFolder": "选择此文件夹",
+            "goUp": "上级目录",
+            "pathPlaceholder": "输入路径...",
+            "go": "跳转",
+            "emptyFolder": "没有子文件夹",
+            "loadError": "目录加载失败"
+        },
+        "pathValidation": {
+            "valid": "路径有效",
+            "pathNotFound": "路径不存在",
+            "notADirectory": "不是一个目录",
+            "notReadable": "路径不可读",
+            "notWritable": "路径不可写"
         },
         "priorityTags": {
             "title": "优先标签",
@@ -1241,11 +1282,12 @@
         },
         "noPaths": {
             "title": "未找到其他模型文件夹",
-            "descriptionStandalone": "其他模型管理已开启，但未找到其他模型文件夹。请将你需要的文件夹键添加到 settings.json 的 folder_paths 部分，然后重启 LoRA Manager。",
-            "hintStandalone": "只会扫描上面列出的文件夹键；不需要的键可以省略。",
+            "descriptionStandalone": "其他模型管理已开启，但未找到其他模型文件夹。请在“设置 → 模型路径”中添加你的模型文件夹，然后重启 LoRA Manager。",
+            "hintStandalone": "仅扫描已启用的模型类型；请在“库 → 默认根目录”中启用你需要的类型。",
             "descriptionComfyUI": "其他模型管理已开启，但配置的模型文件夹在磁盘上都不存在。请将对应的模型文件夹添加到 ComfyUI 的模型路径，然后重新加载此页面。",
             "hintComfyUI": "其他模型从 ComfyUI 的 vae、upscale_models、text_encoders、clip_vision 和 controlnet 文件夹中读取。",
             "openSettings": "打开设置",
+            "openModelPaths": "配置模型文件夹",
             "openSettingsFolder": "打开设置文件夹"
         }
     },
@@ -2699,6 +2741,11 @@
             "content": "在一个专属页面中扫描和管理 VAE、Upscaler、Text Encoder、CLIP Vision 和 ControlNet 文件，并从 CivitAI 下载。",
             "enable": "启用其他模型",
             "openSettings": "打开设置"
+        },
+        "pager": {
+            "previous": "上一条通知",
+            "next": "下一条通知",
+            "position": "第 {current} 条通知，共 {total} 条"
         }
     }
 }

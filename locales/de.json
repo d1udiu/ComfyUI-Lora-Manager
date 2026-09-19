@@ -382,7 +382,8 @@
         "nav": {
             "general": "Allgemein",
             "interface": "Oberfläche",
-            "library": "Bibliothek"
+            "library": "Bibliothek",
+            "modelPaths": "Modellpfade"
         },
         "search": {
             "placeholder": "Einstellungen durchsuchen...",
@@ -582,6 +583,46 @@
                 "checkpointUnetOverlap": "Derselbe Pfad kann nicht für Checkpoints und Diffusionsmodelle verwendet werden: {paths}",
                 "checkpointUnetOverlapInline": "Dieser Pfad wird bereits für einen anderen Modelltyp verwendet. Bitte verwenden Sie separate Ordner für Checkpoints und Diffusionsmodelle."
             }
+        },
+        "modelPaths": {
+            "title": "Modellbibliothek-Pfade",
+            "description": "Stammordner, die LoRA Manager nach Ihren Modellen durchsucht. Dies sind die primären Modellspeicherorte, die im Standalone-Modus aus der settings.json gelesen werden.",
+            "restartRequired": "Neustart erforderlich, damit die Änderung wirksam wird",
+            "coreTypes": "Kern-Modelltypen",
+            "otherTypes": "Weitere Modelltypen",
+            "otherTypesDisabledHint": "Es sind keine weiteren Modelltypen aktiviert. Aktivieren Sie oben die benötigten Typen, um deren Ordner zu konfigurieren.",
+            "saveSuccessRestart": "Modellbibliothek-Pfade aktualisiert. Neustart erforderlich, um Änderungen anzuwenden.",
+            "pendingRestartNotice": "Pfadänderungen gespeichert. Starten Sie LoRA Manager neu, damit sie wirksam werden.",
+            "pendingRestartBannerTitle": "Neustart erforderlich, um Pfadänderungen anzuwenden",
+            "pendingRestartBannerMessage": "Die Modellbibliothek-Pfade wurden aktualisiert. Starten Sie den LoRA Manager-Server neu, um die neuen Ordner zu scannen.",
+            "folderKeys": {
+                "loras": "LoRA-Pfade",
+                "checkpoints": "Checkpoint-Pfade",
+                "unet": "Diffusionsmodell-Pfade",
+                "embeddings": "Embedding-Pfade",
+                "vae": "VAE-Pfade",
+                "upscale_models": "Upscaler-Pfade",
+                "text_encoders": "Text-Encoder-Pfade",
+                "clip": "CLIP-Pfade (Legacy)",
+                "clip_vision": "CLIP-Vision-Pfade",
+                "controlnet": "ControlNet-Pfade"
+            }
+        },
+        "directoryPicker": {
+            "title": "Ordner durchsuchen",
+            "selectFolder": "Diesen Ordner auswählen",
+            "goUp": "Nach oben",
+            "pathPlaceholder": "Pfad eingeben...",
+            "go": "Los",
+            "emptyFolder": "Keine Unterordner",
+            "loadError": "Verzeichnis konnte nicht geladen werden"
+        },
+        "pathValidation": {
+            "valid": "Pfad ist gültig",
+            "pathNotFound": "Pfad existiert nicht",
+            "notADirectory": "Kein Verzeichnis",
+            "notReadable": "Pfad ist nicht lesbar",
+            "notWritable": "Pfad ist nicht beschreibbar"
         },
         "priorityTags": {
             "title": "Prioritäts-Tags",
@@ -1241,11 +1282,12 @@
         },
         "noPaths": {
             "title": "Keine Ordner für weitere Modelle gefunden",
-            "descriptionStandalone": "Die Verwaltung weiterer Modelle ist aktiviert, aber es wurden keine Ordner für weitere Modelle gefunden. Fügen Sie die benötigten Ordnerschlüssel zum Abschnitt folder_paths Ihrer settings.json hinzu und starten Sie LoRA Manager neu.",
-            "hintStandalone": "Nur die oben aufgeführten Ordnerschlüssel werden gescannt; nicht benötigte Schlüssel können weggelassen werden.",
+            "descriptionStandalone": "Die Verwaltung weiterer Modelle ist aktiviert, aber es wurden keine Ordner für weitere Modelle gefunden. Fügen Sie Ihre Modellordner unter Einstellungen → Modellpfade hinzu und starten Sie LoRA Manager anschließend neu.",
+            "hintStandalone": "Es werden nur aktivierte Modelltypen gescannt. Aktivieren Sie die benötigten Typen unter Bibliothek → Standard-Roots.",
             "descriptionComfyUI": "Die Verwaltung weiterer Modelle ist aktiviert, aber keiner der konfigurierten Modellordner existiert auf dem Datenträger. Fügen Sie die entsprechenden Modellordner zu Ihren ComfyUI-Modellpfaden hinzu und laden Sie diese Seite neu.",
             "hintComfyUI": "Weitere Modelle werden aus den Ordnern vae, upscale_models, text_encoders, clip_vision und controlnet von ComfyUI gelesen.",
             "openSettings": "Einstellungen öffnen",
+            "openModelPaths": "Modellordner konfigurieren",
             "openSettingsFolder": "Einstellungsordner öffnen"
         }
     },
@@ -2699,6 +2741,11 @@
             "content": "Scannen und verwalten Sie VAE-, Upscaler-, Text-Encoder-, CLIP-Vision- und ControlNet-Dateien und laden Sie sie von CivitAI herunter, alles auf einer eigenen Seite.",
             "enable": "Weitere Modelle aktivieren",
             "openSettings": "Einstellungen öffnen"
+        },
+        "pager": {
+            "previous": "Vorherige Mitteilung",
+            "next": "Nächste Mitteilung",
+            "position": "Mitteilung {current} von {total}"
         }
     }
 }

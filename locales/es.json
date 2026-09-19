@@ -382,7 +382,8 @@
         "nav": {
             "general": "General",
             "interface": "Interfaz",
-            "library": "Biblioteca"
+            "library": "Biblioteca",
+            "modelPaths": "Rutas de modelos"
         },
         "search": {
             "placeholder": "Buscar ajustes...",
@@ -582,6 +583,46 @@
                 "checkpointUnetOverlap": "No se puede usar la misma ruta para checkpoints y modelos de difusión: {paths}",
                 "checkpointUnetOverlapInline": "Esta ruta ya se usa para otro tipo de modelo. Use carpetas separadas para checkpoints y modelos de difusión."
             }
+        },
+        "modelPaths": {
+            "title": "Rutas de la biblioteca de modelos",
+            "description": "Carpetas raíz que LoRA Manager escanea en busca de tus modelos. Son las ubicaciones de modelos principales leídas de settings.json en modo independiente.",
+            "restartRequired": "Requiere reiniciar para que surta efecto",
+            "coreTypes": "Tipos de modelos principales",
+            "otherTypes": "Otros tipos de modelos",
+            "otherTypesDisabledHint": "No hay habilitado ningún otro tipo de modelo. Activa los tipos que necesites arriba para configurar sus carpetas.",
+            "saveSuccessRestart": "Rutas de la biblioteca de modelos actualizadas. Se requiere reinicio para aplicar los cambios.",
+            "pendingRestartNotice": "Cambios de rutas guardados. Reinicia LoRA Manager para que surtan efecto.",
+            "pendingRestartBannerTitle": "Se requiere reinicio para aplicar los cambios de rutas",
+            "pendingRestartBannerMessage": "Se actualizaron las rutas de la biblioteca de modelos. Reinicia el servidor de LoRA Manager para escanear las nuevas carpetas.",
+            "folderKeys": {
+                "loras": "Rutas de LoRA",
+                "checkpoints": "Rutas de Checkpoint",
+                "unet": "Rutas de modelo de difusión",
+                "embeddings": "Rutas de Embedding",
+                "vae": "Rutas de VAE",
+                "upscale_models": "Rutas de Upscaler",
+                "text_encoders": "Rutas de Text Encoder",
+                "clip": "Rutas de CLIP (heredadas)",
+                "clip_vision": "Rutas de CLIP Vision",
+                "controlnet": "Rutas de ControlNet"
+            }
+        },
+        "directoryPicker": {
+            "title": "Explorar carpetas",
+            "selectFolder": "Seleccionar esta carpeta",
+            "goUp": "Subir",
+            "pathPlaceholder": "Introducir ruta...",
+            "go": "Ir",
+            "emptyFolder": "No hay subcarpetas",
+            "loadError": "Error al cargar el directorio"
+        },
+        "pathValidation": {
+            "valid": "La ruta es válida",
+            "pathNotFound": "La ruta no existe",
+            "notADirectory": "No es un directorio",
+            "notReadable": "La ruta no es legible",
+            "notWritable": "La ruta no es escribible"
         },
         "priorityTags": {
             "title": "Etiquetas prioritarias",
@@ -1241,11 +1282,12 @@
         },
         "noPaths": {
             "title": "No se encontraron carpetas de otros modelos",
-            "descriptionStandalone": "La gestión de otros modelos está activada, pero no se encontraron carpetas de otros modelos. Añade las claves de carpeta que necesites a la sección folder_paths de tu settings.json y reinicia LoRA Manager.",
-            "hintStandalone": "Solo se escanean las claves de carpeta listadas arriba; las claves que no necesites puedes omitirlas.",
+            "descriptionStandalone": "La gestión de otros modelos está activada, pero no se encontraron carpetas de otros modelos. Añade tus carpetas de modelos en Configuración → Rutas de modelos y reinicia LoRA Manager.",
+            "hintStandalone": "Solo se escanean los tipos de modelos habilitados; activa los tipos que necesites en Biblioteca → Raíces predeterminadas.",
             "descriptionComfyUI": "La gestión de otros modelos está activada, pero ninguna de las carpetas de modelos configuradas existe en el disco. Añade las carpetas de modelos correspondientes a tus rutas de modelos de ComfyUI y recarga esta página.",
             "hintComfyUI": "Los otros modelos se leen de las carpetas vae, upscale_models, text_encoders, clip_vision y controlnet de ComfyUI.",
             "openSettings": "Abrir configuración",
+            "openModelPaths": "Configurar carpetas de modelos",
             "openSettingsFolder": "Abrir carpeta de ajustes"
         }
     },
@@ -2699,6 +2741,11 @@
             "content": "Escanea y gestiona archivos VAE, Upscaler, Text Encoder, CLIP Vision y ControlNet, y descárgalos desde CivitAI, todo desde una página dedicada.",
             "enable": "Activar otros modelos",
             "openSettings": "Abrir configuración"
+        },
+        "pager": {
+            "previous": "Notificación anterior",
+            "next": "Notificación siguiente",
+            "position": "Notificación {current} de {total}"
         }
     }
 }

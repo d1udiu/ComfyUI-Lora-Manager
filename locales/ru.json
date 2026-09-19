@@ -382,7 +382,8 @@
         "nav": {
             "general": "Общее",
             "interface": "Интерфейс",
-            "library": "Библиотека"
+            "library": "Библиотека",
+            "modelPaths": "Пути к моделям"
         },
         "search": {
             "placeholder": "Поиск в настройках...",
@@ -582,6 +583,46 @@
                 "checkpointUnetOverlap": "Нельзя использовать один и тот же путь для checkpoints и diffusion models: {paths}",
                 "checkpointUnetOverlapInline": "Этот путь уже используется для другого типа модели. Используйте отдельные папки для checkpoints и diffusion models."
             }
+        },
+        "modelPaths": {
+            "title": "Пути библиотеки моделей",
+            "description": "Корневые папки, которые LoRA Manager сканирует в поисках ваших моделей. В автономном режиме это основные расположения моделей, считываемые из settings.json.",
+            "restartRequired": "Требуется перезапуск, чтобы изменения вступили в силу",
+            "coreTypes": "Основные типы моделей",
+            "otherTypes": "Другие типы моделей",
+            "otherTypesDisabledHint": "Другие типы моделей не включены. Включите нужные типы выше, чтобы настроить их папки.",
+            "saveSuccessRestart": "Пути библиотеки моделей обновлены. Требуется перезапуск для применения изменений.",
+            "pendingRestartNotice": "Изменения путей сохранены. Перезапустите LoRA Manager, чтобы они вступили в силу.",
+            "pendingRestartBannerTitle": "Требуется перезапуск для применения изменений путей",
+            "pendingRestartBannerMessage": "Пути библиотеки моделей обновлены. Перезапустите сервер LoRA Manager, чтобы просканировать новые папки.",
+            "folderKeys": {
+                "loras": "Пути LoRA",
+                "checkpoints": "Пути Checkpoint",
+                "unet": "Пути моделей диффузии",
+                "embeddings": "Пути Embedding",
+                "vae": "Пути VAE",
+                "upscale_models": "Пути Upscaler",
+                "text_encoders": "Пути Text Encoder",
+                "clip": "Пути CLIP (устаревшие)",
+                "clip_vision": "Пути CLIP Vision",
+                "controlnet": "Пути ControlNet"
+            }
+        },
+        "directoryPicker": {
+            "title": "Обзор папок",
+            "selectFolder": "Выбрать эту папку",
+            "goUp": "Вверх",
+            "pathPlaceholder": "Введите путь...",
+            "go": "Перейти",
+            "emptyFolder": "Нет подпапок",
+            "loadError": "Не удалось загрузить каталог"
+        },
+        "pathValidation": {
+            "valid": "Путь действителен",
+            "pathNotFound": "Путь не существует",
+            "notADirectory": "Не является каталогом",
+            "notReadable": "Путь недоступен для чтения",
+            "notWritable": "Путь недоступен для записи"
         },
         "priorityTags": {
             "title": "Приоритетные теги",
@@ -1241,11 +1282,12 @@
         },
         "noPaths": {
             "title": "Папки других моделей не найдены",
-            "descriptionStandalone": "Управление другими моделями включено, но папки других моделей не найдены. Добавьте нужные ключи папок в раздел folder_paths файла settings.json и перезапустите LoRA Manager.",
-            "hintStandalone": "Сканируются только перечисленные выше ключи папок; ненужные ключи можно опустить.",
+            "descriptionStandalone": "Управление другими моделями включено, но папки других моделей не найдены. Добавьте свои папки моделей в разделе «Настройки → Пути к моделям», затем перезапустите LoRA Manager.",
+            "hintStandalone": "Сканируются только включённые типы моделей; включите нужные типы в разделе «Библиотека → Корневые папки».",
             "descriptionComfyUI": "Управление другими моделями включено, но ни одна из настроенных папок моделей не существует на диске. Добавьте соответствующие папки моделей в пути к моделям ComfyUI и перезагрузите эту страницу.",
             "hintComfyUI": "Другие модели читаются из папок vae, upscale_models, text_encoders, clip_vision и controlnet в ComfyUI.",
             "openSettings": "Открыть настройки",
+            "openModelPaths": "Настроить папки моделей",
             "openSettingsFolder": "Открыть папку настроек"
         }
     },
@@ -2699,6 +2741,11 @@
             "content": "Сканирование и управление файлами VAE, Upscaler, Text Encoder, CLIP Vision и ControlNet, а также загрузка их с CivitAI — всё на одной отдельной странице.",
             "enable": "Включить другие модели",
             "openSettings": "Открыть настройки"
+        },
+        "pager": {
+            "previous": "Предыдущее уведомление",
+            "next": "Следующее уведомление",
+            "position": "Уведомление {current} из {total}"
         }
     }
 }

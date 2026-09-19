@@ -382,7 +382,8 @@
         "nav": {
             "general": "일반",
             "interface": "인터페이스",
-            "library": "라이브러리"
+            "library": "라이브러리",
+            "modelPaths": "모델 경로"
         },
         "search": {
             "placeholder": "설정 검색...",
@@ -582,6 +583,46 @@
                 "checkpointUnetOverlap": "checkpoints와 diffusion models에 동일한 경로를 사용할 수 없습니다: {paths}",
                 "checkpointUnetOverlapInline": "이 경로는 다른 모델 유형에 이미 사용 중입니다. checkpoints와 diffusion models에 별도의 폴더를 사용하세요."
             }
+        },
+        "modelPaths": {
+            "title": "모델 라이브러리 경로",
+            "description": "LoRA Manager가 모델을 스캔하는 루트 폴더입니다. 독립 실행 모드에서는 settings.json에서 읽어오는 기본 모델 위치입니다.",
+            "restartRequired": "변경 사항을 적용하려면 재시작이 필요합니다",
+            "coreTypes": "핵심 모델 유형",
+            "otherTypes": "기타 모델 유형",
+            "otherTypesDisabledHint": "활성화된 기타 모델 유형이 없습니다. 위에서 필요한 유형을 켜면 해당 폴더를 구성할 수 있습니다.",
+            "saveSuccessRestart": "모델 라이브러리 경로가 업데이트되었습니다. 변경 사항을 적용하려면 재시작이 필요합니다.",
+            "pendingRestartNotice": "경로 변경 사항이 저장되었습니다. 적용하려면 LoRA Manager를 재시작하세요.",
+            "pendingRestartBannerTitle": "경로 변경 사항을 적용하려면 재시작이 필요합니다",
+            "pendingRestartBannerMessage": "모델 라이브러리 경로가 업데이트되었습니다. 새 폴더를 스캔하려면 LoRA Manager 서버를 재시작하세요.",
+            "folderKeys": {
+                "loras": "LoRA 경로",
+                "checkpoints": "Checkpoint 경로",
+                "unet": "Diffusion Model 경로",
+                "embeddings": "Embedding 경로",
+                "vae": "VAE 경로",
+                "upscale_models": "Upscaler 경로",
+                "text_encoders": "Text Encoder 경로",
+                "clip": "CLIP 경로 (레거시)",
+                "clip_vision": "CLIP Vision 경로",
+                "controlnet": "ControlNet 경로"
+            }
+        },
+        "directoryPicker": {
+            "title": "폴더 찾아보기",
+            "selectFolder": "이 폴더 선택",
+            "goUp": "위로",
+            "pathPlaceholder": "경로 입력...",
+            "go": "이동",
+            "emptyFolder": "하위 폴더 없음",
+            "loadError": "디렉터리를 불러오지 못했습니다"
+        },
+        "pathValidation": {
+            "valid": "유효한 경로입니다",
+            "pathNotFound": "경로가 존재하지 않습니다",
+            "notADirectory": "디렉터리가 아닙니다",
+            "notReadable": "경로를 읽을 수 없습니다",
+            "notWritable": "경로에 쓸 수 없습니다"
         },
         "priorityTags": {
             "title": "우선순위 태그",
@@ -1241,11 +1282,12 @@
         },
         "noPaths": {
             "title": "기타 모델 폴더를 찾을 수 없습니다",
-            "descriptionStandalone": "기타 모델 관리가 켜져 있지만, 기타 모델 폴더를 찾을 수 없습니다. 필요한 폴더 키를 settings.json의 folder_paths 섹션에 추가한 뒤 LoRA Manager를 재시작하세요.",
-            "hintStandalone": "위에 나열된 폴더 키만 스캔됩니다. 필요 없는 키는 생략할 수 있습니다.",
+            "descriptionStandalone": "기타 모델 관리가 켜져 있지만, 기타 모델 폴더를 찾을 수 없습니다. 설정 → 모델 경로에서 모델 폴더를 추가한 뒤 LoRA Manager를 재시작하세요.",
+            "hintStandalone": "활성화된 모델 유형만 스캔됩니다. 라이브러리 → 기본 루트에서 필요한 유형을 활성화하세요.",
             "descriptionComfyUI": "기타 모델 관리가 켜져 있지만, 설정된 모델 폴더가 디스크에 존재하지 않습니다. 해당 모델 폴더를 ComfyUI 모델 경로에 추가한 뒤 이 페이지를 새로 고침하세요.",
             "hintComfyUI": "기타 모델은 ComfyUI의 vae, upscale_models, text_encoders, clip_vision, controlnet 폴더에서 읽어옵니다.",
             "openSettings": "설정 열기",
+            "openModelPaths": "모델 폴더 구성",
             "openSettingsFolder": "설정 폴더 열기"
         }
     },
@@ -2699,6 +2741,11 @@
             "content": "전용 페이지에서 VAE, Upscaler, Text Encoder, CLIP Vision, ControlNet 파일을 스캔 및 관리하고 CivitAI에서 다운로드할 수 있습니다.",
             "enable": "기타 모델 활성화",
             "openSettings": "설정 열기"
+        },
+        "pager": {
+            "previous": "이전 알림",
+            "next": "다음 알림",
+            "position": "전체 {total}개 중 {current}번째 알림"
         }
     }
 }

@@ -54,12 +54,14 @@ from ...utils.constants import (
     SUPPORTED_MEDIA_EXTENSIONS,
     VALID_LORA_TYPES,
     VALID_OTHER_CIVITAI_TYPES,
+    folder_path_schema,
 )
 from .model_source_handlers import ModelSourceHandler
 from .agent_handlers import AgentHandler
 from .download_routing_handlers import DownloadRoutingHandler
 from .model_handlers import ModelCivitaiHandler
 from ...utils.civitai_utils import rewrite_preview_url
+from ...utils.directory_browser import browse_directory
 from ...utils.example_images_paths import (
     find_non_compliant_items_in_example_images_root,
     is_valid_example_images_root,
@@ -1580,6 +1582,30 @@ class SettingsHandler:
                     availability_error,
                 )
                 response_data["other_models_paths_available"] = None
+            standalone_mode = os.environ.get("LORA_MANAGER_STANDALONE", "0") == "1"
+            response_data["standalone_mode"] = standalone_mode
+            if standalone_mode:
+                # Standalone reads its model roots exclusively from
+                # settings.json, so the Model Paths settings UI needs the
+                # current values plus the editable-key schema. In plugin mode
+                # the paths come from the ComfyUI host and stay hidden.
+                folder_paths = self._settings.get("folder_paths") or {}
+                # A fresh install is seeded from settings.json.example, whose
+                # folder_paths are documentation placeholders — hide them so
+                # the UI starts with empty editors instead of fake paths.
+                get_placeholders = getattr(
+                    self._settings, "get_template_folder_path_placeholders", None
+                )
+                placeholders = get_placeholders() if get_placeholders else set()
+                if placeholders:
+                    folder_paths = {
+                        key: [p for p in paths if p not in placeholders]
+                        if isinstance(paths, list)
+                        else paths
+                        for key, paths in folder_paths.items()
+                    }
+                response_data["folder_paths"] = folder_paths
+                response_data["folder_path_schema"] = folder_path_schema()
             settings_file = getattr(self._settings, "settings_file", None)
             if settings_file:
                 response_data["settings_file"] = settings_file
@@ -2764,12 +2790,40 @@ class ModelLibraryHandler:
 
             normalized_type, scanner = await self._get_scanner_for_type(model_type)
             if not normalized_type:
+                # The lookup cannot be served as a fully interactive list. Two
+                # cases share this branch: a CivitAI type with no scanner at all
+                # (Wildcards, Workflows, Hypernetwork, Poses, AestheticGradient)
+                # and an Other-model type while the opt-in master switch is off.
+                # Answer 200 with the CivitAI list marked read-only plus a
+                # machine-readable reason, so clients can still show the
+                # versions and explain why the actions are missing. Legacy
+                # clients keep working: they only read `success`/`versions`.
+                reason = (
+                    "other_models_disabled"
+                    if self._normalize_model_type(model_type) == "other"
+                    else "model_type_unsupported"
+                )
                 return web.json_response(
                     {
-                        "success": False,
-                        "error": f'Model type "{model_type}" is not supported',
-                    },
-                    status=400,
+                        "success": True,
+                        "modelId": model_id,
+                        "modelName": model_name,
+                        "modelType": model_type,
+                        "supported": False,
+                        "reason": reason,
+                        "versions": [
+                            {
+                                "id": version.get("id"),
+                                "name": version.get("name", ""),
+                                "thumbnailUrl": version.get("images")[0]["url"]
+                                if version.get("images")
+                                else None,
+                                "inLibrary": False,
+                                "hasBeenDownloaded": False,
+                            }
+                            for version in versions
+                        ],
+                    }
                 )
 
             if not scanner:
@@ -2811,6 +2865,7 @@ class ModelLibraryHandler:
                     "modelId": model_id,
                     "modelName": model_name,
                     "modelType": model_type,
+                    "supported": True,
                     "versions": enriched_versions,
                 }
             )
@@ -3441,6 +3496,76 @@ class FileSystemHandler:
             return await self._open_path(wildcards_dir)
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error("Failed to open wildcards location: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def browse_directory(self, request: web.Request) -> web.Response:
+        """Browse a directory for the settings-UI directory picker."""
+        try:
+            data = await request.json()
+            payload, status = browse_directory(data.get("path", ""))
+            return web.json_response(payload, status=status)
+        except json.JSONDecodeError:
+            return web.json_response(
+                {"success": False, "error": "Invalid JSON"}, status=400
+            )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("Failed to browse directory: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def validate_path(self, request: web.Request) -> web.Response:
+        """Validate a filesystem path for the settings UI.
+
+        A well-formed request always returns HTTP 200; invalid paths are
+        reported via ``error_code`` in the payload. HTTP 400 is reserved for
+        malformed requests (missing path, invalid JSON).
+        """
+        try:
+            data = await request.json()
+            raw_path = data.get("path")
+            expect = data.get("expect", "directory")
+
+            if not raw_path or not isinstance(raw_path, str):
+                return web.json_response(
+                    {"success": False, "error": "Missing path parameter"}, status=400
+                )
+
+            # Business path convention: abspath only, never realpath.
+            path = os.path.abspath(os.path.expanduser(raw_path))
+
+            exists = os.path.exists(path)
+            is_directory = os.path.isdir(path) if exists else False
+            readable = bool(exists and os.access(path, os.R_OK))
+            writable = bool(exists and os.access(path, os.W_OK))
+
+            error_code = None
+            if not exists:
+                error_code = "path_not_found"
+            elif expect == "directory" and not is_directory:
+                error_code = "not_a_directory"
+            elif expect == "file" and not os.path.isfile(path):
+                error_code = "not_a_file"
+            elif not readable:
+                error_code = "not_readable"
+            elif not writable:
+                error_code = "not_writable"
+
+            return web.json_response(
+                {
+                    "success": True,
+                    "path": path,
+                    "exists": exists,
+                    "is_directory": is_directory,
+                    "readable": readable,
+                    "writable": writable,
+                    "error_code": error_code,
+                }
+            )
+        except json.JSONDecodeError:
+            return web.json_response(
+                {"success": False, "error": "Invalid JSON"}, status=400
+            )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("Failed to validate path: %s", exc, exc_info=True)
             return web.json_response({"success": False, "error": str(exc)}, status=500)
 
 
@@ -4087,6 +4212,8 @@ class MiscHandlerSet:
             "open_settings_location": self.filesystem.open_settings_location,
             "open_backup_location": self.filesystem.open_backup_location,
             "open_wildcards_location": self.filesystem.open_wildcards_location,
+            "browse_directory": self.filesystem.browse_directory,
+            "validate_path": self.filesystem.validate_path,
             "search_custom_words": self.custom_words.search_custom_words,
             "search_wildcards": self.wildcards.search_wildcards,
             "get_supporters": self.supporters.get_supporters,
