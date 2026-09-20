@@ -383,6 +383,7 @@
             "general": "כללי",
             "interface": "ממשק",
             "library": "ספרייה",
+            "organization": "ארגון",
             "modelPaths": "נתיבי מודלים"
         },
         "search": {
@@ -680,6 +681,22 @@
                 "validTemplate": "תבנית תקינה"
             }
         },
+        "filenameTemplates": {
+            "title": "תבניות שמות קבצים",
+            "help": "הגדר שמות קבצים למודלים שהורדו לפי סוג מודל. השאר ריק כדי לשמור על שמות הקבצים המקוריים בעת ההורדה; החלת תבנית ריקה משחזרת את שמות הקבצים המקוריים המתועדים של מודלים ששונה שמם בעבר. שם הקובץ המקורי תמיד נשמר במטא-נתונים של המודל.",
+            "availablePlaceholders": "מצייני מקום זמינים:",
+            "templatePlaceholder": "הזן תבנית שם קובץ (למשל, {base_model}-{model_name}-{version_name})",
+            "applyButton": "החל על הספרייה כעת",
+            "applyHelp": "משנה את שמות כל הקבצים הקיימים מסוג מודל זה בהתאם לתבנית; עם תבנית ריקה, משחזר במקום זאת את שמות הקבצים המקוריים המתועדים. אזהרה: שינוי שם משנה את הנתיב היחסי שרואים הטוענים של ComfyUI, ולכן workflows קיימים המפנים לשם הקובץ הישן עשויים לדרוש עדכון. שם הקובץ המקורי נשמר במטא-נתונים של כל מודל.",
+            "confirmApply": "לשנות את שמות כל הקבצים הקיימים מסוג מודל זה בהתאם לתבנית שם הקובץ? פעולה זו משנה את הנתיב היחסי שרואים הטוענים של ComfyUI. שם הקובץ המקורי נשמר במטא-נתונים של כל מודל.",
+            "confirmRevert": "לשחזר את שמות הקבצים המקוריים המתועדים של כל הקבצים ששונה שמם בעבר מסוג מודל זה? פעולה זו משנה את הנתיב היחסי שרואים הטוענים של ComfyUI. קבצים ללא שם קובץ מקורי מתועד ידולגו.",
+            "validation": {
+                "restoreOriginal": "תקין (תבנית ריקה משחזרת שמות קבצים מקוריים)",
+                "invalidChars": "זוהו תווים לא חוקיים (שם קובץ אינו יכול להכיל / \\ < > : \" | ? *)",
+                "invalidPlaceholder": "מציין מקום לא חוקי: {placeholder}",
+                "validTemplate": "תבנית תקינה"
+            }
+        },
         "exampleImages": {
             "downloadLocation": "מיקום הורדה",
             "downloadLocationPlaceholder": "הזן נתיב תיקייה לתמונות דוגמה",
@@ -910,6 +927,14 @@
                 "cleaning": "מנקה ספריות ריקות...",
                 "completed": "הושלם: {success} הועברו, {skipped} דולגו, {failures} נכשלו",
                 "complete": "ארגון אוטומטי הושלם",
+                "error": "שגיאה: {error}"
+            },
+            "filenameTemplateProgress": {
+                "initializing": "מאתחל החלת תבנית שם קובץ...",
+                "starting": "מחיל תבנית שם קובץ על {type}...",
+                "processing": "מעבד ({processed}/{total}) - {success} שונו שמותם, {skipped} דולגו, {failures} נכשלו",
+                "completed": "הושלם: {success} שונו שמותם, {skipped} דולגו, {failures} נכשלו",
+                "complete": "החלת תבנית שם הקובץ הושלמה",
                 "error": "שגיאה: {error}"
             },
             "enrichHfAgent": "העשרת מטא-נתונים ב-AI"
@@ -1600,6 +1625,11 @@
             "message": "הפעולה תבדוק עדכונים עבור כל ה-{typePlural} בספרייה שלך. באוספים גדולים זה עלול לקחת מעט יותר זמן.",
             "tip": "רוצים לחלק למנות קטנות? עברו למצב בכמות גדולה, בחרו את המודלים הדרושים ואז השתמשו ב\"בדוק עדכונים לנבחרים\".",
             "action": "בדוק הכל"
+        },
+        "filenameTemplateConfirm": {
+            "titleApply": "להחיל תבנית שם קובץ על הספרייה?",
+            "titleRevert": "לשחזר שמות קבצים מקוריים?",
+            "revertButton": "שחזר שמות קבצים מקוריים"
         },
         "bulkAddTags": {
             "title": "הוסף תגיות למספר מודלים",
@@ -2310,6 +2340,9 @@
             "autoOrganizeSuccess": "הארגון האוטומטי הושלם בהצלחה עבור {count} {type}",
             "autoOrganizePartialSuccess": "הארגון האוטומטי הושלם עם {success} שהועברו, {failures} שנכשלו מתוך {total} מודלים",
             "autoOrganizeFailed": "הארגון האוטומטי נכשל: {error}",
+            "filenameTemplateSuccess": "תבנית שם הקובץ הוחלה בהצלחה עבור {count} {type}",
+            "filenameTemplatePartialSuccess": "החלת תבנית שם הקובץ הושלמה עם {success} ששונה שמם, {failures} שנכשלו מתוך {total} מודלים",
+            "filenameTemplateFailed": "החלת תבנית שם הקובץ נכשלה: {error}",
             "noModelsSelected": "לא נבחרו מודלים"
         },
         "recipes": {
@@ -2476,6 +2509,8 @@
             "mappingSaveFailed": "שמירת מיפויי מודל בסיס נכשלה: {message}",
             "downloadTemplatesUpdated": "תבניות נתיב הורדה עודכנו",
             "downloadTemplatesFailed": "שמירת תבניות נתיב הורדה נכשלה: {message}",
+            "filenameTemplatesUpdated": "תבניות שמות הקבצים עודכנו",
+            "filenameTemplatesFailed": "שמירת תבניות שמות הקבצים נכשלה: {message}",
             "recipesPathUpdated": "נתיב אחסון המתכונים עודכן",
             "recipesPathSaveFailed": "עדכון נתיב אחסון המתכונים נכשל: {message}",
             "settingsUpdated": "הגדרות עודכנו: {setting}",

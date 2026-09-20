@@ -383,6 +383,7 @@
             "general": "通用",
             "interface": "介面",
             "library": "模型庫",
+            "organization": "整理",
             "modelPaths": "模型路徑"
         },
         "search": {
@@ -680,6 +681,22 @@
                 "validTemplate": "範本有效"
             }
         },
+        "filenameTemplates": {
+            "title": "檔案名稱範本",
+            "help": "依模型類型設定已下載模型的檔案名稱。留空則下載時保留原始檔案名稱；套用空範本會還原先前已重新命名模型所記錄的原始檔案名稱。原始檔案名稱一律會保存在模型的中繼資料中。",
+            "availablePlaceholders": "可用佔位符：",
+            "templatePlaceholder": "輸入檔案名稱範本（例如：{base_model}-{model_name}-{version_name}）",
+            "applyButton": "立即套用至模型庫",
+            "applyHelp": "依範本重新命名此模型類型的所有現有檔案；若範本為空，則改為還原已記錄的原始檔案名稱。警告：重新命名會變更 ComfyUI 載入器所見的相對路徑，因此參照舊檔案名稱的現有工作流可能需要更新。原始檔案名稱會保存在每個模型的中繼資料中。",
+            "confirmApply": "要依檔案名稱範本重新命名此模型類型的所有現有檔案嗎？這會變更 ComfyUI 載入器所見的相對路徑。原始檔案名稱會保存在每個模型的中繼資料中。",
+            "confirmRevert": "要將此模型類型所有先前已重新命名的檔案還原為已記錄的原始檔案名稱嗎？這會變更 ComfyUI 載入器所見的相對路徑。沒有記錄原始檔案名稱的檔案將被略過。",
+            "validation": {
+                "restoreOriginal": "有效（空範本會還原原始檔案名稱）",
+                "invalidChars": "偵測到無效字元（檔案名稱不能包含 / \\ < > : \" | ? *）",
+                "invalidPlaceholder": "無效佔位符：{placeholder}",
+                "validTemplate": "範本有效"
+            }
+        },
         "exampleImages": {
             "downloadLocation": "下載位置",
             "downloadLocationPlaceholder": "輸入範例圖片的資料夾路徑",
@@ -910,6 +927,14 @@
                 "cleaning": "正在清理空資料夾...",
                 "completed": "完成：已移動 {success}，已略過 {skipped}，失敗 {failures}",
                 "complete": "自動整理完成",
+                "error": "錯誤：{error}"
+            },
+            "filenameTemplateProgress": {
+                "initializing": "正在初始化檔案名稱範本套用...",
+                "starting": "正在將檔案名稱範本套用至 {type}...",
+                "processing": "處理中（{processed}/{total}）- 已重新命名 {success}，已略過 {skipped}，失敗 {failures}",
+                "completed": "完成：已重新命名 {success}，已略過 {skipped}，失敗 {failures}",
+                "complete": "檔案名稱範本套用完成",
                 "error": "錯誤：{error}"
             },
             "enrichHfAgent": "AI 中繼資料增強"
@@ -1600,6 +1625,11 @@
             "message": "這會檢查資料庫中的每個 {typePlural} 的更新，大型收藏可能會花上一些時間。",
             "tip": "想分批處理？切換到批次模式，選擇需要的模型，然後使用「檢查所選更新」。",
             "action": "全部檢查"
+        },
+        "filenameTemplateConfirm": {
+            "titleApply": "要將檔案名稱範本套用至模型庫嗎？",
+            "titleRevert": "要還原原始檔案名稱嗎？",
+            "revertButton": "還原原始檔案名稱"
         },
         "bulkAddTags": {
             "title": "新增標籤到多個模型",
@@ -2310,6 +2340,9 @@
             "autoOrganizeSuccess": "自動整理已成功完成，共 {count} 個 {type} 已整理",
             "autoOrganizePartialSuccess": "自動整理完成：已移動 {success} 個，{failures} 個失敗，共 {total} 個模型",
             "autoOrganizeFailed": "自動整理失敗：{error}",
+            "filenameTemplateSuccess": "已成功為 {count} 個 {type} 套用檔案名稱範本",
+            "filenameTemplatePartialSuccess": "檔案名稱範本套用完成：已重新命名 {success} 個，{failures} 個失敗，共 {total} 個模型",
+            "filenameTemplateFailed": "套用檔案名稱範本失敗：{error}",
             "noModelsSelected": "未選擇任何模型"
         },
         "recipes": {
@@ -2476,6 +2509,8 @@
             "mappingSaveFailed": "儲存基礎模型對應失敗：{message}",
             "downloadTemplatesUpdated": "下載路徑範本已更新",
             "downloadTemplatesFailed": "儲存下載路徑範本失敗：{message}",
+            "filenameTemplatesUpdated": "檔案名稱範本已更新",
+            "filenameTemplatesFailed": "儲存檔案名稱範本失敗：{message}",
             "recipesPathUpdated": "配方儲存路徑已更新",
             "recipesPathSaveFailed": "更新配方儲存路徑失敗：{message}",
             "settingsUpdated": "設定已更新：{setting}",

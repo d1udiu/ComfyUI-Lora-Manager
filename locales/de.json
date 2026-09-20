@@ -383,6 +383,7 @@
             "general": "Allgemein",
             "interface": "Oberfläche",
             "library": "Bibliothek",
+            "organization": "Organisation",
             "modelPaths": "Modellpfade"
         },
         "search": {
@@ -680,6 +681,22 @@
                 "validTemplate": "Gültige Vorlage"
             }
         },
+        "filenameTemplates": {
+            "title": "Dateinamen-Vorlagen",
+            "help": "Konfigurieren Sie Dateinamen für heruntergeladene Modelle pro Modelltyp. Leer lassen, um den ursprünglichen Dateinamen zu behalten. Der ursprüngliche Dateiname bleibt immer in den Metadaten des Modells erhalten.",
+            "availablePlaceholders": "Verfügbare Platzhalter:",
+            "templatePlaceholder": "Dateinamen-Vorlage eingeben (z.B. {base_model}-{model_name}-{version_name})",
+            "applyButton": "Jetzt auf Bibliothek anwenden",
+            "applyHelp": "Benennt alle vorhandenen Dateien dieses Modelltyps gemäß der Vorlage um. Warnung: Das Umbenennen ändert den relativen Pfad, den ComfyUI-Loader sehen; vorhandene Workflows, die den alten Dateinamen referenzieren, müssen möglicherweise aktualisiert werden. Der ursprüngliche Dateiname bleibt in den Metadaten jedes Modells erhalten.",
+            "confirmApply": "Alle vorhandenen Dateien dieses Modelltyps gemäß der Dateinamen-Vorlage umbenennen? Dies ändert den relativen Pfad, den ComfyUI-Loader sehen. Der ursprüngliche Dateiname bleibt in den Metadaten jedes Modells erhalten.",
+            "confirmRevert": "Die gespeicherten ursprünglichen Dateinamen aller zuvor umbenannten Dateien dieses Modelltyps wiederherstellen? Dies ändert den relativen Pfad, den ComfyUI-Loader sehen. Dateien ohne gespeicherten ursprünglichen Dateinamen werden übersprungen.",
+            "validation": {
+                "restoreOriginal": "Gültig (leere Vorlage stellt ursprüngliche Dateinamen wieder her)",
+                "invalidChars": "Ungültige Zeichen erkannt (ein Dateiname darf / \\ < > : \" | ? * nicht enthalten)",
+                "invalidPlaceholder": "Ungültiger Platzhalter: {placeholder}",
+                "validTemplate": "Gültige Vorlage"
+            }
+        },
         "exampleImages": {
             "downloadLocation": "Download-Speicherort",
             "downloadLocationPlaceholder": "Ordnerpfad für Beispielbilder eingeben",
@@ -910,6 +927,14 @@
                 "cleaning": "Leere Verzeichnisse werden bereinigt...",
                 "completed": "Abgeschlossen: {success} verschoben, {skipped} übersprungen, {failures} fehlgeschlagen",
                 "complete": "Automatische Organisation abgeschlossen",
+                "error": "Fehler: {error}"
+            },
+            "filenameTemplateProgress": {
+                "initializing": "Anwendung der Dateinamen-Vorlage wird initialisiert...",
+                "starting": "Dateinamen-Vorlage wird auf {type} angewendet...",
+                "processing": "Verarbeitung ({processed}/{total}) – {success} umbenannt, {skipped} übersprungen, {failures} fehlgeschlagen",
+                "completed": "Abgeschlossen: {success} umbenannt, {skipped} übersprungen, {failures} fehlgeschlagen",
+                "complete": "Anwendung der Dateinamen-Vorlage abgeschlossen",
                 "error": "Fehler: {error}"
             },
             "enrichHfAgent": "Metadaten mit KI anreichern"
@@ -1600,6 +1625,11 @@
             "message": "Damit werden alle {typePlural} in Ihrer Bibliothek auf Updates geprüft. Bei großen Sammlungen kann das etwas länger dauern.",
             "tip": "Möchten Sie in Etappen prüfen? Wechseln Sie in den Massenmodus, wählen Sie die benötigten Modelle aus und nutzen Sie anschließend \"Auswahl auf Updates prüfen\".",
             "action": "Alles prüfen"
+        },
+        "filenameTemplateConfirm": {
+            "titleApply": "Dateinamen-Vorlage auf Bibliothek anwenden?",
+            "titleRevert": "Ursprüngliche Dateinamen wiederherstellen?",
+            "revertButton": "Ursprüngliche Dateinamen wiederherstellen"
         },
         "bulkAddTags": {
             "title": "Tags zu mehreren Modellen hinzufügen",
@@ -2310,6 +2340,9 @@
             "autoOrganizeSuccess": "Automatische Organisation für {count} {type} erfolgreich abgeschlossen",
             "autoOrganizePartialSuccess": "Automatische Organisation abgeschlossen: {success} verschoben, {failures} fehlgeschlagen von insgesamt {total} Modellen",
             "autoOrganizeFailed": "Automatische Organisation fehlgeschlagen: {error}",
+            "filenameTemplateSuccess": "Dateinamen-Vorlage erfolgreich für {count} {type} angewendet",
+            "filenameTemplatePartialSuccess": "Dateinamen-Vorlage angewendet: {success} umbenannt, {failures} von {total} Modellen fehlgeschlagen",
+            "filenameTemplateFailed": "Anwendung der Dateinamen-Vorlage fehlgeschlagen: {error}",
             "noModelsSelected": "Keine Modelle ausgewählt"
         },
         "recipes": {
@@ -2476,6 +2509,8 @@
             "mappingSaveFailed": "Fehler beim Speichern der Basismodell-Zuordnungen: {message}",
             "downloadTemplatesUpdated": "Download-Pfad-Vorlagen aktualisiert",
             "downloadTemplatesFailed": "Fehler beim Speichern der Download-Pfad-Vorlagen: {message}",
+            "filenameTemplatesUpdated": "Dateinamen-Vorlagen aktualisiert",
+            "filenameTemplatesFailed": "Dateinamen-Vorlagen konnten nicht gespeichert werden: {message}",
             "recipesPathUpdated": "Rezepte-Speicherpfad aktualisiert",
             "recipesPathSaveFailed": "Fehler beim Aktualisieren des Rezepte-Speicherpfads: {message}",
             "settingsUpdated": "Einstellungen aktualisiert: {setting}",

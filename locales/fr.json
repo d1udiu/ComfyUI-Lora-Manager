@@ -383,6 +383,7 @@
             "general": "Général",
             "interface": "Interface",
             "library": "Bibliothèque",
+            "organization": "Organisation",
             "modelPaths": "Chemins de modèles"
         },
         "search": {
@@ -680,6 +681,22 @@
                 "validTemplate": "Modèle valide"
             }
         },
+        "filenameTemplates": {
+            "title": "Modèles de nom de fichier",
+            "help": "Configurer les noms de fichier des modèles téléchargés par type de modèle. Laisser vide pour conserver le nom de fichier d'origine. Le nom de fichier d'origine est toujours conservé dans les métadonnées du modèle.",
+            "availablePlaceholders": "Espaces réservés disponibles :",
+            "templatePlaceholder": "Entrez un modèle de nom de fichier (ex: {base_model}-{model_name}-{version_name})",
+            "applyButton": "Appliquer à la bibliothèque maintenant",
+            "applyHelp": "Renomme tous les fichiers existants de ce type de modèle selon le modèle. Attention : le renommage change le chemin relatif vu par les loaders ComfyUI, les workflows existants référençant l'ancien nom de fichier peuvent donc nécessiter une mise à jour. Le nom de fichier d'origine est conservé dans les métadonnées de chaque modèle.",
+            "confirmApply": "Renommer tous les fichiers existants de ce type de modèle selon le modèle de nom de fichier ? Cela change le chemin relatif vu par les loaders ComfyUI. Le nom de fichier d'origine est conservé dans les métadonnées de chaque modèle.",
+            "confirmRevert": "Restaurer les noms de fichier d'origine enregistrés de tous les fichiers précédemment renommés de ce type de modèle ? Cela change le chemin relatif vu par les loaders ComfyUI. Les fichiers sans nom de fichier d'origine enregistré sont ignorés.",
+            "validation": {
+                "restoreOriginal": "Valide (un modèle vide restaure les noms de fichier d'origine)",
+                "invalidChars": "Caractères invalides détectés (un nom de fichier ne peut pas contenir / \\ < > : \" | ? *)",
+                "invalidPlaceholder": "Espace réservé invalide : {placeholder}",
+                "validTemplate": "Modèle valide"
+            }
+        },
         "exampleImages": {
             "downloadLocation": "Emplacement de téléchargement",
             "downloadLocationPlaceholder": "Entrez le chemin du dossier pour les images d'exemple",
@@ -910,6 +927,14 @@
                 "cleaning": "Nettoyage des répertoires vides...",
                 "completed": "Terminé : {success} déplacés, {skipped} ignorés, {failures} échecs",
                 "complete": "Auto-organisation terminée",
+                "error": "Erreur : {error}"
+            },
+            "filenameTemplateProgress": {
+                "initializing": "Initialisation de l'application du modèle de nom de fichier...",
+                "starting": "Application du modèle de nom de fichier pour {type}...",
+                "processing": "Traitement ({processed}/{total}) - {success} renommés, {skipped} ignorés, {failures} échecs",
+                "completed": "Terminé : {success} renommés, {skipped} ignorés, {failures} échecs",
+                "complete": "Application du modèle de nom de fichier terminée",
                 "error": "Erreur : {error}"
             },
             "enrichHfAgent": "Enrichir les métadonnées avec l'IA"
@@ -1600,6 +1625,11 @@
             "message": "Cette action vérifie les mises à jour pour tous les {typePlural} de votre bibliothèque. Les grandes collections peuvent prendre un peu plus de temps.",
             "tip": "Besoin de procéder par étapes ? Passez en mode groupé, sélectionnez les modèles souhaités puis utilisez \"Vérifier les mises à jour pour la sélection\".",
             "action": "Tout vérifier"
+        },
+        "filenameTemplateConfirm": {
+            "titleApply": "Appliquer le modèle de nom de fichier à la bibliothèque ?",
+            "titleRevert": "Restaurer les noms de fichier d'origine ?",
+            "revertButton": "Restaurer les noms de fichier d'origine"
         },
         "bulkAddTags": {
             "title": "Ajouter des tags à plusieurs modèles",
@@ -2310,6 +2340,9 @@
             "autoOrganizeSuccess": "Auto-organisation terminée avec succès pour {count} {type}",
             "autoOrganizePartialSuccess": "Auto-organisation terminée avec {success} déplacés, {failures} échecs sur {total} modèles",
             "autoOrganizeFailed": "Échec de l'auto-organisation : {error}",
+            "filenameTemplateSuccess": "Modèle de nom de fichier appliqué avec succès pour {count} {type}",
+            "filenameTemplatePartialSuccess": "Modèle de nom de fichier appliqué avec {success} renommés, {failures} échecs sur {total} modèles",
+            "filenameTemplateFailed": "Échec de l'application du modèle de nom de fichier : {error}",
             "noModelsSelected": "Aucun modèle sélectionné"
         },
         "recipes": {
@@ -2476,6 +2509,8 @@
             "mappingSaveFailed": "Échec de la sauvegarde des mappages de modèle de base : {message}",
             "downloadTemplatesUpdated": "Modèles de chemin de téléchargement mis à jour",
             "downloadTemplatesFailed": "Échec de la sauvegarde des modèles de chemin de téléchargement : {message}",
+            "filenameTemplatesUpdated": "Modèles de nom de fichier mis à jour",
+            "filenameTemplatesFailed": "Échec de la sauvegarde des modèles de nom de fichier : {message}",
             "recipesPathUpdated": "Chemin de stockage des Recipes mis à jour",
             "recipesPathSaveFailed": "Échec de la mise à jour du chemin de stockage des Recipes : {message}",
             "settingsUpdated": "Paramètres mis à jour : {setting}",
