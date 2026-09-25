@@ -325,6 +325,12 @@
         "civitaiApiKeyConfigured": "設定済み",
         "civitaiApiKeyNotConfigured": "未設定",
         "civitaiApiKeySet": "設定",
+        "huggingfaceApiKey": "Hugging Face アクセストークン",
+        "huggingfaceApiKeyPlaceholder": "Hugging Face アクセストークンを入力してください",
+        "huggingfaceApiKeyHelp": "ゲート付きまたはプライベートな Hugging Face リポジトリからダウンロードする際に必要です。huggingface.co/settings/tokens で読み取り専用トークンを作成し、先にリポジトリのページで利用条件に同意してください。",
+        "huggingfaceApiKeyConfigured": "設定済み",
+        "huggingfaceApiKeyNotConfigured": "未設定",
+        "huggingfaceApiKeySet": "設定",
         "civitaiHost": {
             "label": "CivitAI ホスト",
             "help": "「View on CivitAI」リンクを使うときに開く CivitAI サイトを選択します。",

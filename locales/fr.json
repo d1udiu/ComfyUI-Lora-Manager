@@ -325,6 +325,12 @@
         "civitaiApiKeyConfigured": "Configuré",
         "civitaiApiKeyNotConfigured": "Non configuré",
         "civitaiApiKeySet": "Configurer",
+        "huggingfaceApiKey": "Jeton d'accès Hugging Face",
+        "huggingfaceApiKeyPlaceholder": "Entrez votre jeton d'accès Hugging Face",
+        "huggingfaceApiKeyHelp": "Nécessaire pour télécharger depuis des dépôts Hugging Face restreints (gated) ou privés. Créez un jeton en lecture seule sur huggingface.co/settings/tokens, puis acceptez d'abord les conditions du dépôt sur sa page.",
+        "huggingfaceApiKeyConfigured": "Configuré",
+        "huggingfaceApiKeyNotConfigured": "Non configuré",
+        "huggingfaceApiKeySet": "Configurer",
         "civitaiHost": {
             "label": "Hôte CivitAI",
             "help": "Choisissez quel site CivitAI s'ouvre lorsque vous utilisez les liens « View on CivitAI ».",
