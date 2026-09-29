@@ -383,6 +383,7 @@
             "exampleImages": "תמונות דוגמה",
             "autoOrganize": "ארגון אוטומטי",
             "metadata": "מטא-נתונים",
+            "sidecarStorage": "אחסון קובצי לוואי",
             "proxySettings": "הגדרות פרוקסי"
         },
         "nav": {
@@ -788,6 +789,34 @@
             "providerOrderHelp": "CivitAI API תמיד מנוסה ראשון. בחר את סדר הספקים הנותרים בעת חיפוש מטא-נתונים.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
             "providerOrderCivitaiSqliteArchive": "CivitAI → Archive DB → CivArchive"
+        },
+        "sidecarStorage": {
+            "mode": "מצב אחסון קובצי לוואי",
+            "modeHelp": "בחר היכן יאוחסנו קובצי הלוואי .metadata.json ותמונות התצוגה המקדימה: לצד כל קובץ מודל, או בתיקייה מרכזית אחת שמשקפת את מבנה הספרייה שלך. קובצי .civitai.info נשארים תמיד לצד קובץ המודל.",
+            "modeOptions": {
+                "alongside": "לצד קובצי המודלים (ברירת מחדל)",
+                "centralized": "אחסון מרכזי"
+            },
+            "path": "נתיב האחסון המרכזי",
+            "pathHelp": "תיקיית השורש של אחסון קובצי הלוואי המרכזי. השאר ריק כדי להשתמש במיקום ברירת המחדל <settings dir>/sidecars.",
+            "pathPlaceholder": "ריק = <settings dir>/sidecars",
+            "management": "העברת קובצי לוואי",
+            "managementHelp": "העבר קובצי לוואי .metadata.json ותמונות תצוגה מקדימה קיימים בין אחסון לצד המודלים לאחסון המרכזי, בהתאם למצב שנבחר. שינוי המצב אינו מעביר קבצים קיימים באופן אוטומטי.",
+            "migrateButton": "העבר קובצי לוואי כעת",
+            "migratingButton": "מעביר...",
+            "migrating": "מעביר קובצי לוואי...",
+            "migrateFailed": "העברת קובצי הלוואי נכשלה: {message}",
+            "migrationDeferred": "קובצי הלוואי הקיימים לא הועברו. ניתן להעביר אותם מאוחר יותר דרך הגדרות > ספרייה > אחסון קובצי לוואי.",
+            "confirmToCentralized": "מצב האחסון השתנה, אך קובצי הלוואי .metadata.json ותמונות התצוגה המקדימה הקיימים אינם מועברים אוטומטית. להעביר אותם כעת לתיקיית האחסון המרכזי? ניתן לעשות זאת גם מאוחר יותר באמצעות הכפתור «העבר קובצי לוואי כעת».",
+            "confirmToAlongside": "מצב האחסון השתנה, אך קובצי הלוואי .metadata.json ותמונות התצוגה המקדימה הקיימים אינם מועברים אוטומטית. להחזיר אותם כעת לצד קובצי המודל שלהם? ניתן לעשות זאת גם מאוחר יותר באמצעות הכפתור «העבר קובצי לוואי כעת».",
+            "confirmRelocateRoot": "תיקיית האחסון המרכזי השתנתה, אך קובצי הלוואי ותמונות התצוגה המקדימה הקיימים עדיין נמצאים בתיקייה הקודמת. להעביר אותם כעת לתיקייה החדשה?",
+            "effectivePathLabel": "מיקום האחסון בפועל:",
+            "openFolderButton": "פתח תיקייה",
+            "repoWarning": "מיקום האחסון בפועל נמצא בתוך תיקיית ההתקנה של LoRA Manager. התקנה מחדש של התוסף או עדכון נקי עלולים למחוק אותו — הגדר נתיב אחסון מפורש מחוץ לתיקיית ההתקנה.",
+            "openLocationSuccess": "תיקיית אחסון קובצי הלוואי נפתחה",
+            "openLocationCopied": "נתיב אחסון קובצי הלוואי הועתק ללוח: {path}",
+            "openLocationClipboardFallback": "העתק את נתיב אחסון קובצי הלוואי ידנית: {path}",
+            "openLocationFailed": "פתיחת תיקיית אחסון קובצי הלוואי נכשלה"
         },
         "proxySettings": {
             "enableProxy": "הפעל פרוקסי ברמת האפליקציה",
@@ -1350,6 +1379,10 @@
             "emptyNote": "אין מודלים בתיקייה זו. קבצים אחרים שבה יימחקו גם הם.",
             "notEmptyTitle": "התיקייה אינה ריקה",
             "notEmptyMessage": "בתיקייה זו עדיין יש מודלים. מחק או העבר אותם תחילה — מחיקת תיקייה לעולם אינה מוחקת קובצי מודלים.",
+            "notEmptyMessageCount": "בתיקייה זו עדיין יש {count} קובצי מודלים. מחק או העבר אותם תחילה — מחיקת תיקייה לעולם אינה מוחקת קובצי מודלים.",
+            "notEmptyMessageExcluded": "בתיקייה זו עדיין יש {count} קובצי מודלים, שמהם {excluded} מוחרגים מהספרייה. בטל את ההחרגה ב«ניהול מודלים מוחרגים» ומחק אותם תחילה — מחיקת תיקייה לעולם אינה מוחקת קובצי מודלים.",
+            "busyTitle": "מחיקה עדיין ממתינה",
+            "checking": "בודק את תוכן התיקייה...",
             "confirm": "מחק תיקייה"
         },
         "deleteFolderResult": {
@@ -1358,6 +1391,7 @@
             "restored": "התיקייה שוחזרה",
             "failed": "מחיקת התיקייה נכשלה: {message}",
             "notEmpty": "בתיקייה זו עדיין יש מודלים. רענן את סרגל הצד ונסה שוב.",
+            "notEmptyWithCount": "בתיקייה זו עדיין יש {count} קובצי מודלים. רענן את סרגל הצד ונסה שוב.",
             "busy": "מחיקה עדיין ממתינה בתיקייה זו. המתן לסיום חלון הביטול.",
             "unsupported": "מחיקת תיקיות אינה נתמכת בדף זה",
             "noRoot": "לא הוגדר שורש מודלים"
@@ -1636,6 +1670,28 @@
             "titleApply": "להחיל תבנית שם קובץ על הספרייה?",
             "titleRevert": "לשחזר שמות קבצים מקוריים?",
             "revertButton": "שחזר שמות קבצים מקוריים"
+        },
+        "sidecarMigrationConfirm": {
+            "titleToCentralized": "להעביר את קובצי הלוואי לאחסון המרכזי?",
+            "titleToAlongside": "להחזיר את קובצי הלוואי לצד קובצי המודל?",
+            "confirmButton": "העבר כעת",
+            "titleRelocateRoot": "להעביר את קובצי הלוואי לתיקיית האחסון החדשה?",
+            "destination": "יעד: {path}"
+        },
+        "sidecarMigrationResult": {
+            "title": "סיכום העברת קובצי לוואי",
+            "completedSuccessfully": "ההעברה הושלמה בהצלחה",
+            "completedWithErrors": "הושלם עם {count} שגיאות",
+            "statMoved": "קבצים שהועברו",
+            "statModels": "מודלים",
+            "statSkipped": "דולגו",
+            "statConflicts": "קונפליקטים שנפתרו",
+            "statErrors": "שגיאות",
+            "failedItems": "פריטים שנכשלו ({count})",
+            "columnModel": "מודל",
+            "columnError": "שגיאה",
+            "successMessage": "הועברו {moved} קבצים עבור {models} מודלים",
+            "location": "מיקום אחסון: {path}"
         },
         "bulkAddTags": {
             "title": "הוסף תגיות למספר מודלים",
@@ -2712,6 +2768,9 @@
             },
             "filename_conflicts": {
                 "title": "התנגשויות שמות קבצים כפולים"
+            },
+            "sidecar_mirror_orphans": {
+                "title": "[TODO: Translate] Centralized Sidecars"
             },
             "ui_version": {
                 "title": "גרסת הממשק"

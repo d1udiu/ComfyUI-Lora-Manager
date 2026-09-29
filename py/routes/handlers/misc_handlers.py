@@ -45,6 +45,8 @@ from ...services.llm_service import (
     get_provider_model_ids,
 )
 from ...services.cache_health_monitor import CacheHealthMonitor, CacheHealthStatus
+from ...services.use_cases.sidecar_migration_use_case import SidecarMigrationUseCase
+from ...services.websocket_progress_callback import WebSocketBroadcastCallback
 from ...utils.models import BaseModelMetadata
 from ...utils.constants import (
     CIVITAI_USER_MODEL_TYPES,
@@ -68,6 +70,14 @@ from ...utils.example_images_paths import (
 )
 from ...utils.lora_metadata import extract_trained_words
 from ...utils.session_logging import get_standalone_session_log_snapshot
+from ...utils.sidecar_paths import (
+    describe_sidecar_root,
+    get_configured_sidecar_root,
+    get_metadata_path,
+    get_preview_dir,
+    get_storage_mode,
+    get_unmatched_sidecar_components,
+)
 from ...utils.usage_stats import UsageStats
 from .base_model_handlers import BaseModelHandlerSet
 
@@ -798,6 +808,7 @@ class DoctorHandler:
                 await self._check_civitai_api_key(),
                 await self._check_cache_health(),
                 await self._check_filename_conflicts(),
+                self._check_sidecar_mirror_orphans(),
                 self._check_ui_version(client_version, app_version),
             ]
 
@@ -943,15 +954,24 @@ class DoctorHandler:
 
                             os.rename(path, new_path)
 
-                            for suffix in (".metadata.json", ".civitai.info"):
-                                old_sidecar = old_base_no_ext + suffix
-                                new_sidecar = new_base_no_ext + suffix
-                                if os.path.exists(old_sidecar):
-                                    os.rename(old_sidecar, new_sidecar)
+                            old_metadata_path = get_metadata_path(path)
+                            new_metadata_path = get_metadata_path(new_path)
+                            if os.path.exists(old_metadata_path):
+                                os.rename(old_metadata_path, new_metadata_path)
+
+                            old_sidecar = old_base_no_ext + ".civitai.info"
+                            new_sidecar = new_base_no_ext + ".civitai.info"
+                            if os.path.exists(old_sidecar):
+                                os.rename(old_sidecar, new_sidecar)
 
                             for preview_ext in PREVIEW_EXTENSIONS:
-                                old_preview = old_base_no_ext + preview_ext
-                                new_preview = new_base_no_ext + preview_ext
+                                old_preview = os.path.join(
+                                    get_preview_dir(path), base_name + preview_ext
+                                )
+                                new_preview = os.path.join(
+                                    get_preview_dir(new_path),
+                                    candidate_base + preview_ext,
+                                )
                                 if os.path.exists(old_preview):
                                     os.rename(old_preview, new_preview)
 
@@ -963,7 +983,10 @@ class DoctorHandler:
                                     old_preview_url = entry["preview_url"].replace("\\", "/")
                                     preview_ext = os.path.splitext(old_preview_url)[1]
                                     if preview_ext:
-                                        entry["preview_url"] = (new_base_no_ext + preview_ext).replace(os.sep, "/")
+                                        entry["preview_url"] = os.path.join(
+                                            get_preview_dir(new_path),
+                                            candidate_base + preview_ext,
+                                        ).replace(os.sep, "/")
                                 await scanner.update_single_model_cache(
                                     path, new_path, entry
                                 )
@@ -1021,6 +1044,71 @@ class DoctorHandler:
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error("Error exporting doctor bundle: %s", exc, exc_info=True)
             return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    def _check_sidecar_mirror_orphans(self) -> dict[str, Any]:
+        """Flag centralized sidecars stranded by a moved/removed model root.
+
+        Centralized sidecars live under a per-root mirror directory. A root
+        that was moved, renamed, or dropped from the configuration leaves its
+        mirror behind; without this check the loss is silent, because the
+        scanner simply rebuilds default metadata at the new location.
+        """
+
+        actions = [{"id": "open-settings", "label": "Open Settings"}]
+        try:
+            mode = get_storage_mode()
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            logger.debug("Doctor: sidecar mode lookup failed: %s", exc)
+            mode = "alongside"
+
+        if mode != "centralized":
+            return {
+                "id": "sidecar_mirror_orphans",
+                "title": "Centralized Sidecars",
+                "status": "ok",
+                "summary": "Sidecar metadata is stored alongside the models.",
+                "details": [],
+                "actions": actions,
+            }
+
+        try:
+            orphans = get_unmatched_sidecar_components()
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            logger.warning("Doctor: sidecar orphan check failed: %s", exc)
+            orphans = []
+
+        if not orphans:
+            return {
+                "id": "sidecar_mirror_orphans",
+                "title": "Centralized Sidecars",
+                "status": "ok",
+                "summary": "Every mirrored sidecar directory is linked to a model root.",
+                "details": [f"Root: {describe_sidecar_root().get('root', '')}"],
+                "actions": actions,
+            }
+
+        details = [
+            "Metadata (favorites, notes, tags, usage tips) for these models is on disk but is not being read.",
+            "This usually means a model root was moved, renamed, or removed. Restore the original root path in Settings; the mirror is re-linked automatically.",
+        ]
+        details.extend(
+            f"{item['component']} — last known root: {item['last_path'] or 'unknown'}"
+            for item in orphans[:5]
+        )
+        if len(orphans) > 5:
+            details.append(f"… and {len(orphans) - 5} more")
+        return {
+            "id": "sidecar_mirror_orphans",
+            "title": "Centralized Sidecars",
+            "status": "warning",
+            "summary": (
+                f"{len(orphans)} sidecar "
+                f"director{'y' if len(orphans) == 1 else 'ies'} could not be "
+                "linked to a configured model root."
+            ),
+            "details": details,
+            "actions": actions,
+        }
 
     async def _check_civitai_api_key(self) -> dict[str, Any]:
         api_key = (self._settings.get("civitai_api_key", "") or "").strip()
@@ -1612,6 +1700,19 @@ class SettingsHandler:
             settings_file = getattr(self._settings, "settings_file", None)
             if settings_file:
                 response_data["settings_file"] = settings_file
+            # Resolved centralized sidecar root (mode-independent): lets the
+            # settings UI show where sidecars actually live, including when the
+            # path setting is empty and the default kicks in. inside_repo flags
+            # the portable-mode hazard (root inside the plugin folder).
+            try:
+                sidecar_info = describe_sidecar_root()
+                response_data["sidecar_storage_root"] = sidecar_info["root"]
+                response_data["sidecar_storage_root_is_default"] = sidecar_info["is_default"]
+                response_data["sidecar_storage_root_in_repo"] = sidecar_info["inside_repo"]
+            except Exception as sidecar_error:  # pragma: no cover - defensive
+                logger.debug(
+                    "Could not resolve sidecar storage info: %s", sidecar_error
+                )
             messages_getter: Any = getattr(self._settings, "get_startup_messages", None)
             messages = list(messages_getter()) if messages_getter else []
             return web.json_response(
@@ -3345,6 +3446,18 @@ class FileSystemHandler:
             elif sys.platform == "darwin":
                 subprocess.Popen(["open", path])
             else:
+                if not _has_gui_display():
+                    # Headless/SSH session: xdg-open cannot open a file
+                    # manager, so hand the path to the browser for copying
+                    # instead of reporting a success that never happened.
+                    return web.json_response(
+                        {
+                            "success": True,
+                            "message": "Headless session: path available for copying",
+                            "path": path,
+                            "mode": "clipboard",
+                        }
+                    )
                 subprocess.Popen(["xdg-open", path])
 
         return web.json_response(
@@ -3499,6 +3612,24 @@ class FileSystemHandler:
             return await self._open_path(wildcards_dir)
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error("Failed to open wildcards location: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def open_sidecar_location(self, request: web.Request) -> web.Response:
+        """Open the centralized sidecar storage root in the file manager."""
+
+        try:
+            root = get_configured_sidecar_root()
+            if not root:
+                return web.json_response(
+                    {"success": False, "error": "Sidecar storage root is not resolvable"},
+                    status=404,
+                )
+            # Create on demand so the button also works before the first
+            # migration/download has materialized the directory.
+            os.makedirs(root, exist_ok=True)
+            return await self._open_path(root)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("Failed to open sidecar location: %s", exc, exc_info=True)
             return web.json_response({"success": False, "error": str(exc)}, status=500)
 
     async def browse_directory(self, request: web.Request) -> web.Response:
@@ -4123,6 +4254,64 @@ class NodeRegistryHandler:
             return web.json_response({"success": False, "error": str(exc)}, status=500)
 
 
+class SidecarMigrationHandler:
+    """Migrate sidecar metadata and previews between storage layouts."""
+
+    _VALID_DIRECTIONS = ("to_centralized", "to_alongside", "relocate_root")
+
+    def __init__(
+        self,
+        *,
+        use_case_factory: Callable[[], SidecarMigrationUseCase] = SidecarMigrationUseCase,
+        progress_callback_factory: Callable[[], Any] = WebSocketBroadcastCallback,
+    ) -> None:
+        self._use_case_factory = use_case_factory
+        self._progress_callback_factory = progress_callback_factory
+
+    async def migrate_sidecars(self, request: web.Request) -> web.Response:
+        """Run a sidecar migration; accepts POST JSON or GET query params."""
+        try:
+            if request.method == "GET":
+                params: Mapping[str, Any] = request.query
+            else:
+                try:
+                    params = await request.json()
+                except Exception:  # empty/invalid body: fall back to query
+                    params = request.query
+
+            direction = str(params.get("direction") or "").strip()
+            if direction not in self._VALID_DIRECTIONS:
+                return web.json_response(
+                    {
+                        "success": False,
+                        "error": "direction must be 'to_centralized', 'to_alongside' or 'relocate_root'",
+                    },
+                    status=400,
+                )
+
+            force = params.get("force") in (True, 1, "true", "1")
+            old_root = str(params.get("old_root") or "").strip()
+            if direction == "relocate_root" and not old_root:
+                return web.json_response(
+                    {"success": False, "error": "old_root is required for relocate_root"},
+                    status=400,
+                )
+
+            use_case = self._use_case_factory()
+            progress_cb = self._progress_callback_factory()
+            result = await use_case.execute_with_error_handling(
+                direction=direction,
+                progress_cb=progress_cb,
+                force=force,
+                old_root=old_root,
+            )
+            status = 200 if result.get("success") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            logger.error("Sidecar migration failed: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+
 class MiscHandlerSet:
     """Aggregate handlers into a lookup compatible with the registrar."""
 
@@ -4149,6 +4338,7 @@ class MiscHandlerSet:
         model_source_handler: Any = None,
         agent_handler: Any = None,
         download_routing: Any = None,
+        sidecar_migration: Any = None,
     ) -> None:
         self.health = health
         self.settings = settings
@@ -4170,6 +4360,7 @@ class MiscHandlerSet:
         self.model_source_handler = model_source_handler
         self.agent_handler = agent_handler
         self.download_routing = download_routing
+        self.sidecar_migration = sidecar_migration
 
     def to_route_mapping(
         self,
@@ -4215,6 +4406,7 @@ class MiscHandlerSet:
             "open_settings_location": self.filesystem.open_settings_location,
             "open_backup_location": self.filesystem.open_backup_location,
             "open_wildcards_location": self.filesystem.open_wildcards_location,
+            "open_sidecar_location": self.filesystem.open_sidecar_location,
             "browse_directory": self.filesystem.browse_directory,
             "validate_path": self.filesystem.validate_path,
             "search_custom_words": self.custom_words.search_custom_words,
@@ -4236,6 +4428,8 @@ class MiscHandlerSet:
             "cancel_agent_skill": self.agent_handler.cancel_agent_skill,
             # Download routing handler
             "get_download_routing": self.download_routing.get_download_routing,
+            # Sidecar migration handler
+            "migrate_sidecars": self.sidecar_migration.migrate_sidecars,
             # Base model handlers
             "get_base_models": self.base_model.get_base_models,
             "refresh_base_models": self.base_model.refresh_base_models,

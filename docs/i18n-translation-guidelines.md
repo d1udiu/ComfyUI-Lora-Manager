@@ -4,7 +4,7 @@ This document is the canonical set of conventions for translating LoRA Manager U
 It applies to **human translators and AI agents** alike. Read it before editing anything in
 `locales/`.
 
-Source of truth: `locales/en.json` (10 locales, 2025 leaf keys; all locales share the exact
+Source of truth: `locales/en.json` (10 locales, 2128 leaf keys; all locales share the exact
 same key structure).
 
 Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
@@ -77,6 +77,31 @@ Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
 > `loras.bulkOperations.filenameTemplateProgress.*`, `modals.filenameTemplateConfirm.*` and
 > the `toast.loras.filenameTemplate*` / `toast.settings.filenameTemplates*` toasts. All 9
 > locales are translated (terminology in §2, "Filename Templates feature").
+
+> **Status (2026-09, folder delete verification):** the folder delete modal no longer trusts the
+> sidebar's "empty folder" prediction — it dry-runs the delete against the backend and renders
+> the answer, so a folder whose models are all *excluded* (invisible to the model lists, still
+> real weight files on disk) is refused with an explanation instead of contradicting itself.
+> That added 5 keys (`sidebar.deleteFolderModal.notEmptyMessageCount`,
+> `.notEmptyMessageExcluded`, `.busyTitle`, `.checking`, `sidebar.deleteFolderResult.notEmptyWithCount`);
+> all 9 locales are translated (terminology in §2, "Folder sidebar feature"), so the
+> "no remaining placeholders" claim holds again.
+
+> **Status (2026-09, sidecar storage):** optional centralized storage for `.metadata.json`
+> sidecars and preview images added 23 keys — `settings.sections.sidecarStorage`,
+> the 18 `settings.sidecarStorage.*` labels/help/status/confirm strings, and the 4
+> `modals.sidecarMigrationConfirm.*` titles/button. The pull request merged them as
+> `[TODO: Translate]` copies; all 9 locales are now translated (terminology in §2,
+> "Sidecar storage feature"), so no placeholder remains and the "no remaining placeholders"
+> claim holds again.
+
+> **Status (2026-09, sidecar storage UX follow-up):** the migration UX follow-up added
+> 7 `settings.sidecarStorage.open*`/path-display keys, `modals.sidecarMigrationConfirm.destination`,
+> and the 13-key `modals.sidecarMigrationResult.*` summary block (which replaces
+> `settings.sidecarStorage.migrateSuccess` — the result modal is now the success feedback,
+> mirroring `modals.metadataFetchSummary.*`/`modals.downloadBatchSummary.*` stat-card and
+> failure-table conventions; reuse each locale's existing renderings of those sibling keys).
+> All 9 locales are translated in the same pass (terminology in §2, "Sidecar storage feature").
 
 ---
 
@@ -391,11 +416,32 @@ The model-root sidebar manages on-disk folders. "Folder" reuses the noun already
 | tree view / list view | zh-CN 树形视图 / 列表视图 · zh-TW 樹狀檢視 / 清單檢視 · ja ツリー表示 / リスト表示 · ko 트리 보기 / 목록 보기 · fr Vue arborescente / Vue liste · de Baumansicht / Listenansicht · es Vista de árbol / Vista de lista · ru Дерево / Список · he תצוגת עץ / תצוגת רשימה |
 | sidebar | reuse each locale's `sidebar.hideOnThisPage` noun: zh-CN 侧边栏 · zh-TW 側邊欄 · ja サイドバー · ko 사이드바 · fr barre latérale · de Seitenleiste · es barra lateral · ru боковая панель · he סרגל צד |
 
-Deleting a folder **never cascades over model files** — the backend refuses it and
-`sidebar.deleteFolderModal.notEmptyMessage` states the rule in every locale, so keep that
-clause (and its `—`) when the copy is edited. The `{name}` / `{count}` / `{message}` tokens in
-`sidebar.createFolderResult.*`, `sidebar.deleteFolderResult.*` and `sidebar.renameFolderResult.*`
-are verbatim §1-R2 placeholders; `successWithFiles` is the only key carrying `{count}`.
+Deleting a folder **never cascades over model files** — the backend refuses it and the
+`sidebar.deleteFolderModal.notEmptyMessage*` keys state the rule in every locale, so keep that
+clause (and its `—`) when the copy is edited. The three variants split by what the modal knows:
+`notEmptyMessage` (no counts), `notEmptyMessageCount` (`{count}`, the blocking models are all
+listed) and `notEmptyMessageExcluded` (`{count}` + `{excluded}`, at least one is hidden by the
+`exclude` flag — the case where the folder legitimately looks empty). `checking` ("Checking the
+folder contents...", ASCII ellipsis) shows while the backend dry run is pending, `busyTitle`
+titles the already-pending-staged-delete state, and `notEmptyWithCount` mirrors
+`deleteFolderResult.notEmpty` with the count for the stale-tree toast.
+
+| Term | Rendering |
+|---|---|
+| excluded from the library | zh-CN 已从模型库中排除 · zh-TW 已從模型庫中排除 · ja ライブラリから除外 · ko 라이브러리에서 제외 · fr exclu de la bibliothèque · de von der Bibliothek ausgeschlossen · es excluido de la biblioteca · ru исключены из библиотеки · he מוחרגים מהספרייה |
+| un-exclude (verb) | zh-CN 取消排除 · zh-TW 取消排除 · ja 除外を解除 · ko 제외를 해제 · fr annuler l'exclusion · de den Ausschluss aufheben · es anular la exclusión · ru снять исключение · he לבטל את ההחרגה |
+| "Manage Excluded Models" quoted in prose | zh-CN “管理已排除的模型” · zh-TW 「管理已排除的模型」 · ja 「除外モデルを管理」 · ko '제외된 모델 관리' · fr « Gérer les modèles exclus » · de „Ausgeschlossene Modelle verwalten“ · es «Gestionar modelos excluidos» · ru «Управление исключёнными моделями» · he «ניהול מודלים מוחרגים» |
+
+A UI label quoted inside prose follows each locale's existing help-text style (zh-CN “ ”,
+zh-TW/ja 「 」, ko ASCII `' '`, fr/ru/es/he « », de „ “) — see `settings.hideEarlyAccessUpdates.help`
+/ `settings.civitaiHost.help` as the precedent. `קובצי מודלים` is the Hebrew model-file noun
+(`notEmptyMessage`); keep it identical in all four Hebrew keys.
+
+The `{name}` / `{count}` / `{excluded}` / `{message}` tokens in `sidebar.createFolderResult.*`,
+`sidebar.deleteFolderResult.*` and `sidebar.renameFolderResult.*` are verbatim §1-R2
+placeholders. The keys carrying `{count}` are `successWithFiles`, `notEmptyMessageCount`,
+`notEmptyMessageExcluded` and `notEmptyWithCount`; `notEmptyMessageExcluded` is the only key
+carrying `{excluded}`.
 
 ### Settings Organization tab
 
@@ -417,6 +463,48 @@ the **noun for arranging files**, matching each locale's existing
 | he | ארגון |
 
 zh-CN/zh-TW use 整理 ("tidying/arranging"), not 组织/組織 (an organization as a group).
+
+### Sidecar storage feature (centralized `.metadata.json` / preview storage)
+
+The Library settings tab hosts an optional mode that stores `.metadata.json` sidecars and
+preview images either **alongside** each model file or in a single **centralized** mirror tree,
+plus the manual migration that moves existing files between the two. Everything lives in
+`settings.sections.sidecarStorage` (the section header inside the Library tab),
+`settings.sidecarStorage.*` and `modals.sidecarMigrationConfirm.*`.
+
+- **`sidecar` is a technical noun, not a brand**, so each locale either borrows it or uses its
+  own companion-file word — one rendering per file:
+
+| Term | Rendering |
+|---|---|
+| sidecar (noun) | zh-CN 附属文件 · zh-TW 附屬檔案 · ja サイドカーファイル · ko 사이드카 파일 · fr fichier sidecar · de Sidecar-Datei · es archivo sidecar · ru sidecar-файл · he קובץ לוואי |
+| centralized storage | zh-CN 集中存储 · zh-TW 集中儲存 · ja 集中保存 · ko 중앙 집중식 저장 · fr stockage centralisé · de zentrale Speicherung · es almacenamiento centralizado · ru централизованное хранилище · he אחסון מרכזי |
+| alongside model files | zh-CN 与模型文件放在一起 · zh-TW 與模型檔案放在一起 · ja モデルファイルの隣 · ko 모델 파일 옆 · fr à côté des fichiers de modèle · de neben den Modelldateien · es junto a los archivos de modelo · ru рядом с файлами моделей · he לצד קובצי המודלים |
+| migrate (verb/noun) | zh-CN 迁移 · zh-TW 遷移 · ja 移動 · ko 이동 · fr migrer / migration · de verschieben / Migration · es migrar / migración · ru перенести / перенос · he להעביר / העברה |
+| mirror (verb) | zh-CN 镜像 · zh-TW 對應 · ja ミラーリング · ko 미러링 · fr refléter · de spiegeln · es reflejar · ru повторять структуру · he לשקף |
+| preview images | zh-CN 预览图片 · zh-TW 預覽圖片 · ja プレビュー画像 · ko 미리보기 이미지 · fr images d’aperçu · de Vorschaubilder · es imágenes de vista previa · ru изображения превью · he תמונות תצוגה מקדימה |
+| (effective) storage location | zh-CN （实际）存储位置 · zh-TW （實際）儲存位置 · ja （実際の）保存場所 · ko （실제） 저장 위치 · fr emplacement de stockage (effectif) · de (tatsächlicher) Speicherort · es ubicación de almacenamiento (efectiva) · ru (фактическое) расположение хранилища · he מיקום האחסון (בפועל) |
+| Open Folder (button) | zh-CN 打开文件夹 · zh-TW 開啟資料夾 · ja フォルダを開く · ko 폴더 열기 · fr Ouvrir le dossier · de Ordner öffnen · es Abrir carpeta · ru Открыть папку · he פתח תיקייה |
+| installation folder | zh-CN 安装目录 · zh-TW 安裝目錄 · ja インストールフォルダ · ko 설치 폴더 · fr dossier d’installation · de Installationsordner · es carpeta de instalación · ru папка установки · he תיקיית ההתקנה |
+
+- `ja`/`ko` follow the file's existing storage-relocation verb (ja 移動, ko 이동, from
+  `settings.folderSettings.recipesPathMigrating`) rather than a transliteration of "migration";
+  `ru` uses перенос for the same reason, and `de` keeps the loan noun `Migration` while the verbs
+  use `verschieben`.
+- **`.metadata.json`**, **`.civitai.info`** and the default-path literal
+  `(<settings dir>/sidecars)` stay byte-identical in every locale — they are file names and a
+  path, not prose (§6 exception). Hebrew drops the wrapping parentheses to avoid bidi mirroring
+  and writes the literal bare.
+- `migrationDeferred` names a navigation path ("Settings → Library → Sidecar Storage"), so each
+  locale renders it with its **own** settings label and Library tab label
+  (`common.actions.settings` + `settings.nav.library` + the new section label), using the same
+  arrow and quoting style its other nav-path strings already use — zh-CN “设置 → 库 → …”,
+  zh-TW/ja 「設定 > … > …」, ko `설정 → …` bare, fr/de/es bare
+  (`Paramètres` / `Einstellungen` / `Configuración` → …), ru «Настройки → …»,
+  he `הגדרות > …` bare (cf. `other.noPaths.descriptionStandalone`).
+- The migrate-button label is quoted inside `confirmToCentralized` / `confirmToAlongside` with
+  each locale's UI-label quoting style (zh-CN “ ”, zh-TW/ja 「 」, ko `' '`, fr/ru/es/he « »,
+  de „ “), matching `settings.sidecarStorage.migrateButton` verbatim so the two never drift.
 
 ### Filename Templates feature
 

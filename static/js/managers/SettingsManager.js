@@ -18,6 +18,7 @@ import { configureModelCardVideo } from '../components/shared/ModelCard.js';
 import { validatePriorityTagString, getPriorityTagSuggestionsMap, invalidatePriorityTagSuggestionsCache } from '../utils/priorityTagHelpers.js';
 import { bannerService } from './BannerService.js';
 import { directoryPickerModal } from '../components/DirectoryPickerModal.js';
+import { showSidecarMigrationSummary } from '../components/SidecarMigrationSummaryModal.js';
 
 const VALID_MATURE_BLUR_LEVELS = new Set(['PG13', 'R', 'X', 'XXX']);
 
@@ -1192,6 +1193,9 @@ export class SettingsManager {
 
         this.updateExampleImagesOpenSettingsVisibility();
 
+        // Load sidecar storage settings
+        this.loadSidecarStorageSettings();
+
         // Load download path templates
         this.loadDownloadPathTemplates();
 
@@ -1279,6 +1283,9 @@ export class SettingsManager {
         });
         this.attachPathField('exampleImagesLocalRoot', {
             onAfterSelect: () => this.saveInputSetting('exampleImagesLocalRoot', 'example_images_local_root'),
+        });
+        this.attachPathField('sidecarStoragePath', {
+            onAfterSelect: () => this.handleSidecarStoragePathChange(),
         });
     }
 
@@ -3377,6 +3384,313 @@ export class SettingsManager {
     async handleExampleImagesOpenModeChange() {
         await this.saveSelectSetting('exampleImagesOpenMode', 'example_images_open_mode');
         this.updateExampleImagesOpenSettingsVisibility();
+    }
+
+    loadSidecarStorageSettings() {
+        const currentMode = state.global.settings.sidecar_storage_mode === 'centralized'
+            ? 'centralized'
+            : 'alongside';
+
+        const modeSelect = document.getElementById('sidecarStorageMode');
+        if (modeSelect) {
+            modeSelect.value = currentMode;
+        }
+        // Baseline used to detect a mode change in handleSidecarStorageModeChange
+        this._loadedSidecarStorageMode = currentMode;
+        // Baseline used to detect a root change in handleSidecarStoragePathChange
+        this._loadedSidecarStoragePath = state.global.settings.sidecar_storage_path || '';
+
+        const pathInput = document.getElementById('sidecarStoragePath');
+        if (pathInput) {
+            pathInput.value = state.global.settings.sidecar_storage_path || '';
+        }
+
+        this.renderSidecarStorageInfo();
+        this.updateSidecarStorageVisibility();
+    }
+
+    // Show the backend-resolved storage root (covers the default location,
+    // which the path input leaves blank) plus the portable-mode repo warning.
+    renderSidecarStorageInfo() {
+        const resolvedEl = document.getElementById('sidecarStorageResolvedPath');
+        if (resolvedEl) {
+            resolvedEl.textContent = state.global.settings.sidecar_storage_root || '';
+        }
+        const warningEl = document.getElementById('sidecarStorageRepoWarning');
+        if (warningEl) {
+            warningEl.style.display = state.global.settings.sidecar_storage_root_in_repo
+                ? 'block'
+                : 'none';
+        }
+    }
+
+    // Re-pull just the derived sidecar fields after a path save: the resolved
+    // root is computed server-side (default location, absolutization).
+    async refreshSidecarStorageInfo() {
+        try {
+            const response = await fetch('/api/lm/settings');
+            const data = await response.json();
+            if (data.success && data.settings) {
+                state.global.settings.sidecar_storage_root = data.settings.sidecar_storage_root;
+                state.global.settings.sidecar_storage_root_is_default = data.settings.sidecar_storage_root_is_default;
+                state.global.settings.sidecar_storage_root_in_repo = data.settings.sidecar_storage_root_in_repo;
+            }
+        } catch (error) {
+            console.warn('Failed to refresh sidecar storage info:', error);
+        }
+        this.renderSidecarStorageInfo();
+    }
+
+    async openSidecarStorageLocation() {
+        try {
+            const response = await fetch('/api/lm/sidecars/open-location', {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.mode === 'clipboard' && data.path) {
+                try {
+                    await navigator.clipboard.writeText(data.path);
+                    showToast('settings.sidecarStorage.openLocationCopied', { path: data.path }, 'success');
+                } catch (clipboardErr) {
+                    console.warn('Clipboard API not available:', clipboardErr);
+                    showToast('settings.sidecarStorage.openLocationClipboardFallback', { path: data.path }, 'info');
+                }
+            } else {
+                showToast('settings.sidecarStorage.openLocationSuccess', {}, 'success');
+            }
+        } catch (error) {
+            console.error('Failed to open sidecar storage location:', error);
+            showToast('settings.sidecarStorage.openLocationFailed', {}, 'error');
+        }
+    }
+
+    updateSidecarStorageVisibility() {
+        const modeSelect = document.getElementById('sidecarStorageMode');
+        const pathSetting = document.getElementById('sidecarStoragePathSetting');
+        if (!pathSetting) return;
+
+        const mode = modeSelect ? modeSelect.value : state.global.settings.sidecar_storage_mode;
+        pathSetting.style.display = mode === 'centralized' ? 'block' : 'none';
+    }
+
+    async handleSidecarStorageModeChange() {
+        const modeSelect = document.getElementById('sidecarStorageMode');
+        if (!modeSelect) return;
+
+        const previousMode = this._loadedSidecarStorageMode || 'alongside';
+
+        await this.saveSelectSetting('sidecarStorageMode', 'sidecar_storage_mode');
+        this.updateSidecarStorageVisibility();
+
+        const newMode = modeSelect.value;
+        this._loadedSidecarStorageMode = newMode;
+
+        // Existing sidecars are not moved automatically; offer to migrate them.
+        if (newMode !== previousMode) {
+            const direction = newMode === 'centralized' ? 'to_centralized' : 'to_alongside';
+            const confirmed = await this.confirmSidecarMigration(direction);
+            if (confirmed) {
+                await this.migrateSidecars(direction);
+            } else {
+                showToast('settings.sidecarStorage.migrationDeferred', {}, 'info');
+            }
+        }
+    }
+
+    // Path change while centralized storage is active: the assets under the
+    // previous root do not move by themselves, so offer a root relocation.
+    async handleSidecarStoragePathChange() {
+        const pathInput = document.getElementById('sidecarStoragePath');
+        if (!pathInput) return;
+
+        const previousPath = this._loadedSidecarStoragePath || '';
+
+        await this.saveInputSetting('sidecarStoragePath', 'sidecar_storage_path');
+
+        const newPath = pathInput.value.trim();
+        this._loadedSidecarStoragePath = newPath;
+
+        // The resolved root is server-side; refresh before any relocate
+        // confirm so the dialog can name the real destination.
+        await this.refreshSidecarStorageInfo();
+
+        const centralized = state.global.settings.sidecar_storage_mode === 'centralized';
+        if (centralized && previousPath && previousPath !== newPath) {
+            const confirmed = await this.confirmSidecarMigration('relocate_root');
+            if (confirmed) {
+                await this.migrateSidecars('relocate_root', { old_root: previousPath });
+            } else {
+                showToast('settings.sidecarStorage.migrationDeferred', {}, 'info');
+            }
+        }
+    }
+
+    // Entry point for the "Migrate Sidecars Now" button: the direction follows
+    // the currently saved storage mode.
+    async confirmAndMigrateSidecars() {
+        const direction = state.global.settings.sidecar_storage_mode === 'centralized'
+            ? 'to_centralized'
+            : 'to_alongside';
+        const confirmed = await this.confirmSidecarMigration(direction);
+        if (confirmed) {
+            await this.migrateSidecars(direction);
+        }
+    }
+
+    confirmSidecarMigration(direction) {
+        const modalElement = document.getElementById('sidecarMigrationConfirmModal');
+        if (!modalElement) {
+            return Promise.resolve(false);
+        }
+
+        const isToCentralized = direction === 'to_centralized';
+        const isRelocate = direction === 'relocate_root';
+
+        const titleElement = modalElement.querySelector('[data-role="title"]');
+        if (titleElement) {
+            titleElement.textContent = isRelocate
+                ? translate('modals.sidecarMigrationConfirm.titleRelocateRoot', {}, 'Move sidecars to the new storage directory?')
+                : isToCentralized
+                    ? translate('modals.sidecarMigrationConfirm.titleToCentralized', {}, 'Move sidecars to centralized storage?')
+                    : translate('modals.sidecarMigrationConfirm.titleToAlongside', {}, 'Move sidecars back next to model files?');
+        }
+
+        const messageElement = modalElement.querySelector('[data-role="message"]');
+        if (messageElement) {
+            messageElement.textContent = isRelocate
+                ? translate('settings.sidecarStorage.confirmRelocateRoot', {}, 'The centralized storage directory changed, but existing sidecars and preview images are still in the previous directory. Move them to the new directory now?')
+                : isToCentralized
+                    ? translate('settings.sidecarStorage.confirmToCentralized', {}, 'The storage mode changed, but existing .metadata.json sidecars and preview images are not moved automatically. Move them into the centralized storage directory now? You can also do this later with the "Migrate Sidecars Now" button.')
+                    : translate('settings.sidecarStorage.confirmToAlongside', {}, 'The storage mode changed, but existing .metadata.json sidecars and preview images are not moved automatically. Move them back next to their model files now? You can also do this later with the "Migrate Sidecars Now" button.');
+        }
+
+        // Name the destination so users know where the files are going.
+        const destinationElement = modalElement.querySelector('[data-role="destination"]');
+        if (destinationElement) {
+            const resolvedRoot = state.global.settings.sidecar_storage_root || '';
+            if (!isToCentralized && !isRelocate || !resolvedRoot) {
+                destinationElement.style.display = 'none';
+            } else {
+                destinationElement.textContent = translate(
+                    'modals.sidecarMigrationConfirm.destination', { path: resolvedRoot }, `Destination: ${resolvedRoot}`
+                );
+                destinationElement.style.display = 'block';
+            }
+        }
+
+        const confirmButton = modalElement.querySelector('[data-action="confirm-sidecar-migration"]');
+        const cancelButton = modalElement.querySelector('[data-action="cancel-sidecar-migration"]');
+        if (!confirmButton || !cancelButton) {
+            return Promise.resolve(false);
+        }
+
+        confirmButton.textContent = translate('modals.sidecarMigrationConfirm.confirmButton', {}, 'Migrate Now');
+
+        return new Promise((resolve) => {
+            let resolved = false;
+
+            const cleanup = () => {
+                confirmButton.removeEventListener('click', handleConfirm);
+                cancelButton.removeEventListener('click', handleCancel);
+                document.removeEventListener('keydown', handleEscape, true);
+            };
+
+            const finalize = (proceed) => {
+                if (resolved) {
+                    return;
+                }
+                resolved = true;
+                cleanup();
+                modalElement.classList.remove('show');
+                // Keep body.modal-open: the settings modal underneath is still open.
+                resolve(proceed);
+            };
+
+            const handleConfirm = (event) => {
+                event.preventDefault();
+                finalize(true);
+            };
+
+            const handleCancel = (event) => {
+                event.preventDefault();
+                finalize(false);
+            };
+
+            // Capture phase + stopPropagation so ESC never reaches the
+            // settings modal's own ESC handler underneath.
+            const handleEscape = (event) => {
+                if (event.key === 'Escape') {
+                    event.stopPropagation();
+                    finalize(false);
+                }
+            };
+
+            confirmButton.addEventListener('click', handleConfirm);
+            cancelButton.addEventListener('click', handleCancel);
+            document.addEventListener('keydown', handleEscape, true);
+
+            modalElement.classList.add('show');
+            cancelButton.focus();
+        });
+    }
+
+    async migrateSidecars(direction, extraBody = {}) {
+        const migrateBtn = document.getElementById('migrateSidecarsBtn');
+        try {
+            if (migrateBtn) {
+                migrateBtn.disabled = true;
+                migrateBtn.textContent = translate('settings.sidecarStorage.migratingButton', {}, 'Migrating...');
+            }
+
+            state.loadingManager?.showSimpleLoading(
+                translate('settings.sidecarStorage.migrating', {}, 'Migrating sidecars...')
+            );
+
+            const response = await fetch('/api/lm/sidecars/migrate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                // The new mode/path is already saved by the time migration runs,
+                // so the backend guard requires force=true to confirm the
+                // "switch first, then migrate" flow.
+                body: JSON.stringify({ direction, force: true, ...extraBody }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.success === false) {
+                throw new Error(data.error || 'Migration failed');
+            }
+
+            state.loadingManager?.hide();
+            this.showSidecarMigrationResult(data);
+        } catch (error) {
+            console.error('Error migrating sidecars:', error);
+            state.loadingManager?.hide();
+            showToast('settings.sidecarStorage.migrateFailed', { message: error.message }, 'error');
+        } finally {
+            if (migrateBtn) {
+                migrateBtn.disabled = false;
+                migrateBtn.textContent = translate('settings.sidecarStorage.migrateButton', {}, 'Migrate Sidecars Now');
+            }
+        }
+    }
+
+    // Post-migration summary: counters + storage location, with an "open
+    // folder" shortcut. Closing reloads so cards pick up the new paths.
+    showSidecarMigrationResult(result) {
+        showSidecarMigrationSummary({
+            result,
+            // Reload so cards pick up metadata/preview paths from the new location
+            onClose: () => resetAndReload(true),
+            // Opening the folder keeps the result modal open; the reload
+            // happens when the user closes it.
+            onOpenLocation: () => this.openSidecarStorageLocation(),
+        });
     }
 
     async loadMetadataArchiveSettings() {

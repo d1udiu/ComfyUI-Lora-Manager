@@ -383,6 +383,7 @@
             "exampleImages": "Imágenes de ejemplo",
             "autoOrganize": "Organización automática",
             "metadata": "Metadatos",
+            "sidecarStorage": "Almacenamiento de archivos sidecar",
             "proxySettings": "Configuración de proxy"
         },
         "nav": {
@@ -788,6 +789,34 @@
             "providerOrderHelp": "La API de CivitAI siempre se intenta primero. Elija el orden de los demás proveedores al buscar metadatos.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
             "providerOrderCivitaiSqliteArchive": "CivitAI → Archive DB → CivArchive"
+        },
+        "sidecarStorage": {
+            "mode": "Modo de almacenamiento de archivos sidecar",
+            "modeHelp": "Elige dónde se guardan los archivos sidecar .metadata.json y las imágenes de vista previa: junto a cada archivo de modelo, o en un único directorio centralizado que refleja la estructura de tu biblioteca. Los archivos .civitai.info siempre permanecen junto al archivo de modelo.",
+            "modeOptions": {
+                "alongside": "Junto a los archivos de modelo (predeterminado)",
+                "centralized": "Almacenamiento centralizado"
+            },
+            "path": "Ruta del almacenamiento centralizado",
+            "pathHelp": "Carpeta raíz del almacenamiento centralizado de archivos sidecar. Déjalo vacío para usar la ubicación predeterminada (<settings dir>/sidecars).",
+            "pathPlaceholder": "Vacío = <settings dir>/sidecars",
+            "management": "Migración de archivos sidecar",
+            "managementHelp": "Mueve los archivos sidecar .metadata.json y las imágenes de vista previa existentes entre el almacenamiento junto a los modelos y el almacenamiento centralizado, según el modo seleccionado. Cambiar el modo no mueve los archivos existentes automáticamente.",
+            "migrateButton": "Migrar archivos sidecar ahora",
+            "migratingButton": "Migrando...",
+            "migrating": "Migrando archivos sidecar...",
+            "migrateFailed": "Error al migrar los archivos sidecar: {message}",
+            "migrationDeferred": "Los archivos sidecar existentes no se movieron. Puedes migrarlos más tarde desde Configuración → Biblioteca → Almacenamiento de archivos sidecar.",
+            "confirmToCentralized": "El modo de almacenamiento ha cambiado, pero los archivos sidecar .metadata.json y las imágenes de vista previa existentes no se mueven automáticamente. ¿Moverlos ahora al directorio de almacenamiento centralizado? También puedes hacerlo más tarde con el botón «Migrar archivos sidecar ahora».",
+            "confirmToAlongside": "El modo de almacenamiento ha cambiado, pero los archivos sidecar .metadata.json y las imágenes de vista previa existentes no se mueven automáticamente. ¿Devolverlos ahora junto a sus archivos de modelo? También puedes hacerlo más tarde con el botón «Migrar archivos sidecar ahora».",
+            "confirmRelocateRoot": "El directorio de almacenamiento centralizado ha cambiado, pero los archivos sidecar y las imágenes de vista previa existentes siguen en el directorio anterior. ¿Moverlos ahora al nuevo directorio?",
+            "effectivePathLabel": "Ubicación de almacenamiento efectiva:",
+            "openFolderButton": "Abrir carpeta",
+            "repoWarning": "La ubicación de almacenamiento efectiva está dentro de la carpeta de instalación de LoRA Manager. Reinstalar el plugin o una actualización limpia puede eliminarla — define una ruta de almacenamiento explícita fuera de la carpeta de instalación.",
+            "openLocationSuccess": "Carpeta de almacenamiento de archivos sidecar abierta",
+            "openLocationCopied": "Ruta de almacenamiento de archivos sidecar copiada al portapapeles: {path}",
+            "openLocationClipboardFallback": "Copia manualmente la ruta de almacenamiento de archivos sidecar: {path}",
+            "openLocationFailed": "No se pudo abrir la carpeta de almacenamiento de archivos sidecar"
         },
         "proxySettings": {
             "enableProxy": "Habilitar proxy a nivel de aplicación",
@@ -1350,6 +1379,10 @@
             "emptyNote": "Esta carpeta no contiene modelos. Los demás archivos que contenga también se eliminarán.",
             "notEmptyTitle": "La carpeta no está vacía",
             "notEmptyMessage": "Esta carpeta aún contiene modelos. Elimínalos o muévelos primero — eliminar una carpeta nunca elimina los archivos de modelo en cascada.",
+            "notEmptyMessageCount": "Esta carpeta aún contiene {count} archivo(s) de modelo. Elimínalos o muévelos primero — eliminar una carpeta nunca elimina los archivos de modelo en cascada.",
+            "notEmptyMessageExcluded": "Esta carpeta aún contiene {count} archivo(s) de modelo, de los cuales {excluded} están excluidos de la biblioteca. Anula su exclusión en «Gestionar modelos excluidos» y elimínalos primero — eliminar una carpeta nunca elimina los archivos de modelo en cascada.",
+            "busyTitle": "Todavía hay una eliminación pendiente",
+            "checking": "Comprobando el contenido de la carpeta...",
             "confirm": "Eliminar carpeta"
         },
         "deleteFolderResult": {
@@ -1358,6 +1391,7 @@
             "restored": "Carpeta restaurada",
             "failed": "Error al eliminar la carpeta: {message}",
             "notEmpty": "Esta carpeta aún contiene modelos. Actualiza la barra lateral e inténtalo de nuevo.",
+            "notEmptyWithCount": "Esta carpeta aún contiene {count} archivo(s) de modelo. Actualiza la barra lateral e inténtalo de nuevo.",
             "busy": "Todavía hay una eliminación pendiente dentro de esta carpeta. Espera a que caduque la ventana de deshacer.",
             "unsupported": "La eliminación de carpetas no es compatible con esta página",
             "noRoot": "No hay ninguna raíz de modelo configurada"
@@ -1636,6 +1670,28 @@
             "titleApply": "¿Aplicar la plantilla de nombres de archivo a la biblioteca?",
             "titleRevert": "¿Restaurar los nombres de archivo originales?",
             "revertButton": "Restaurar nombres de archivo originales"
+        },
+        "sidecarMigrationConfirm": {
+            "titleToCentralized": "¿Mover los archivos sidecar al almacenamiento centralizado?",
+            "titleToAlongside": "¿Devolver los archivos sidecar junto a los archivos de modelo?",
+            "confirmButton": "Migrar ahora",
+            "titleRelocateRoot": "¿Mover los archivos sidecar al nuevo directorio de almacenamiento?",
+            "destination": "Destino: {path}"
+        },
+        "sidecarMigrationResult": {
+            "title": "Resumen de la migración de archivos sidecar",
+            "completedSuccessfully": "Migración completada correctamente",
+            "completedWithErrors": "Completado con {count} error(es)",
+            "statMoved": "Archivos movidos",
+            "statModels": "Modelos",
+            "statSkipped": "Omitidos",
+            "statConflicts": "Conflictos resueltos",
+            "statErrors": "Errores",
+            "failedItems": "Elementos fallidos ({count})",
+            "columnModel": "Modelo",
+            "columnError": "Error",
+            "successMessage": "Se movieron {moved} archivos para {models} modelos",
+            "location": "Ubicación de almacenamiento: {path}"
         },
         "bulkAddTags": {
             "title": "Añadir etiquetas a múltiples modelos",
@@ -2712,6 +2768,9 @@
             },
             "filename_conflicts": {
                 "title": "Conflictos de nombres de archivo duplicados"
+            },
+            "sidecar_mirror_orphans": {
+                "title": "[TODO: Translate] Centralized Sidecars"
             },
             "ui_version": {
                 "title": "Versión de la interfaz"

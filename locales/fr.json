@@ -383,6 +383,7 @@
             "exampleImages": "Images d'exemple",
             "autoOrganize": "Organisation automatique",
             "metadata": "Métadonnées",
+            "sidecarStorage": "Stockage des fichiers sidecar",
             "proxySettings": "Paramètres du proxy"
         },
         "nav": {
@@ -788,6 +789,34 @@
             "providerOrderHelp": "L'API CivitAI est toujours essayée en premier. Choisissez l'ordre des autres fournisseurs lors de la recherche de métadonnées.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
             "providerOrderCivitaiSqliteArchive": "CivitAI → Archive DB → CivArchive"
+        },
+        "sidecarStorage": {
+            "mode": "Mode de stockage des fichiers sidecar",
+            "modeHelp": "Choisissez où sont stockés les fichiers sidecar .metadata.json et les images d’aperçu : à côté de chaque fichier de modèle, ou dans un seul dossier centralisé qui reflète la structure de votre bibliothèque. Les fichiers .civitai.info restent toujours à côté du fichier de modèle.",
+            "modeOptions": {
+                "alongside": "À côté des fichiers de modèle (par défaut)",
+                "centralized": "Stockage centralisé"
+            },
+            "path": "Chemin du stockage centralisé",
+            "pathHelp": "Dossier racine du stockage centralisé des fichiers sidecar. Laissez vide pour utiliser l’emplacement par défaut (<settings dir>/sidecars).",
+            "pathPlaceholder": "Vide = <settings dir>/sidecars",
+            "management": "Migration des fichiers sidecar",
+            "managementHelp": "Déplacez les fichiers sidecar .metadata.json et les images d’aperçu existants entre le stockage à côté des modèles et le stockage centralisé, selon le mode sélectionné. Changer de mode ne déplace pas les fichiers existants automatiquement.",
+            "migrateButton": "Migrer les fichiers sidecar maintenant",
+            "migratingButton": "Migration en cours...",
+            "migrating": "Migration des fichiers sidecar en cours...",
+            "migrateFailed": "Échec de la migration des fichiers sidecar : {message}",
+            "migrationDeferred": "Les fichiers sidecar existants n’ont pas été déplacés. Vous pouvez les migrer plus tard depuis Paramètres → Bibliothèque → Stockage des fichiers sidecar.",
+            "confirmToCentralized": "Le mode de stockage a changé, mais les fichiers sidecar .metadata.json et les images d’aperçu existants ne sont pas déplacés automatiquement. Les déplacer maintenant dans le dossier de stockage centralisé ? Vous pouvez aussi le faire plus tard avec le bouton « Migrer les fichiers sidecar maintenant ».",
+            "confirmToAlongside": "Le mode de stockage a changé, mais les fichiers sidecar .metadata.json et les images d’aperçu existants ne sont pas déplacés automatiquement. Les remettre maintenant à côté de leurs fichiers de modèle ? Vous pouvez aussi le faire plus tard avec le bouton « Migrer les fichiers sidecar maintenant ».",
+            "confirmRelocateRoot": "Le dossier de stockage centralisé a changé, mais les fichiers sidecar et les images d’aperçu existants se trouvent encore dans le dossier précédent. Les déplacer maintenant dans le nouveau dossier ?",
+            "effectivePathLabel": "Emplacement de stockage effectif :",
+            "openFolderButton": "Ouvrir le dossier",
+            "repoWarning": "L’emplacement de stockage effectif se trouve dans le dossier d’installation de LoRA Manager. Une réinstallation de l’extension ou une mise à jour propre peut le supprimer — définissez un chemin de stockage explicite en dehors du dossier d’installation.",
+            "openLocationSuccess": "Dossier de stockage des fichiers sidecar ouvert",
+            "openLocationCopied": "Chemin de stockage des fichiers sidecar copié dans le presse-papiers : {path}",
+            "openLocationClipboardFallback": "Copiez manuellement le chemin de stockage des fichiers sidecar : {path}",
+            "openLocationFailed": "Échec de l’ouverture du dossier de stockage des fichiers sidecar"
         },
         "proxySettings": {
             "enableProxy": "Activer le proxy au niveau de l'application",
@@ -1350,6 +1379,10 @@
             "emptyNote": "Ce dossier ne contient aucun modèle. Les autres fichiers qu’il contient seront également supprimés.",
             "notEmptyTitle": "Le dossier n’est pas vide",
             "notEmptyMessage": "Ce dossier contient encore des modèles. Supprimez-les ou déplacez-les d’abord — la suppression d’un dossier n’entraîne jamais celle des fichiers de modèles.",
+            "notEmptyMessageCount": "Ce dossier contient encore {count} fichier(s) de modèle. Supprimez-les ou déplacez-les d’abord — la suppression d’un dossier n’entraîne jamais celle des fichiers de modèles.",
+            "notEmptyMessageExcluded": "Ce dossier contient encore {count} fichier(s) de modèle, dont {excluded} sont exclus de la bibliothèque. Annulez leur exclusion dans « Gérer les modèles exclus » et supprimez-les d’abord — la suppression d’un dossier n’entraîne jamais celle des fichiers de modèles.",
+            "busyTitle": "Une suppression est encore en attente",
+            "checking": "Vérification du contenu du dossier...",
             "confirm": "Supprimer le dossier"
         },
         "deleteFolderResult": {
@@ -1358,6 +1391,7 @@
             "restored": "Dossier restauré",
             "failed": "Échec de la suppression du dossier : {message}",
             "notEmpty": "Ce dossier contient encore des modèles. Actualisez la barre latérale et réessayez.",
+            "notEmptyWithCount": "Ce dossier contient encore {count} fichier(s) de modèle. Actualisez la barre latérale et réessayez.",
             "busy": "Une suppression est encore en attente dans ce dossier. Attendez la fin de la fenêtre d’annulation.",
             "unsupported": "La suppression de dossiers n’est pas prise en charge sur cette page",
             "noRoot": "Aucune racine de modèle n’est configurée"
@@ -1636,6 +1670,28 @@
             "titleApply": "Appliquer le modèle de nom de fichier à la bibliothèque ?",
             "titleRevert": "Restaurer les noms de fichier d'origine ?",
             "revertButton": "Restaurer les noms de fichier d'origine"
+        },
+        "sidecarMigrationConfirm": {
+            "titleToCentralized": "Déplacer les fichiers sidecar vers le stockage centralisé ?",
+            "titleToAlongside": "Remettre les fichiers sidecar à côté des fichiers de modèle ?",
+            "confirmButton": "Migrer maintenant",
+            "titleRelocateRoot": "Déplacer les fichiers sidecar vers le nouveau dossier de stockage ?",
+            "destination": "Destination : {path}"
+        },
+        "sidecarMigrationResult": {
+            "title": "Résumé de la migration des fichiers sidecar",
+            "completedSuccessfully": "Migration terminée avec succès",
+            "completedWithErrors": "Terminé avec {count} erreur(s)",
+            "statMoved": "Fichiers déplacés",
+            "statModels": "Modèles",
+            "statSkipped": "Ignorés",
+            "statConflicts": "Conflits résolus",
+            "statErrors": "Erreurs",
+            "failedItems": "Éléments en échec ({count})",
+            "columnModel": "Modèle",
+            "columnError": "Erreur",
+            "successMessage": "{moved} fichiers déplacés pour {models} modèles",
+            "location": "Emplacement de stockage : {path}"
         },
         "bulkAddTags": {
             "title": "Ajouter des tags à plusieurs modèles",
@@ -2712,6 +2768,9 @@
             },
             "filename_conflicts": {
                 "title": "Conflits de noms de fichiers en double"
+            },
+            "sidecar_mirror_orphans": {
+                "title": "[TODO: Translate] Centralized Sidecars"
             },
             "ui_version": {
                 "title": "Version de l'interface"

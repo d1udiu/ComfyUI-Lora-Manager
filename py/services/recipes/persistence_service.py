@@ -18,6 +18,7 @@ from ...utils.base_model import (
     RELATION_INCOMPATIBLE,
     base_model_relation,
 )
+from ...utils.constants import MAX_WORKFLOW_EMBED_BYTES
 from ...utils.utils import calculate_recipe_fingerprint
 from ..pending_delete_service import get_pending_delete_service
 from .errors import RecipeNotFoundError, RecipeValidationError
@@ -73,6 +74,11 @@ class RecipePersistenceService:
                 byte-level EXIF update that leaves the pixels untouched). Used
                 by local re-import, where the source is the recipe's own
                 already-optimized preview image.
+
+        ``metadata`` may carry a ``workflow`` entry (JSON string, dict or
+        list) recovered from the source's original rendition; it is embedded
+        into the stored image so the recipe reports ``has_workflow`` and can
+        send the workflow back to ComfyUI.
         """
 
         missing_fields = []
@@ -86,6 +92,13 @@ class RecipePersistenceService:
             )
 
         assert metadata is not None
+
+        # A workflow recovered from a higher-fidelity source (CivitAI's
+        # original rendition — its optimized preview is re-encoded and carries
+        # no metadata) travels as data instead of as image bytes. It is
+        # embedded below so ``has_workflow`` and the "send workflow to ComfyUI"
+        # action work for imports whose preview pixels are metadata-free.
+        workflow = metadata.get("workflow")
 
         resolved_image_bytes = self._resolve_image_bytes(image_bytes, image_base64)
         recipes_dir = target_dir or recipe_scanner.recipes_dir
@@ -108,6 +121,7 @@ class RecipePersistenceService:
                 format="webp",
                 quality=85,
                 preserve_metadata=True,
+                workflow=workflow,
             )
             
         image_filename = f"{recipe_id}{extension}"
@@ -115,6 +129,12 @@ class RecipePersistenceService:
         normalized_image_path = os.path.normpath(image_path)
         with open(normalized_image_path, "wb") as file_obj:
             file_obj.write(optimized_image)
+
+        # The optimization branch above embeds the workflow while re-encoding;
+        # the verbatim (skip_optimize) branch still needs it added, and this is
+        # also the safety net when re-encoding dropped it.
+        if workflow and not is_video:
+            self._exif_utils.embed_workflow(normalized_image_path, workflow)
 
         current_time = time.time()
         loras_data = [self._normalise_lora_entry(lora) for lora in (metadata.get("loras") or [])]
@@ -855,8 +875,15 @@ class RecipePersistenceService:
         recipe_scanner,
         metadata: dict[str, Any],
         image_bytes: bytes,
+        workflow: Any = None,
     ) -> PersistenceResult:
-        """Save a recipe constructed from widget metadata."""
+        """Save a recipe constructed from widget metadata.
+
+        ``workflow`` is the caller's ComfyUI graph (UI or API format) to embed
+        in the stored preview. Embedding is opt-in because the graph is by far
+        the largest metadata field and its widget values may contain sensitive
+        data; an oversized graph is dropped rather than inflating the preview.
+        """
 
         if not metadata:
             raise RecipeValidationError("No generation metadata found")
@@ -865,12 +892,25 @@ class RecipePersistenceService:
         os.makedirs(recipes_dir, exist_ok=True)
 
         recipe_id = str(uuid.uuid4())
+
+        workflow_json = self._exif_utils.normalise_workflow(workflow)
+        workflow_skipped: Optional[str] = None
+        if workflow_json and len(workflow_json.encode("utf-8")) > MAX_WORKFLOW_EMBED_BYTES:
+            self._logger.warning(
+                "Widget workflow is %d bytes (limit %d); saving recipe without it",
+                len(workflow_json),
+                MAX_WORKFLOW_EMBED_BYTES,
+            )
+            workflow_json = None
+            workflow_skipped = "too_large"
+
         optimized_image, extension = self._exif_utils.optimize_image(
             image_data=image_bytes,
             target_width=self._card_preview_width,
             format="webp",
             quality=85,
             preserve_metadata=True,
+            workflow=workflow_json,
         )
         image_filename = f"{recipe_id}{extension}"
         image_path = os.path.join(recipes_dir, image_filename)
@@ -924,9 +964,9 @@ class RecipePersistenceService:
                 if key not in ["checkpoint", "loras"]
             },
             "loras_stack": lora_stack,
-            # Widget saves re-encode an in-memory tensor to PNG/WebP with no
-            # embedded metadata chunks, so a workflow can never be present.
-            "has_workflow": False,
+            # Set by detection below: the workflow is embedded during
+            # re-encoding only when the caller opted in and it fit the cap.
+            "has_workflow": self._detect_has_workflow(image_path),
             # Widget saves read LoRAs straight from the current workflow; an
             # empty list means the workflow used no LoRAs.
             "import_info": build_import_info(CHANNEL_WIDGET, None, loras_data),
@@ -942,15 +982,17 @@ class RecipePersistenceService:
         self._exif_utils.append_recipe_metadata(image_path, recipe_data)
         await recipe_scanner.add_recipe(recipe_data)
 
-        return PersistenceResult(
-            {
-                "success": True,
-                "recipe_id": recipe_id,
-                "image_path": image_path,
-                "json_path": json_path,
-                "recipe_name": recipe_name,
-            }
-        )
+        payload: dict[str, Any] = {
+            "success": True,
+            "recipe_id": recipe_id,
+            "image_path": image_path,
+            "json_path": json_path,
+            "recipe_name": recipe_name,
+            "has_workflow": recipe_data["has_workflow"],
+        }
+        if workflow_skipped:
+            payload["workflow_skipped"] = workflow_skipped
+        return PersistenceResult(payload)
 
     # Helper methods ---------------------------------------------------
 

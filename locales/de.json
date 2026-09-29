@@ -383,6 +383,7 @@
             "exampleImages": "Beispielbilder",
             "autoOrganize": "Auto-Organisierung",
             "metadata": "Metadaten",
+            "sidecarStorage": "Sidecar-Speicherung",
             "proxySettings": "Proxy-Einstellungen"
         },
         "nav": {
@@ -788,6 +789,34 @@
             "providerOrderHelp": "Die CivitAI API wird immer zuerst versucht. Wählen Sie die Reihenfolge der übrigen Anbieter bei der Metadatensuche.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
             "providerOrderCivitaiSqliteArchive": "CivitAI → Archive DB → CivArchive"
+        },
+        "sidecarStorage": {
+            "mode": "Sidecar-Speichermodus",
+            "modeHelp": "Wählen Sie, wo .metadata.json-Sidecar-Dateien und Vorschaubilder gespeichert werden: neben jeder Modelldatei oder in einem einzelnen zentralen Verzeichnis, das Ihre Bibliotheksstruktur spiegelt. .civitai.info-Dateien bleiben immer neben der Modelldatei.",
+            "modeOptions": {
+                "alongside": "Neben den Modelldateien (Standard)",
+                "centralized": "Zentrale Speicherung"
+            },
+            "path": "Pfad der zentralen Speicherung",
+            "pathHelp": "Stammverzeichnis für die zentrale Sidecar-Speicherung. Leer lassen, um den Standardspeicherort (<settings dir>/sidecars) zu verwenden.",
+            "pathPlaceholder": "Leer = <settings dir>/sidecars",
+            "management": "Sidecar-Migration",
+            "managementHelp": "Verschieben Sie vorhandene .metadata.json-Sidecar-Dateien und Vorschaubilder zwischen der Ablage neben den Modelldateien und der zentralen Speicherung, passend zum aktuell gewählten Modus. Ein Moduswechsel verschiebt vorhandene Dateien nicht automatisch.",
+            "migrateButton": "Sidecar-Dateien jetzt verschieben",
+            "migratingButton": "Wird verschoben...",
+            "migrating": "Sidecar-Dateien werden verschoben...",
+            "migrateFailed": "Sidecar-Migration fehlgeschlagen: {message}",
+            "migrationDeferred": "Vorhandene Sidecar-Dateien wurden nicht verschoben. Sie können sie später unter Einstellungen → Bibliothek → Sidecar-Speicherung verschieben.",
+            "confirmToCentralized": "Der Speichermodus wurde geändert, aber vorhandene .metadata.json-Sidecar-Dateien und Vorschaubilder werden nicht automatisch verschoben. Jetzt in das zentrale Speicherverzeichnis verschieben? Sie können das auch später über die Schaltfläche „Sidecar-Dateien jetzt verschieben“ tun.",
+            "confirmToAlongside": "Der Speichermodus wurde geändert, aber vorhandene .metadata.json-Sidecar-Dateien und Vorschaubilder werden nicht automatisch verschoben. Jetzt wieder neben ihre Modelldateien verschieben? Sie können das auch später über die Schaltfläche „Sidecar-Dateien jetzt verschieben“ tun.",
+            "confirmRelocateRoot": "Das zentrale Speicherverzeichnis wurde geändert, aber vorhandene Sidecar-Dateien und Vorschaubilder liegen noch im vorherigen Verzeichnis. Jetzt in das neue Verzeichnis verschieben?",
+            "effectivePathLabel": "Tatsächlicher Speicherort:",
+            "openFolderButton": "Ordner öffnen",
+            "repoWarning": "Der tatsächliche Speicherort liegt innerhalb des LoRA-Manager-Installationsordners. Eine Neuinstallation des Plugins oder eine saubere Aktualisierung kann ihn löschen — legen Sie einen expliziten Speicherpfad außerhalb des Installationsordners fest.",
+            "openLocationSuccess": "Sidecar-Speicherordner geöffnet",
+            "openLocationCopied": "Sidecar-Speicherpfad in die Zwischenablage kopiert: {path}",
+            "openLocationClipboardFallback": "Kopieren Sie den Sidecar-Speicherpfad manuell: {path}",
+            "openLocationFailed": "Sidecar-Speicherordner konnte nicht geöffnet werden"
         },
         "proxySettings": {
             "enableProxy": "App-Proxy aktivieren",
@@ -1350,6 +1379,10 @@
             "emptyNote": "Dieser Ordner enthält keine Modelle. Alle anderen darin enthaltenen Dateien werden ebenfalls gelöscht.",
             "notEmptyTitle": "Ordner ist nicht leer",
             "notEmptyMessage": "Dieser Ordner enthält noch Modelle. Löschen oder verschieben Sie diese zuerst — beim Löschen eines Ordners werden Modelldateien niemals mitgelöscht.",
+            "notEmptyMessageCount": "Dieser Ordner enthält noch {count} Modelldatei(en). Löschen oder verschieben Sie diese zuerst — beim Löschen eines Ordners werden Modelldateien niemals mitgelöscht.",
+            "notEmptyMessageExcluded": "Dieser Ordner enthält noch {count} Modelldatei(en), davon {excluded} von der Bibliothek ausgeschlossen. Heben Sie den Ausschluss unter „Ausgeschlossene Modelle verwalten“ auf und löschen Sie sie zuerst — beim Löschen eines Ordners werden Modelldateien niemals mitgelöscht.",
+            "busyTitle": "Eine Löschung steht noch aus",
+            "checking": "Ordnerinhalt wird geprüft...",
             "confirm": "Ordner löschen"
         },
         "deleteFolderResult": {
@@ -1358,6 +1391,7 @@
             "restored": "Ordner wiederhergestellt",
             "failed": "Ordner konnte nicht gelöscht werden: {message}",
             "notEmpty": "Dieser Ordner enthält noch Modelle. Aktualisieren Sie die Seitenleiste und versuchen Sie es erneut.",
+            "notEmptyWithCount": "Dieser Ordner enthält noch {count} Modelldatei(en). Aktualisieren Sie die Seitenleiste und versuchen Sie es erneut.",
             "busy": "In diesem Ordner steht noch eine Löschung aus. Warten Sie, bis das Zeitfenster für das Rückgängigmachen abgelaufen ist.",
             "unsupported": "Das Löschen von Ordnern wird auf dieser Seite nicht unterstützt",
             "noRoot": "Es ist kein Modell-Stammverzeichnis konfiguriert"
@@ -1636,6 +1670,28 @@
             "titleApply": "Dateinamen-Vorlage auf Bibliothek anwenden?",
             "titleRevert": "Ursprüngliche Dateinamen wiederherstellen?",
             "revertButton": "Ursprüngliche Dateinamen wiederherstellen"
+        },
+        "sidecarMigrationConfirm": {
+            "titleToCentralized": "Sidecar-Dateien in die zentrale Speicherung verschieben?",
+            "titleToAlongside": "Sidecar-Dateien zurück neben die Modelldateien verschieben?",
+            "confirmButton": "Jetzt verschieben",
+            "titleRelocateRoot": "Sidecar-Dateien in das neue Speicherverzeichnis verschieben?",
+            "destination": "Ziel: {path}"
+        },
+        "sidecarMigrationResult": {
+            "title": "Sidecar-Migrationsübersicht",
+            "completedSuccessfully": "Migration erfolgreich abgeschlossen",
+            "completedWithErrors": "Abgeschlossen mit {count} Fehler(n)",
+            "statMoved": "Verschobene Dateien",
+            "statModels": "Modelle",
+            "statSkipped": "Übersprungen",
+            "statConflicts": "Gelöste Konflikte",
+            "statErrors": "Fehler",
+            "failedItems": "Fehlgeschlagene Elemente ({count})",
+            "columnModel": "Modell",
+            "columnError": "Fehler",
+            "successMessage": "{moved} Dateien für {models} Modelle verschoben",
+            "location": "Speicherort: {path}"
         },
         "bulkAddTags": {
             "title": "Tags zu mehreren Modellen hinzufügen",
@@ -2712,6 +2768,9 @@
             },
             "filename_conflicts": {
                 "title": "Konflikte durch doppelte Dateinamen"
+            },
+            "sidecar_mirror_orphans": {
+                "title": "[TODO: Translate] Centralized Sidecars"
             },
             "ui_version": {
                 "title": "UI-Version"
