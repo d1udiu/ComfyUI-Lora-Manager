@@ -73,7 +73,8 @@
                 "lessThanMinute": "剩余时间不到一分钟",
                 "minutes": "剩余约 {minutes} 分钟",
                 "hours": "剩余约 {hours} 小时 {minutes} 分钟"
-            }
+            },
+            "walkFiles": "{count} 个文件"
         }
     },
     "onboarding": {
@@ -201,7 +202,11 @@
             "loading": "正在检查 {type} 更新...",
             "success": "找到 {count} 条 {type} 更新",
             "none": "所有 {type} 均已是最新版本",
-            "error": "检查 {type} 更新失败：{message}"
+            "error": "检查 {type} 更新失败：{message}",
+            "gateEvents": {
+                "becameFree": "{count} 个你未拥有的版本已免费",
+                "newGate": "{count} 个版本已变为付费"
+            }
         },
         "cleanupExampleImages": {
             "label": "清理示例图片文件夹",
@@ -251,7 +256,6 @@
                 "modelname": "模型名称",
                 "tags": "标签",
                 "creator": "创作者",
-                "hash": "哈希",
                 "title": "配方标题",
                 "loraName": "LoRA 文件名",
                 "loraModel": "LoRA 模型名称",
@@ -388,6 +392,7 @@
             "downloadPathTemplates": "下载路径模板",
             "priorityTags": "优先标签",
             "versionScope": "版本范围",
+            "priceTracking": "Buzz 下载价格",
             "exampleImages": "示例图片",
             "autoOrganize": "自动整理",
             "metadata": "元数据",
@@ -526,6 +531,12 @@
                 "hover": "悬停时显示"
             },
             "cardInfoDisplayHelp": "选择何时显示模型信息和操作按钮",
+            "showcaseLayout": "示例图片布局",
+            "showcaseLayoutHelp": "选择示例图片在模型弹窗中的显示方式：一次显示一张的画廊，或经典的纵向列表。",
+            "showcaseLayoutOptions": {
+                "gallery": "画廊",
+                "vertical": "纵向列表"
+            },
             "showVersionOnCard": "在卡片上显示版本",
             "showVersionOnCardHelp": "在模型卡片上显示或隐藏版本名称",
             "modelCardFooterAction": "模型卡片按钮操作",
@@ -754,6 +765,13 @@
             "label": "隐藏付费更新",
             "help": "启用后，仅有付费更新的模型将不显示“有可用更新”徽标"
         },
+        "priceTracking": {
+            "help": "CivitAI 的公开 API 不提供下载价格，因此价格从模型页面读取 —— 每个付费模型多一次请求，按下面的间隔刷新。价格只显示在你尚未拥有的版本上。",
+            "enabled": "显示付费版本的下载价格",
+            "enabledHelp": "从模型页面读取下载价格，让付费与抢先体验版本显示所需费用，以及抢先体验的结束时间",
+            "refreshHours": "价格刷新间隔（小时）",
+            "refreshHoursHelp": "已保存的价格在重新读取前保持有效的时长"
+        },
         "licenseIcons": {
             "useNewStyle": "使用新版许可协议图标",
             "useNewStyleHelp": "以彩色指示器显示许可权限（新样式），或仅显示限制图标（经典样式）。与当前 CivitAI 设计保持一致。"
@@ -793,6 +811,8 @@
             "downloadComplete": "下载成功完成",
             "enableCivarchiveApi": "启用 CivArchive API 作为元数据提供者",
             "enableCivarchiveApiHelp": "开启后，CivArchive API 将作为模型元数据的备用来源（例如用于已从 CivitAI 删除的模型）。关闭可完全避免 CivArchive 的速率限制。",
+            "enableOpenmodeldbApi": "启用 OpenModelDB 作为元数据提供者",
+            "enableOpenmodeldbApiHelp": "开启后，当 CivitAI 没有记录时，也会在 OpenModelDB 目录（openmodeldb.info）中查询 Upscaler 元数据。目录会缓存在本地并每天刷新。",
             "providerOrder": "元数据提供者回退顺序",
             "providerOrderHelp": "CivitAI API 始终优先尝试。选择查找元数据时其余提供者的顺序。",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
@@ -1837,6 +1857,8 @@
                 "sendToWorkflow": "发送到 ComfyUI",
                 "sendToWorkflowText": "发送到 ComfyUI",
                 "copyHash": "复制哈希值",
+                "copyCivitaiId": "复制 Civitai ID",
+                "civitaiIdCopied": "Civitai ID 已复制到剪贴板",
                 "deleteModelWithShortcut": "删除模型（Del）"
             },
             "openFileLocation": {
@@ -1855,6 +1877,8 @@
                 "baseModel": "基础模型",
                 "size": "大小",
                 "hashes": "哈希值",
+                "civitaiModelId": "模型 ID",
+                "civitaiVersionId": "版本 ID",
                 "unknown": "未知",
                 "usageTips": "使用提示",
                 "additionalNotes": "附加备注",
@@ -1972,7 +1996,9 @@
                 "nsfwMature": "成熟内容",
                 "nsfwR": "R 级内容",
                 "nsfwX": "X 级内容",
-                "nsfwXxx": "XXX 级内容"
+                "nsfwXxx": "XXX 级内容",
+                "layoutGallery": "画廊视图",
+                "layoutList": "列表视图"
             },
             "versions": {
                 "heading": "模型版本",
@@ -2003,10 +2029,15 @@
                     "earlyAccessTooltip": "此版本当前需要 CivitAI 抢先体验权限",
                     "paid": "付费",
                     "paidTooltip": "此版本需要付费后才能下载",
+                    "priceSaleTooltip": "促销中，原价 {list} Buzz",
+                    "priceBlueBuzzTooltip": "也可以使用 Blue Buzz 支付",
+                    "freeNow": "现已免费",
+                    "freeNowTooltip": "此版本已不再需要付费",
                     "ignored": "已忽略",
                     "ignoredTooltip": "此版本已关闭更新通知",
                     "onSiteOnly": "仅站内生成",
-                    "onSiteOnlyTooltip": "此版本仅在 CivitAI 站内可用，无法下载"
+                    "onSiteOnlyTooltip": "此版本仅在 CivitAI 站内可用，无法下载",
+                    "earlyAccessTooltipUntil": "抢先体验至 {date}，之后可免费下载"
                 },
                 "actions": {
                     "download": "下载",

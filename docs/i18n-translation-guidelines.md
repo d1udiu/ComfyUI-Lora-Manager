@@ -120,6 +120,45 @@ Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
 > style. All 9 locales are translated (terminology in §2, "Download routing feature"),
 > so the "no remaining placeholders" claim holds again.
 
+> **Status (2026-10, OpenModelDB):** the OpenModelDB metadata-provider toggle added 2 keys
+> (`settings.metadataArchive.enableOpenmodeldbApi(Help)`); all 9 locales are translated
+> (terminology in §2, "OpenModelDB feature"), so the "no remaining placeholders" claim
+> holds again.
+
+> **Status (2026-10, Civitai ids in model modal):** the model modal's hash footnote now
+> shows the Civitai model id and version id (right-aligned, with copy buttons), adding
+> 4 keys (`modals.model.metadata.civitaiModelId` / `.civitaiVersionId`,
+> `modals.model.actions.copyCivitaiId` / `.civitaiIdCopied`). The same pass removed the
+> search-options "hash" toggle (`header.search.filters.hash`) because hash/id search is
+> now always on. All 9 locales are translated (terminology in §2, "Civitai ids feature"),
+> so the "no remaining placeholders" claim holds again.
+
+> **Status (2026-10, showcase layout option):** the model modal's example images became
+> switchable between the on-demand gallery and the classic vertical list (issue #1136),
+> adding 6 keys (`settings.layoutSettings.showcaseLayout`, `.showcaseLayoutHelp`,
+> `.showcaseLayoutOptions.gallery` / `.vertical`, `modals.model.showcase.layoutGallery` /
+> `.layoutList`). All 9 locales are translated (terminology in §2, "Showcase layout
+> feature"), so the "no remaining placeholders" claim holds again.
+> **Status (2026-10, Buzz download prices):** the paid/early-access obtainability feature added
+> 13 keys — the two `globalContextMenu.checkModelUpdates.gateEvents.*` counts, five
+> `modals.model.versions.badges.*` (sale, Blue Buzz, "free now" and its tooltip, and the early
+> access end-date tooltip) and the six `settings.priceTracking.*` strings — plus the section
+> header. All 13 are now translated in all 9 locales. **Buzz** and **Blue Buzz** stay as-is
+> everywhere (CivitAI currency names, R3). Two source fixes came with the pass: the unused
+> `settings.priceTracking.label` key was removed (no template renders it; the toggle uses
+> `enabled`/`enabledHelp`) and `settings.sections.priceTracking` was reworded to
+> "Buzz Download Prices" so the header matches what the feature does (prices are displayed;
+> nothing is tracked for alerts). Register follows each file's existing norm: 你 (zh-CN),
+> 您 (zh-TW), Sie (de), tú (es), вы (ru). No remaining `[TODO: Translate]` placeholders.
+
+> **Status (2026-10, reconcile walk progress):** a regular Refresh now reports the reconcile
+> walk per model root (which roots are being checked, how many model files have been seen, and
+> an ETA) and splits the progress bar into walk (0-50 %) and new-file (50-99 %) phases, which
+> added the single `common.scanProgress.walkFiles` fragment. All 9 locales are translated
+> (renderings in §2, "Scan progress (walk phase)"), so the "no remaining placeholders" claim
+> holds again. The same pass scoped the client-side ETA to the current stage in
+> `static/js/api/baseModelApi.js`; no other locale string changed.
+
 ---
 
 ## 1. Hard rules (do not violate)
@@ -585,6 +624,79 @@ page of the download modal; its two button labels come from `checkpoints.modelTy
 directly (model-type names, R3). The tooltip quotes the `modals.download.useDefaultPath`
 label verbatim with each locale's UI-label quoting style (zh-CN “ ”, zh-TW/ja 「 」,
 ko `' '`, fr « … », de „ … “, es/ru/he «…»).
+
+### OpenModelDB feature
+
+**OpenModelDB** is a brand name and stays Latin in every locale (R3, same as CivitAI /
+CivArchive); `openmodeldb.info` is a URL and stays verbatim. **Upscaler** follows the
+Other Models rule (model-type name, Latin everywhere). The label/help mirror each
+locale's existing `settings.metadataArchive.enableCivarchiveApi(Help)` phrasing, and
+"metadata" uses the §5 rendering per locale.
+
+| Term | Rendering |
+|---|---|
+| catalogue (the OpenModelDB catalogue) | zh-CN 目录 · zh-TW 目錄 · ja カタログ · ko 카탈로그 · fr catalogue · de Katalog · es catálogo · ru каталог · he קטלוג |
+
+### Civitai ids feature (model/version id in the model modal)
+
+The model modal's hash footnote shows the Civitai **model id** and **version id** with
+copy buttons (`modals.model.metadata.civitaiModelId` / `.civitaiVersionId` labels,
+`modals.model.actions.copyCivitaiId` tooltip, `.civitaiIdCopied` toast). **"ID" stays
+Latin in every locale** (same precedent as `recipes.*.copyId`), and `Civitai` is the
+brand (R3) — it is never translated or transliterated; the casing mirrors `en.json`
+verbatim (R9). The copy/copied strings reuse each locale's existing clipboard patterns
+(`modals.model.actions.copyHash` / `openFileLocation.copied`).
+
+| Term | Rendering |
+|---|---|
+| Model ID (label) | zh-CN 模型 ID · zh-TW 模型 ID · ja モデル ID · ko 모델 ID · fr ID du modèle · de Modell-ID · es ID del modelo · ru ID модели · he מזהה מודל |
+| Version ID (label) | zh-CN 版本 ID · zh-TW 版本 ID · ja バージョン ID · ko 버전 ID · fr ID de version · de Versions-ID · es ID de versión · ru ID версии · he מזהה גרסה |
+
+Hebrew uses its established מזהה ("identifier") noun instead of Latin `ID` in these
+labels, matching `recipes.*.copyId` (העתק מזהה מתכון).
+
+### Showcase layout feature (gallery / vertical list toggle)
+
+The model modal's example images can switch between a one-at-a-time **gallery** and the
+classic **vertical list**, via a Settings select (`settings.layoutSettings.showcaseLayout*`,
+mirroring the `recipesLayout*` select shape) and an in-modal segmented toggle whose two
+icon buttons are labelled by `modals.model.showcase.layoutGallery` / `.layoutList`
+(kept short — they are icon-button tooltips).
+
+"Showcase Layout" is rendered as the **example-images layout** in most locales (the
+section's user-facing content), reusing each locale's fixed "example images" noun
+(`modelCardFooterActionOptions.exampleImages`); ja keeps its established ショーケース
+loanword instead. The `layoutList` tooltip reuses the fixed "list view" noun from the
+folder-sidebar row (above), so it stays byte-consistent with `sidebar.listView` where
+that form fits a tooltip (ru shortens both toggle labels to bare «Галерея» / «Список»).
+
+| Term | Rendering |
+|---|---|
+| showcase layout (settings label) | zh-CN 示例图片布局 · zh-TW 範例圖片版面 · ja ショーケースのレイアウト · ko 예시 이미지 레이아웃 · fr Disposition des images d'exemple · de Beispielbilder-Layout · es Diseño de imágenes de ejemplo · ru Макет примеров изображений · he פריסת תמונות דוגמה |
+| example images | zh-CN 示例图片 · zh-TW 範例圖片 · ja 例画像 · ko 예시 이미지 · fr images d'exemple · de Beispielbilder · es imágenes de ejemplo · ru примеры изображений · he תמונות דוגמה |
+| gallery / vertical list (option labels) | zh-CN 画廊 / 纵向列表 · zh-TW 圖庫 / 垂直清單 · ja ギャラリー / 縦並びリスト · ko 갤러리 / 세로 목록 · fr Galerie / Liste verticale · de Galerie / Vertikale Liste · es Galería / Lista vertical · ru Галерея / Вертикальный список · he גלריה / רשימה אנכית |
+| gallery view / list view (toggle tooltips) | zh-CN 画廊视图 / 列表视图 · zh-TW 圖庫檢視 / 清單檢視 · ja ギャラリー表示 / リスト表示 · ko 갤러리 보기 / 목록 보기 · fr Vue galerie / Vue liste · de Galerieansicht / Listenansicht · es Vista de galería / Vista de lista · ru Галерея / Список · he תצוגת גלריה / תצוגת רשימה |
+
+### Scan progress (walk phase)
+
+The manual Refresh dialog renders its status line from `common.scanProgress.*`. During the
+reconcile walk the backend does not know the real file count yet (counting *is* the walk), so
+the client shows the roots being walked plus a running count instead of a `processed/total`
+ratio: `Checking for changes... G:, Y: (12,345 files) | ~3 min remaining`. The bar covers
+0-50 % for the walk and 50-99 % for the new-file pass.
+
+| Term | Rendering |
+|---|---|
+| `walkFiles` ("{count} files") | zh-CN {count} 个文件 · zh-TW {count} 個檔案 · ja {count} 件のファイル · ko 파일 {count}개 · fr {count} fichiers · de {count} Dateien · es {count} archivos · ru {count} файл(ов) · he {count} קבצים |
+
+`walkFiles` is a **fragment, not a sentence**: the root labels, the `(` `)`, the ` | ` before
+the ETA and the ETA text itself all come from `static/js/api/baseModelApi.js`, so no locale
+carries punctuation here (the ASCII parentheses match the sibling `stages.process_models`
+count, `(5/10)`). `{count}` is substituted with an already-formatted number
+(`toLocaleString()`), so no locale adds its own digit grouping. "files" means the **model
+files the walk looked at**, not every file on disk — the noun mirrors each locale's
+`stages.count_models` rendering, and `ru` uses the `файл(ов)` form because the count ticks
+live and can be any number (`notEmptyMessageCount` precedent).
 
 ---
 

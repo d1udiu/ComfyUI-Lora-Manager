@@ -73,7 +73,8 @@
                 "lessThanMinute": "Queda menos de un minuto",
                 "minutes": "Quedan ~{minutes} min",
                 "hours": "Quedan ~{hours} h {minutes} min"
-            }
+            },
+            "walkFiles": "{count} archivos"
         }
     },
     "onboarding": {
@@ -201,7 +202,11 @@
             "loading": "Buscando actualizaciones de {type}...",
             "success": "Se encontraron {count} actualización(es) para {type}",
             "none": "Todos los {type} están actualizados",
-            "error": "Error al buscar actualizaciones de {type}: {message}"
+            "error": "Error al buscar actualizaciones de {type}: {message}",
+            "gateEvents": {
+                "becameFree": "{count} versión(es) que no tienes se han vuelto gratuitas",
+                "newGate": "{count} versión(es) ahora son de pago"
+            }
         },
         "cleanupExampleImages": {
             "label": "Limpiar carpetas de imágenes de ejemplo",
@@ -251,7 +256,6 @@
                 "modelname": "Nombre del modelo",
                 "tags": "Etiquetas",
                 "creator": "Creador",
-                "hash": "Hash",
                 "title": "Título de la receta",
                 "loraName": "Nombre de archivo LoRA",
                 "loraModel": "Nombre del modelo LoRA",
@@ -388,6 +392,7 @@
             "downloadPathTemplates": "Plantillas de rutas de descarga",
             "priorityTags": "Etiquetas prioritarias",
             "versionScope": "Indicadores de actualización",
+            "priceTracking": "Precios de descarga en Buzz",
             "exampleImages": "Imágenes de ejemplo",
             "autoOrganize": "Organización automática",
             "metadata": "Metadatos",
@@ -526,6 +531,12 @@
                 "hover": "Mostrar al pasar el ratón"
             },
             "cardInfoDisplayHelp": "Elige cuándo mostrar información del modelo y botones de acción",
+            "showcaseLayout": "Diseño de imágenes de ejemplo",
+            "showcaseLayoutHelp": "Elige cómo se muestran las imágenes de ejemplo en el modal del modelo: una galería que las muestra de una en una o la clásica lista vertical.",
+            "showcaseLayoutOptions": {
+                "gallery": "Galería",
+                "vertical": "Lista vertical"
+            },
             "showVersionOnCard": "Mostrar versión en la tarjeta",
             "showVersionOnCardHelp": "Mostrar u ocultar el nombre de versión en las tarjetas de modelo",
             "modelCardFooterAction": "Acción del botón de tarjeta de modelo",
@@ -754,6 +765,13 @@
             "label": "Ocultar actualizaciones de pago",
             "help": "Cuando está activado, los modelos que solo tienen actualizaciones de pago no mostrarán la insignia de 'Actualización disponible'"
         },
+        "priceTracking": {
+            "help": "La API pública de CivitAI no publica los precios de descarga, así que se leen de la página del modelo: una petición adicional por modelo de pago, actualizada según el intervalo de abajo. Los precios se muestran solo en las versiones que aún no tienes.",
+            "enabled": "Mostrar los precios de descarga de las versiones de pago",
+            "enabledHelp": "Lee el precio de descarga de la página del modelo para mostrar cuánto cuestan las versiones de pago y de acceso temprano, y cuándo termina el acceso temprano",
+            "refreshHours": "Intervalo de actualización de precios (horas)",
+            "refreshHoursHelp": "Cuánto tiempo sigue vigente un precio guardado antes de volver a leerse"
+        },
         "licenseIcons": {
             "useNewStyle": "Usar iconos de licencia actualizados",
             "useNewStyleHelp": "Mostrar permisos de licencia con indicadores de color (nuevo estilo) o solo iconos de restricción (estilo clásico). Refleja el diseño actual de CivitAI."
@@ -793,6 +811,8 @@
             "downloadComplete": "Descarga completada exitosamente",
             "enableCivarchiveApi": "Habilitar CivArchive API como proveedor de metadatos",
             "enableCivarchiveApiHelp": "Al activarlo, la API de CivArchive se usa como fuente alternativa de metadatos de modelos (p. ej. para modelos eliminados de CivitAI). Desactívelo para evitar por completo los límites de velocidad de CivArchive.",
+            "enableOpenmodeldbApi": "Habilitar OpenModelDB como proveedor de metadatos",
+            "enableOpenmodeldbApiHelp": "Al activarlo, los metadatos de Upscaler también se consultan en el catálogo de OpenModelDB (openmodeldb.info) cuando CivitAI no tiene ningún registro. El catálogo se almacena en caché localmente y se actualiza a diario.",
             "providerOrder": "Orden de proveedores de metadatos de respaldo",
             "providerOrderHelp": "La API de CivitAI siempre se intenta primero. Elija el orden de los demás proveedores al buscar metadatos.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
@@ -1837,6 +1857,8 @@
                 "sendToWorkflow": "Enviar a ComfyUI",
                 "sendToWorkflowText": "Enviar a ComfyUI",
                 "copyHash": "Copiar hash",
+                "copyCivitaiId": "Copiar ID de Civitai",
+                "civitaiIdCopied": "ID de Civitai copiado al portapapeles",
                 "deleteModelWithShortcut": "Eliminar modelo (Del)"
             },
             "openFileLocation": {
@@ -1855,6 +1877,8 @@
                 "baseModel": "Modelo base",
                 "size": "Tamaño",
                 "hashes": "Hashes",
+                "civitaiModelId": "ID del modelo",
+                "civitaiVersionId": "ID de versión",
                 "unknown": "Desconocido",
                 "usageTips": "Consejos de uso",
                 "additionalNotes": "Notas adicionales",
@@ -1972,7 +1996,9 @@
                 "nsfwMature": "Contenido para adultos",
                 "nsfwR": "Contenido clasificación R",
                 "nsfwX": "Contenido clasificación X",
-                "nsfwXxx": "Contenido clasificación XXX"
+                "nsfwXxx": "Contenido clasificación XXX",
+                "layoutGallery": "Vista de galería",
+                "layoutList": "Vista de lista"
             },
             "versions": {
                 "heading": "Versiones del modelo",
@@ -2003,10 +2029,15 @@
                     "earlyAccessTooltip": "Esta versión requiere actualmente acceso temprano de CivitAI",
                     "paid": "De pago",
                     "paidTooltip": "Esta versión requiere pago para descargarse",
+                    "priceSaleTooltip": "En oferta, normalmente {list} Buzz",
+                    "priceBlueBuzzTooltip": "También se puede pagar con Blue Buzz",
+                    "freeNow": "Ahora gratis",
+                    "freeNowTooltip": "Esta versión ya no requiere pago",
                     "ignored": "Ignorada",
                     "ignoredTooltip": "Las notificaciones de actualización están desactivadas para esta versión",
                     "onSiteOnly": "Solo en Sitio",
-                    "onSiteOnlyTooltip": "Esta versión solo está disponible para generación en el sitio de CivitAI"
+                    "onSiteOnlyTooltip": "Esta versión solo está disponible para generación en el sitio de CivitAI",
+                    "earlyAccessTooltipUntil": "Acceso temprano hasta el {date}, descarga gratuita después"
                 },
                 "actions": {
                     "download": "Descargar",

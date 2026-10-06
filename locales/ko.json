@@ -73,7 +73,8 @@
                 "lessThanMinute": "남은 시간 1분 미만",
                 "minutes": "약 {minutes}분 남음",
                 "hours": "약 {hours}시간 {minutes}분 남음"
-            }
+            },
+            "walkFiles": "파일 {count}개"
         }
     },
     "onboarding": {
@@ -201,7 +202,11 @@
             "loading": "{type} 업데이트를 확인 중...",
             "success": "{type} 업데이트 {count}개를 찾았습니다",
             "none": "모든 {type}가 최신 상태입니다",
-            "error": "{type} 업데이트 확인 실패: {message}"
+            "error": "{type} 업데이트 확인 실패: {message}",
+            "gateEvents": {
+                "becameFree": "보유하지 않은 버전 {count}개가 무료가 되었습니다",
+                "newGate": "버전 {count}개가 유료로 전환되었습니다"
+            }
         },
         "cleanupExampleImages": {
             "label": "예시 이미지 폴더 정리",
@@ -251,7 +256,6 @@
                 "modelname": "모델명",
                 "tags": "태그",
                 "creator": "제작자",
-                "hash": "해시",
                 "title": "레시피 제목",
                 "loraName": "LoRA 파일명",
                 "loraModel": "LoRA 모델명",
@@ -388,6 +392,7 @@
             "downloadPathTemplates": "다운로드 경로 템플릿",
             "priorityTags": "우선순위 태그",
             "versionScope": "업데이트 표시",
+            "priceTracking": "Buzz 다운로드 가격",
             "exampleImages": "예시 이미지",
             "autoOrganize": "자동 정리",
             "metadata": "메타데이터",
@@ -526,6 +531,12 @@
                 "hover": "호버 시 표시"
             },
             "cardInfoDisplayHelp": "모델 정보 및 액션 버튼을 언제 표시할지 선택하세요",
+            "showcaseLayout": "예시 이미지 레이아웃",
+            "showcaseLayoutHelp": "모델 모달에서 예시 이미지의 표시 방식을 선택하세요: 한 번에 하나씩 보여주는 갤러리 또는 기존 세로 목록.",
+            "showcaseLayoutOptions": {
+                "gallery": "갤러리",
+                "vertical": "세로 목록"
+            },
             "showVersionOnCard": "카드에 버전 표시",
             "showVersionOnCardHelp": "모델 카드에 버전 이름 표시 여부를 전환합니다",
             "modelCardFooterAction": "모델 카드 버튼 동작",
@@ -754,6 +765,13 @@
             "label": "유료 업데이트 숨기기",
             "help": "활성화하면 유료 업데이트만 있는 모델에 '업데이트 가능' 배지가 표시되지 않습니다"
         },
+        "priceTracking": {
+            "help": "CivitAI 공개 API는 다운로드 가격을 제공하지 않으므로 모델 페이지에서 읽어옵니다. 유료 모델마다 요청이 한 번씩 추가되며, 아래 간격에 따라 갱신됩니다. 가격은 아직 보유하지 않은 버전에만 표시됩니다.",
+            "enabled": "유료 버전의 다운로드 가격 표시",
+            "enabledHelp": "모델 페이지에서 다운로드 가격을 읽어 유료 및 얼리 액세스 버전의 비용과 얼리 액세스 종료 시점을 표시합니다",
+            "refreshHours": "가격 갱신 간격(시간)",
+            "refreshHoursHelp": "저장된 가격을 다시 읽기 전까지 유지하는 기간"
+        },
         "licenseIcons": {
             "useNewStyle": "업데이트된 라이선스 아이콘 사용",
             "useNewStyleHelp": "색상 표시기가 있는 라이선스 권한(새 스타일) 또는 제한 전용 아이콘(클래식 스타일)을 표시합니다. 현재 CivitAI 디자인을 반영합니다."
@@ -793,6 +811,8 @@
             "downloadComplete": "다운로드가 성공적으로 완료되었습니다",
             "enableCivarchiveApi": "CivArchive API를 메타데이터 제공자로 활성화",
             "enableCivarchiveApiHelp": "활성화하면 CivArchive API가 모델 메타데이터의 대체 소스로 사용됩니다 (예: CivitAI에서 삭제된 모델의 경우). 비활성화하면 CivArchive의 속도 제한을 완전히 피할 수 있습니다.",
+            "enableOpenmodeldbApi": "OpenModelDB를 메타데이터 제공자로 활성화",
+            "enableOpenmodeldbApiHelp": "활성화하면 CivitAI에 기록이 없을 때 OpenModelDB 카탈로그(openmodeldb.info)에서도 Upscaler 메타데이터를 조회합니다. 카탈로그는 로컬에 캐시되며 매일 새로 고쳐집니다.",
             "providerOrder": "메타데이터 제공자 폴백 순서",
             "providerOrderHelp": "CivitAI API가 항상 먼저 시도됩니다. 메타데이터 조회 시 나머지 제공자의 순서를 선택하세요.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
@@ -1837,6 +1857,8 @@
                 "sendToWorkflow": "ComfyUI로 보내기",
                 "sendToWorkflowText": "ComfyUI로 보내기",
                 "copyHash": "해시 복사",
+                "copyCivitaiId": "Civitai ID 복사",
+                "civitaiIdCopied": "Civitai ID가 클립보드에 복사되었습니다",
                 "deleteModelWithShortcut": "모델 삭제(Del)"
             },
             "openFileLocation": {
@@ -1855,6 +1877,8 @@
                 "baseModel": "베이스 모델",
                 "size": "크기",
                 "hashes": "해시",
+                "civitaiModelId": "모델 ID",
+                "civitaiVersionId": "버전 ID",
                 "unknown": "알 수 없음",
                 "usageTips": "사용 팁",
                 "additionalNotes": "추가 메모",
@@ -1972,7 +1996,9 @@
                 "nsfwMature": "성인 콘텐츠",
                 "nsfwR": "R등급 콘텐츠",
                 "nsfwX": "X등급 콘텐츠",
-                "nsfwXxx": "XXX등급 콘텐츠"
+                "nsfwXxx": "XXX등급 콘텐츠",
+                "layoutGallery": "갤러리 보기",
+                "layoutList": "목록 보기"
             },
             "versions": {
                 "heading": "모델 버전",
@@ -2003,10 +2029,15 @@
                     "earlyAccessTooltip": "이 버전은 현재 CivitAI 얼리 액세스가 필요합니다",
                     "paid": "유료",
                     "paidTooltip": "이 버전은 다운로드하려면 결제가 필요합니다",
+                    "priceSaleTooltip": "할인 중, 원래 {list} Buzz",
+                    "priceBlueBuzzTooltip": "Blue Buzz로도 결제할 수 있습니다",
+                    "freeNow": "지금 무료",
+                    "freeNowTooltip": "이 버전은 더 이상 결제가 필요하지 않습니다",
                     "ignored": "무시됨",
                     "ignoredTooltip": "이 버전은 업데이트 알림이 비활성화되어 있습니다",
                     "onSiteOnly": "사이트 내 전용",
-                    "onSiteOnlyTooltip": "이 버전은 CivitAI 사이트 내에서만 사용 가능하며 다운로드할 수 없습니다"
+                    "onSiteOnlyTooltip": "이 버전은 CivitAI 사이트 내에서만 사용 가능하며 다운로드할 수 없습니다",
+                    "earlyAccessTooltipUntil": "{date}까지 얼리 액세스, 이후 무료로 다운로드할 수 있습니다"
                 },
                 "actions": {
                     "download": "다운로드",

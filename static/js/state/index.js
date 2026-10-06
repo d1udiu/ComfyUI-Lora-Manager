@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS_BASE = Object.freeze({
     show_only_sfw: false,
     enable_metadata_archive_db: false,
     enable_civarchive_api: true,
+    enable_openmodeldb_api: true,
     metadata_provider_order: 'civitai_archive_sqlite',
     proxy_enabled: false,
     proxy_type: 'http',
@@ -46,6 +47,7 @@ const DEFAULT_SETTINGS_BASE = Object.freeze({
     display_density: 'default',
     recipes_layout: 'grid',
     card_info_display: 'always',
+    showcase_layout: 'gallery',
     model_name_display: 'model_name',
     lora_syntax_format: 'legacy',
     model_card_footer_action: 'example_images',
@@ -56,6 +58,8 @@ const DEFAULT_SETTINGS_BASE = Object.freeze({
     version_grouping: 'same_base',
     hide_early_access_updates: false,
     hide_paid_updates: false,
+    price_tracking_enabled: false,
+    price_check_ttl_hours: 24,
     auto_organize_exclusions: [],
     metadata_refresh_skip_paths: [],
     skip_previously_downloaded_model_versions: false,
@@ -123,7 +127,6 @@ export const state = {
                 modelname: true,
                 tags: false,
                 creator: false,
-                hash: false,
                 recursive: getStorageItem(`${MODEL_TYPES.LORA}_recursiveSearch`, true),
             },
             filters: {
@@ -190,7 +193,6 @@ export const state = {
                 filename: true,
                 modelname: true,
                 creator: false,
-                hash: false,
                 recursive: getStorageItem(`${MODEL_TYPES.CHECKPOINT}_recursiveSearch`, true),
             },
             filters: {
@@ -230,7 +232,6 @@ export const state = {
                 modelname: true,
                 tags: false,
                 creator: false,
-                hash: false,
                 recursive: getStorageItem(`${MODEL_TYPES.EMBEDDING}_recursiveSearch`, true),
             },
             filters: {
@@ -268,7 +269,6 @@ export const state = {
                 modelname: true,
                 tags: false,
                 creator: false,
-                hash: false,
                 recursive: getStorageItem(`${MODEL_TYPES.OTHER}_recursiveSearch`, true),
             },
             filters: {

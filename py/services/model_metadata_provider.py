@@ -112,7 +112,10 @@ class _RateLimitRetryHelper:
 
 # Labels of providers that are free to consult even while a network provider
 # is rate-limited (local lookups, no vendor cost).
-_LOCAL_PROVIDER_LABELS = frozenset({"sqlite"})
+# "openmodeldb_api" qualifies because its lookups hit a local index built from
+# a cached bulk dump; the underlying site is a static host (GitHub Pages), so
+# even a cold cache refresh is a single cheap GET against a different vendor.
+_LOCAL_PROVIDER_LABELS = frozenset({"sqlite", "openmodeldb_api"})
 
 
 class ModelMetadataProvider(ABC):
@@ -180,6 +183,17 @@ class ModelMetadataProvider(ABC):
         """
         return None
 
+    async def get_model_prices(
+        self, model_id: int
+    ) -> Optional[Dict[int, Dict[str, Any]]]:
+        """Fetch per-version buzz prices for a model, when the provider has them.
+
+        CivitAI publishes prices only inside its public model page payload;
+        providers that cannot read it (CivArchive, SQLite, OpenModelDB) keep the
+        default of None, which callers treat as "no price information".
+        """
+        return None
+
 class CivitaiModelMetadataProvider(ModelMetadataProvider):
     """Provider that uses Civitai API for metadata"""
     
@@ -218,6 +232,11 @@ class CivitaiModelMetadataProvider(ModelMetadataProvider):
         self, version_id: int, file_id: int
     ) -> Optional[Dict[str, Any]]:
         return await self.client.get_version_file_mini(version_id, file_id)
+
+    async def get_model_prices(
+        self, model_id: int
+    ) -> Optional[Dict[int, Dict[str, Any]]]:
+        return await self.client.get_model_prices(model_id)
 
 class CivArchiveModelMetadataProvider(ModelMetadataProvider):
     """Provider that uses CivArchive API for metadata"""
@@ -480,6 +499,36 @@ class SQLiteModelMetadataProvider(ModelMetadataProvider):
         except json.JSONDecodeError:
             return None
         
+class OpenModelDBModelMetadataProvider(ModelMetadataProvider):
+    """Provider that serves upscaler metadata from the OpenModelDB catalogue.
+
+    Only hash lookups are supported: OpenModelDB has no per-model or version
+    API, so the remaining provider surface intentionally returns None and lets
+    the fallback chain continue to the next provider.
+    """
+
+    def __init__(self, openmodeldb_client):
+        self.client = openmodeldb_client
+
+    async def get_model_by_hash(self, model_hash: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+        return await self.client.get_model_by_hash(model_hash)
+
+    async def get_model_versions(self, model_id: str) -> Optional[Dict[str, Any]]:
+        """Not supported: OpenModelDB models have no version history API."""
+        return None
+
+    async def get_model_version(self, model_id: Optional[int] = None, version_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """Not supported: OpenModelDB models have no version history API."""
+        return None
+
+    async def get_model_version_info(self, version_id: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+        """Not supported: OpenModelDB models have no version history API."""
+        return None, "Model not found"
+
+    async def get_user_models(self, username: str, cursor: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Not supported by the OpenModelDB provider."""
+        return None
+
 class FallbackMetadataProvider(ModelMetadataProvider):
     """Try providers in order, return first successful result.
 
@@ -750,6 +799,60 @@ class FallbackMetadataProvider(ModelMetadataProvider):
     def _iter_providers(self):
         return zip(self.providers, self._provider_labels)
 
+    async def get_model_prices(
+        self, model_id: int
+    ) -> Optional[Dict[int, Dict[str, Any]]]:
+        rate_limited = False
+        for provider, label in self._iter_providers():
+            if rate_limited and label not in _LOCAL_PROVIDER_LABELS:
+                continue
+            try:
+                result = await self._call_with_rate_limit(
+                    label,
+                    provider.get_model_prices,
+                    model_id,
+                )
+                if result:
+                    return result
+            except RateLimitError as exc:
+                rate_limited = True
+                logger.warning(
+                    "Provider %s is rate-limited (retry_after=%.0fs); not failing over to other network providers",
+                    label,
+                    exc.retry_after or 0,
+                )
+                continue
+            except Exception as e:
+                logger.debug("Provider %s failed for get_model_prices: %s", label, e)
+                continue
+        return None
+
+    def excluding(self, labels: "frozenset[str] | set[str]") -> "FallbackMetadataProvider":
+        """Return a copy of this chain without the providers named in *labels*.
+
+        Used by the metadata sync service to skip providers that cannot apply
+        to a given model (e.g. OpenModelDB only indexes upscalers), so their
+        cold-start cost (a bulk dump download) is never paid pointlessly.
+        """
+        kept = [
+            (label, provider)
+            for provider, label in self._iter_providers()
+            if label not in labels
+        ]
+        if len(kept) == len(self.providers):
+            return self
+        if not kept:
+            # Never produce an empty chain; the caller still needs a provider
+            # that can at least report "Model not found".
+            return self
+        return FallbackMetadataProvider(
+            kept,
+            rate_limit_retry_limit=self._rate_limit_retry_limit,
+            rate_limit_base_delay=self._rate_limit_base_delay,
+            rate_limit_max_delay=self._rate_limit_max_delay,
+            rate_limit_jitter_ratio=self._rate_limit_jitter_ratio,
+        )
+
     async def _call_with_rate_limit(self, label: str, func, *args, **kwargs):
         return await self._rate_limit_helper.run(label, func, *args, **kwargs)
 
@@ -846,6 +949,15 @@ class RateLimitRetryingProvider(ModelMetadataProvider):
             self._provider.get_version_file_mini,
             version_id,
             file_id,
+        )
+
+    async def get_model_prices(
+        self, model_id: int
+    ) -> Optional[Dict[int, Dict[str, Any]]]:
+        return await self._rate_limit_helper.run(
+            self._label,
+            self._provider.get_model_prices,
+            model_id,
         )
 
 class ModelMetadataProviderManager:

@@ -73,7 +73,8 @@
                 "lessThanMinute": "残り1分未満",
                 "minutes": "残り約 {minutes} 分",
                 "hours": "残り約 {hours} 時間 {minutes} 分"
-            }
+            },
+            "walkFiles": "{count} 件のファイル"
         }
     },
     "onboarding": {
@@ -201,7 +202,11 @@
             "loading": "{type} のアップデートを確認中...",
             "success": "{type} のアップデートが {count} 件見つかりました",
             "none": "すべての {type} は最新です",
-            "error": "{type} のアップデート確認に失敗しました: {message}"
+            "error": "{type} のアップデート確認に失敗しました: {message}",
+            "gateEvents": {
+                "becameFree": "未ダウンロードの {count} バージョンが無料になりました",
+                "newGate": "{count} バージョンが有料になりました"
+            }
         },
         "cleanupExampleImages": {
             "label": "例画像フォルダをクリーンアップ",
@@ -251,7 +256,6 @@
                 "modelname": "モデル名",
                 "tags": "タグ",
                 "creator": "作成者",
-                "hash": "ハッシュ",
                 "title": "レシピタイトル",
                 "loraName": "LoRAファイル名",
                 "loraModel": "LoRAモデル名",
@@ -388,6 +392,7 @@
             "downloadPathTemplates": "ダウンロードパステンプレート",
             "priorityTags": "優先タグ",
             "versionScope": "アップデートフラグ",
+            "priceTracking": "Buzz ダウンロード価格",
             "exampleImages": "例画像",
             "autoOrganize": "自動整理",
             "metadata": "メタデータ",
@@ -526,6 +531,12 @@
                 "hover": "ホバー時に表示"
             },
             "cardInfoDisplayHelp": "モデル情報とアクションボタンの表示タイミングを選択",
+            "showcaseLayout": "ショーケースのレイアウト",
+            "showcaseLayoutHelp": "モデルモーダルでの例画像の表示方法を選択：1枚ずつ表示するギャラリー、または従来の縦並びリスト。",
+            "showcaseLayoutOptions": {
+                "gallery": "ギャラリー",
+                "vertical": "縦並びリスト"
+            },
             "showVersionOnCard": "カードにバージョンを表示",
             "showVersionOnCardHelp": "モデルカード上のバージョン名の表示/非表示を切り替えます",
             "modelCardFooterAction": "モデルカードボタンのアクション",
@@ -754,6 +765,13 @@
             "label": "有料更新を非表示",
             "help": "有効にすると、有料の更新のみがあるモデルには「更新あり」バッジが表示されません"
         },
+        "priceTracking": {
+            "help": "CivitAI の公開 API はダウンロード価格を提供していないため、モデルページから読み取ります。有料モデルごとに 1 回の追加リクエストが発生し、以下の間隔で更新されます。価格は未ダウンロードのバージョンにのみ表示されます。",
+            "enabled": "有料バージョンのダウンロード価格を表示",
+            "enabledHelp": "モデルページからダウンロード価格を読み取り、有料バージョンと早期アクセスバージョンの費用と早期アクセスの終了時期を表示します",
+            "refreshHours": "価格の更新間隔（時間）",
+            "refreshHoursHelp": "保存された価格が再読み取りまで有効な期間"
+        },
         "licenseIcons": {
             "useNewStyle": "更新されたライセンスアイコンを使用",
             "useNewStyleHelp": "カラーインジケーター付きでライセンス許可を表示（新スタイル）するか、制限のみのアイコンを表示（クラシックスタイル）します。現在のCivitAIデザインを反映しています。"
@@ -793,6 +811,8 @@
             "downloadComplete": "ダウンロードが正常に完了しました",
             "enableCivarchiveApi": "CivArchive API をメタデータプロバイダーとして有効化",
             "enableCivarchiveApiHelp": "有効にすると、CivArchive API がモデルメタデータの代替ソースとして使用されます（例：CivitAI から削除されたモデルの場合）。オフにすると、CivArchive のレート制限を完全に回避できます。",
+            "enableOpenmodeldbApi": "OpenModelDB をメタデータプロバイダーとして有効化",
+            "enableOpenmodeldbApiHelp": "有効にすると、CivitAI に記録がない場合に、OpenModelDB カタログ（openmodeldb.info）でも Upscaler のメタデータを検索します。カタログはローカルにキャッシュされ、毎日更新されます。",
             "providerOrder": "メタデータプロバイダーのフォールバック順序",
             "providerOrderHelp": "CivitAI API が常に最初に試行されます。メタデータ検索時の残りのプロバイダーの順序を選択してください。",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
@@ -1837,6 +1857,8 @@
                 "sendToWorkflow": "ComfyUI に送信",
                 "sendToWorkflowText": "ComfyUI に送信",
                 "copyHash": "ハッシュをコピー",
+                "copyCivitaiId": "Civitai IDをコピー",
+                "civitaiIdCopied": "Civitai IDをクリップボードにコピーしました",
                 "deleteModelWithShortcut": "モデルを削除（Del）"
             },
             "openFileLocation": {
@@ -1855,6 +1877,8 @@
                 "baseModel": "ベースモデル",
                 "size": "サイズ",
                 "hashes": "ハッシュ",
+                "civitaiModelId": "モデル ID",
+                "civitaiVersionId": "バージョン ID",
                 "unknown": "不明",
                 "usageTips": "使用のヒント",
                 "additionalNotes": "追加メモ",
@@ -1972,7 +1996,9 @@
                 "nsfwMature": "成人向けコンテンツ",
                 "nsfwR": "R指定コンテンツ",
                 "nsfwX": "X指定コンテンツ",
-                "nsfwXxx": "XXX指定コンテンツ"
+                "nsfwXxx": "XXX指定コンテンツ",
+                "layoutGallery": "ギャラリー表示",
+                "layoutList": "リスト表示"
             },
             "versions": {
                 "heading": "モデルバージョン",
@@ -2003,10 +2029,15 @@
                     "earlyAccessTooltip": "このバージョンは現在 CivitAI の早期アクセスが必要です",
                     "paid": "有料",
                     "paidTooltip": "このバージョンのダウンロードには支払いが必要です",
+                    "priceSaleTooltip": "セール中、通常 {list} Buzz",
+                    "priceBlueBuzzTooltip": "Blue Buzz でも支払えます",
+                    "freeNow": "無料化",
+                    "freeNowTooltip": "このバージョンは支払いが不要になりました",
                     "ignored": "無視中",
                     "ignoredTooltip": "このバージョンの更新通知は無効です",
                     "onSiteOnly": "サイト内のみ",
-                    "onSiteOnlyTooltip": "このバージョンはCivitAIサイト内でのみ利用可能で、ダウンロードはできません"
+                    "onSiteOnlyTooltip": "このバージョンはCivitAIサイト内でのみ利用可能で、ダウンロードはできません",
+                    "earlyAccessTooltipUntil": "{date} まで早期アクセス、以降は無料でダウンロードできます"
                 },
                 "actions": {
                     "download": "ダウンロード",

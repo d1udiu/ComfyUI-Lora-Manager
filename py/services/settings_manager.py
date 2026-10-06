@@ -79,6 +79,9 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "dismissed_banners": [],
     "enable_metadata_archive_db": False,
     "enable_civarchive_api": True,
+    # OpenModelDB supplies read-only metadata for upscaler models (the "other"
+    # page's upscaler sub_type) via hash matching against its bulk catalogue.
+    "enable_openmodeldb_api": True,
     "metadata_provider_order": "civitai_archive_sqlite",
     "rate_limit_gate_enabled": True,
     "rate_limit_max_wait_seconds": 300,
@@ -118,6 +121,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "display_density": "default",
     "recipes_layout": "grid",
     "card_info_display": "always",
+    "showcase_layout": "gallery",
     "include_trigger_words": False,
     "compact_mode": False,
     "priority_tags": DEFAULT_PRIORITY_TAG_CONFIG.copy(),
@@ -126,6 +130,12 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "model_card_footer_action": "replace_preview",
     "show_version_on_card": True,
     "version_grouping": "same_base",
+    # Buzz price tracking for paid/early-access versions. Opt-in because reading a
+    # price costs one extra (public) model-page request per gated model.
+    # Plumbing switch: reading a price costs one extra request per paid model, so
+    # it stays opt-in. Prices decorate the version list; nothing alerts on a number.
+    "price_tracking_enabled": False,
+    "price_check_ttl_hours": 24,
     "auto_organize_exclusions": [],
     "metadata_refresh_skip_paths": [],
     "skip_previously_downloaded_model_versions": False,

@@ -73,7 +73,8 @@
         "lessThanMinute": "Less than a minute remaining",
         "minutes": "~{minutes} min remaining",
         "hours": "~{hours} hr {minutes} min remaining"
-      }
+      },
+      "walkFiles": "{count} files"
     }
   },
   "onboarding": {
@@ -201,7 +202,11 @@
       "loading": "Checking for {type} updates...",
       "success": "Found {count} update(s) for {type}s",
       "none": "All {type}s are up to date",
-      "error": "Failed to check for {type} updates: {message}"
+      "error": "Failed to check for {type} updates: {message}",
+      "gateEvents": {
+        "becameFree": "{count} version(s) you do not have became free",
+        "newGate": "{count} version(s) are now paid"
+      }
     },
     "cleanupExampleImages": {
       "label": "Clean up example image folders",
@@ -251,7 +256,6 @@
         "modelname": "Model Name",
         "tags": "Tags",
         "creator": "Creator",
-        "hash": "Hash",
         "title": "Recipe Title",
         "loraName": "LoRA Filename",
         "loraModel": "LoRA Model Name",
@@ -388,6 +392,7 @@
       "downloadPathTemplates": "Download Path Templates",
       "priorityTags": "Priority Tags",
       "versionScope": "Version Scope",
+      "priceTracking": "Buzz Download Prices",
       "exampleImages": "Example Images",
       "autoOrganize": "Auto-organize",
       "metadata": "Metadata",
@@ -526,6 +531,12 @@
         "hover": "Reveal on Hover"
       },
       "cardInfoDisplayHelp": "Choose when to display model information and action buttons",
+      "showcaseLayout": "Showcase Layout",
+      "showcaseLayoutHelp": "Choose how example images are displayed in the model modal: a one-at-a-time gallery or the classic vertical list.",
+      "showcaseLayoutOptions": {
+        "gallery": "Gallery",
+        "vertical": "Vertical List"
+      },
       "showVersionOnCard": "Show Version on Card",
       "showVersionOnCardHelp": "Show or hide the version name on model cards",
       "modelCardFooterAction": "Model Card Button Action",
@@ -754,6 +765,13 @@
       "label": "Hide Paid Updates",
       "help": "When enabled, models with only paid updates will not show 'Update available' badge"
     },
+    "priceTracking": {
+      "help": "CivitAI does not publish download prices in its public API, so they are read from the model page - one extra request per paid model, refreshed on the interval below. Prices are shown on versions you do not have yet.",
+      "enabled": "Show download prices for paid versions",
+      "enabledHelp": "Reads the download price from the model page so paid and early access versions show what they cost, and when early access ends",
+      "refreshHours": "Price refresh interval (hours)",
+      "refreshHoursHelp": "How long a stored price stays fresh before it is read again"
+    },
     "licenseIcons": {
       "useNewStyle": "Use updated license icons",
       "useNewStyleHelp": "Display license permissions with colored indicators (new style) or restriction-only icons (classic style). Mirroring the current CivitAI design."
@@ -793,6 +811,8 @@
       "downloadComplete": "Download completed successfully",
       "enableCivarchiveApi": "Enable CivArchive API as metadata provider",
       "enableCivarchiveApiHelp": "When on, CivArchive API is used as a fallback source for model metadata (e.g. for models deleted from CivitAI). Turn off to avoid CivArchive rate limits entirely.",
+      "enableOpenmodeldbApi": "Enable OpenModelDB as metadata provider",
+      "enableOpenmodeldbApiHelp": "When on, upscaler metadata is also looked up in the OpenModelDB catalogue (openmodeldb.info) when CivitAI has no record. The catalogue is cached locally and refreshed daily.",
       "providerOrder": "Metadata provider fallback order",
       "providerOrderHelp": "CivitAI API is always tried first. Choose the order of the remaining providers when looking up metadata.",
       "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
@@ -1837,6 +1857,8 @@
         "sendToWorkflow": "Send to ComfyUI",
         "sendToWorkflowText": "Send to ComfyUI",
         "copyHash": "Copy hash",
+        "copyCivitaiId": "Copy Civitai ID",
+        "civitaiIdCopied": "Civitai ID copied to clipboard",
         "deleteModelWithShortcut": "Delete model (Del)"
       },
       "openFileLocation": {
@@ -1855,6 +1877,8 @@
         "baseModel": "Base Model",
         "size": "Size",
         "hashes": "Hashes",
+        "civitaiModelId": "Model ID",
+        "civitaiVersionId": "Version ID",
         "unknown": "Unknown",
         "usageTips": "Usage Tips",
         "additionalNotes": "Additional Notes",
@@ -1972,7 +1996,9 @@
         "nsfwMature": "Mature Content",
         "nsfwR": "R-rated Content",
         "nsfwX": "X-rated Content",
-        "nsfwXxx": "XXX-rated Content"
+        "nsfwXxx": "XXX-rated Content",
+        "layoutGallery": "Gallery view",
+        "layoutList": "List view"
       },
       "versions": {
         "heading": "Model versions",
@@ -2003,10 +2029,15 @@
           "earlyAccessTooltip": "This version currently requires CivitAI early access",
           "paid": "Paid",
           "paidTooltip": "This version requires payment to download",
+          "priceSaleTooltip": "On sale, normally {list} Buzz",
+          "priceBlueBuzzTooltip": "Can also be paid with Blue Buzz",
+          "freeNow": "Free Now",
+          "freeNowTooltip": "This version no longer requires payment",
           "ignored": "Ignored",
           "ignoredTooltip": "Update notifications are disabled for this version",
           "onSiteOnly": "On-Site Only",
-          "onSiteOnlyTooltip": "This version is only available for on-site generation on CivitAI"
+          "onSiteOnlyTooltip": "This version is only available for on-site generation on CivitAI",
+          "earlyAccessTooltipUntil": "Early access until {date}, free to download after that"
         },
         "actions": {
           "download": "Download",

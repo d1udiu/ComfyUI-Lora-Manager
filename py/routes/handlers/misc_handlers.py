@@ -48,6 +48,7 @@ from ...services.cache_health_monitor import CacheHealthMonitor, CacheHealthStat
 from ...services.use_cases.sidecar_migration_use_case import SidecarMigrationUseCase
 from ...services.websocket_progress_callback import WebSocketBroadcastCallback
 from ...utils.models import BaseModelMetadata
+from ...utils.civitai_utils import build_civitai_model_page_url
 from ...utils.constants import (
     CIVITAI_USER_MODEL_TYPES,
     DEFAULT_NODE_COLOR,
@@ -1807,6 +1808,7 @@ class SettingsHandler:
                 if key in (
                     "enable_metadata_archive_db",
                     "enable_civarchive_api",
+                    "enable_openmodeldb_api",
                     "metadata_provider_order",
                 ):
                     await self._metadata_provider_updater()

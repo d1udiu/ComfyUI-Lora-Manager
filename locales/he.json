@@ -73,7 +73,8 @@
                 "lessThanMinute": "נותרה פחות מדקה",
                 "minutes": "נותרו ~{minutes} דקות",
                 "hours": "נותרו ~{hours} שעות ו-{minutes} דקות"
-            }
+            },
+            "walkFiles": "{count} קבצים"
         }
     },
     "onboarding": {
@@ -201,7 +202,11 @@
             "loading": "בודק עדכונים עבור {type}...",
             "success": "נמצאו {count} עדכונים עבור {type}",
             "none": "כל ה-{type} מעודכנים",
-            "error": "נכשל בבדיקת העדכונים עבור {type}: {message}"
+            "error": "נכשל בבדיקת העדכונים עבור {type}: {message}",
+            "gateEvents": {
+                "becameFree": "{count} גרסאות שאין לך הפכו לחינמיות",
+                "newGate": "{count} גרסאות דורשות כעת תשלום"
+            }
         },
         "cleanupExampleImages": {
             "label": "נקה תיקיות תמונות דוגמה",
@@ -251,7 +256,6 @@
                 "modelname": "שם מודל",
                 "tags": "תגיות",
                 "creator": "יוצר",
-                "hash": "hash",
                 "title": "כותרת מתכון",
                 "loraName": "שם קובץ LoRA",
                 "loraModel": "שם מודל LoRA",
@@ -388,6 +392,7 @@
             "downloadPathTemplates": "תבניות נתיב הורדה",
             "priorityTags": "תגיות עדיפות",
             "versionScope": "תגי עדכון",
+            "priceTracking": "מחירי הורדה ב-Buzz",
             "exampleImages": "תמונות דוגמה",
             "autoOrganize": "ארגון אוטומטי",
             "metadata": "מטא-נתונים",
@@ -526,6 +531,12 @@
                 "hover": "חשוף בריחוף"
             },
             "cardInfoDisplayHelp": "בחר מתי להציג מידע על המודל וכפתורי פעולה",
+            "showcaseLayout": "פריסת תמונות דוגמה",
+            "showcaseLayoutHelp": "בחר כיצד יוצגו תמונות הדוגמה בחלון המודל: גלריה המציגה תמונה אחת בכל פעם או הרשימה האנכית הקלאסית.",
+            "showcaseLayoutOptions": {
+                "gallery": "גלריה",
+                "vertical": "רשימה אנכית"
+            },
             "showVersionOnCard": "הצג גרסה בכרטיס",
             "showVersionOnCardHelp": "הצג או הסתר את שם הגרסה בכרטיסי המודל",
             "modelCardFooterAction": "פעולת כפתור כרטיס מודל",
@@ -754,6 +765,13 @@
             "label": "הסתר עדכונים בתשלום",
             "help": "כשאפשרות זו מופעלת, מודלים עם עדכונים בתשלום בלבד לא יציגו את תגית 'עדכון זמין'"
         },
+        "priceTracking": {
+            "help": "ה-API הציבורי של CivitAI אינו מפרסם מחירי הורדה, ולכן הם נקראים מדף המודל - בקשה נוספת אחת לכל מודל בתשלום, ברענון לפי המרווח שלמטה. המחירים מוצגים רק בגרסאות שאין לך עדיין.",
+            "enabled": "הצג מחירי הורדה של גרסאות בתשלום",
+            "enabledHelp": "קורא את מחיר ההורדה מדף המודל כדי להציג כמה עולות גרסאות בתשלום וגרסאות בגישה מוקדמת, ומתי מסתיימת הגישה המוקדמת",
+            "refreshHours": "מרווח רענון המחירים (שעות)",
+            "refreshHoursHelp": "כמה זמן מחיר שמור נחשב מעודכן לפני קריאה חוזרת"
+        },
         "licenseIcons": {
             "useNewStyle": "השתמש בסמלי רישיון מעודכנים",
             "useNewStyleHelp": "הצג הרשאות רישיון עם מחוונים צבעוניים (סגנון חדש) או סמלי הגבלה בלבד (סגנון קלאסי). משקף את העיצוב העדכני של CivitAI."
@@ -793,6 +811,8 @@
             "downloadComplete": "ההורדה הושלמה בהצלחה",
             "enableCivarchiveApi": "הפעל את CivArchive API כספק מטא-נתונים",
             "enableCivarchiveApiHelp": "כאשר מופעל, CivArchive API משמש כמקור גיבוי למטא-נתונים של מודלים (למשל עבור מודלים שנמחקו מ-CivitAI). כבה כדי להימנע לחלוטין ממגבלות הקצב של CivArchive.",
+            "enableOpenmodeldbApi": "הפעל את OpenModelDB כספק מטא-נתונים",
+            "enableOpenmodeldbApiHelp": "כאשר מופעל, מטא-נתונים של Upscaler מחופשים גם בקטלוג OpenModelDB (openmodeldb.info) כאשר ל-CivitAI אין רשומה. הקטלוג נשמר במטמון מקומי ומתרענן מדי יום.",
             "providerOrder": "סדר ספקי מטא-נתונים לגיבוי",
             "providerOrderHelp": "CivitAI API תמיד מנוסה ראשון. בחר את סדר הספקים הנותרים בעת חיפוש מטא-נתונים.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
@@ -1837,6 +1857,8 @@
                 "sendToWorkflow": "שלח ל-ComfyUI",
                 "sendToWorkflowText": "שלח ל-ComfyUI",
                 "copyHash": "העתק hash",
+                "copyCivitaiId": "העתק מזהה Civitai",
+                "civitaiIdCopied": "מזהה Civitai הועתק ללוח העריכה",
                 "deleteModelWithShortcut": "מחק מודל (Del)"
             },
             "openFileLocation": {
@@ -1855,6 +1877,8 @@
                 "baseModel": "מודל בסיס",
                 "size": "גודל",
                 "hashes": "hashes",
+                "civitaiModelId": "מזהה מודל",
+                "civitaiVersionId": "מזהה גרסה",
                 "unknown": "לא ידוע",
                 "usageTips": "טיפים לשימוש",
                 "additionalNotes": "הערות נוספות",
@@ -1972,7 +1996,9 @@
                 "nsfwMature": "תוכן למבוגרים",
                 "nsfwR": "תוכן בדירוג R",
                 "nsfwX": "תוכן בדירוג X",
-                "nsfwXxx": "תוכן בדירוג XXX"
+                "nsfwXxx": "תוכן בדירוג XXX",
+                "layoutGallery": "תצוגת גלריה",
+                "layoutList": "תצוגת רשימה"
             },
             "versions": {
                 "heading": "גרסאות המודל",
@@ -2003,10 +2029,15 @@
                     "earlyAccessTooltip": "גרסה זו דורשת כרגע גישת Early Access של CivitAI",
                     "paid": "בתשלום",
                     "paidTooltip": "גרסה זו דורשת תשלום כדי להוריד",
+                    "priceSaleTooltip": "במבצע, בדרך כלל {list} Buzz",
+                    "priceBlueBuzzTooltip": "ניתן לשלם גם ב-Blue Buzz",
+                    "freeNow": "חינם כעת",
+                    "freeNowTooltip": "גרסה זו אינה דורשת עוד תשלום",
                     "ignored": "התעלם",
                     "ignoredTooltip": "התראות העדכון מושבתות עבור גרסה זו",
                     "onSiteOnly": "רק באתר",
-                    "onSiteOnlyTooltip": "גרסה זו זמינה רק ליצירה באתר CivitAI"
+                    "onSiteOnlyTooltip": "גרסה זו זמינה רק ליצירה באתר CivitAI",
+                    "earlyAccessTooltipUntil": "גישה מוקדמת עד {date}, לאחר מכן ההורדה חינם"
                 },
                 "actions": {
                     "download": "הורדה",

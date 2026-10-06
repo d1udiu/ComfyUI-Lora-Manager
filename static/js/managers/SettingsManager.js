@@ -1116,6 +1116,12 @@ export class SettingsManager {
             cardInfoDisplaySelect.value = state.global.settings.card_info_display || 'always';
         }
 
+        // Set showcase layout setting
+        const showcaseLayoutSelect = document.getElementById('showcaseLayout');
+        if (showcaseLayoutSelect) {
+            showcaseLayoutSelect.value = state.global.settings.showcase_layout || 'gallery';
+        }
+
         // Set model card footer action
         const modelCardFooterActionSelect = document.getElementById('modelCardFooterAction');
         if (modelCardFooterActionSelect) {
@@ -1161,6 +1167,17 @@ export class SettingsManager {
         const hidePaidUpdatesCheckbox = document.getElementById('hidePaidUpdates');
         if (hidePaidUpdatesCheckbox) {
             hidePaidUpdatesCheckbox.checked = state.global.settings.hide_paid_updates || false;
+        }
+
+        // Set buzz price tracking settings
+        const priceTrackingEnabledCheckbox = document.getElementById('priceTrackingEnabled');
+        if (priceTrackingEnabledCheckbox) {
+            priceTrackingEnabledCheckbox.checked = state.global.settings.price_tracking_enabled || false;
+        }
+
+        const priceCheckTtlInput = document.getElementById('priceCheckTtlHours');
+        if (priceCheckTtlInput) {
+            priceCheckTtlInput.value = state.global.settings.price_check_ttl_hours ?? 24;
         }
 
         const skipPreviouslyDownloadedModelVersionsCheckbox = document.getElementById('skipPreviouslyDownloadedModelVersions');
@@ -3709,6 +3726,11 @@ export class SettingsManager {
             const enableCivarchiveApiCheckbox = document.getElementById('enableCivarchiveApi');
             if (enableCivarchiveApiCheckbox) {
                 enableCivarchiveApiCheckbox.checked = state.global.settings.enable_civarchive_api ?? true;
+            }
+
+            const enableOpenmodeldbApiCheckbox = document.getElementById('enableOpenmodeldbApi');
+            if (enableOpenmodeldbApiCheckbox) {
+                enableOpenmodeldbApiCheckbox.checked = state.global.settings.enable_openmodeldb_api ?? true;
             }
 
             const metadataProviderOrderSelect = document.getElementById('metadataProviderOrder');

@@ -73,7 +73,8 @@
                 "lessThanMinute": "Weniger als eine Minute verbleibend",
                 "minutes": "~{minutes} Min. verbleibend",
                 "hours": "~{hours} Std. {minutes} Min. verbleibend"
-            }
+            },
+            "walkFiles": "{count} Dateien"
         }
     },
     "onboarding": {
@@ -201,7 +202,11 @@
             "loading": "Prüfe auf {type}-Updates...",
             "success": "{count} Update(s) für {type} gefunden",
             "none": "Alle {type} sind auf dem neuesten Stand",
-            "error": "Fehler beim Prüfen auf {type}-Updates: {message}"
+            "error": "Fehler beim Prüfen auf {type}-Updates: {message}",
+            "gateEvents": {
+                "becameFree": "{count} Version(en), die Sie nicht besitzen, sind jetzt kostenlos",
+                "newGate": "{count} Version(en) sind jetzt kostenpflichtig"
+            }
         },
         "cleanupExampleImages": {
             "label": "Beispielbild-Ordner bereinigen",
@@ -251,7 +256,6 @@
                 "modelname": "Modellname",
                 "tags": "Tags",
                 "creator": "Ersteller",
-                "hash": "Hash",
                 "title": "Rezept-Titel",
                 "loraName": "LoRA-Dateiname",
                 "loraModel": "LoRA-Modellname",
@@ -388,6 +392,7 @@
             "downloadPathTemplates": "Download-Pfad-Vorlagen",
             "priorityTags": "Prioritäts-Tags",
             "versionScope": "Update-Markierungen",
+            "priceTracking": "Buzz-Downloadpreise",
             "exampleImages": "Beispielbilder",
             "autoOrganize": "Auto-Organisierung",
             "metadata": "Metadaten",
@@ -526,6 +531,12 @@
                 "hover": "Bei Hover anzeigen"
             },
             "cardInfoDisplayHelp": "Wählen Sie, wann Modellinformationen und Aktionsschaltflächen angezeigt werden sollen",
+            "showcaseLayout": "Beispielbilder-Layout",
+            "showcaseLayoutHelp": "Wählen Sie, wie Beispielbilder im Modell-Dialog angezeigt werden: eine Galerie mit jeweils einem Bild oder die klassische vertikale Liste.",
+            "showcaseLayoutOptions": {
+                "gallery": "Galerie",
+                "vertical": "Vertikale Liste"
+            },
             "showVersionOnCard": "Version auf Karte anzeigen",
             "showVersionOnCardHelp": "Den Versionsnamen auf Modellkarten ein- oder ausblenden",
             "modelCardFooterAction": "Aktion der Modellkarten-Schaltfläche",
@@ -754,6 +765,13 @@
             "label": "Bezahlte Updates ausblenden",
             "help": "Wenn aktiviert, zeigen Modelle mit nur bezahlten Updates kein 'Update verfügbar'-Badge an"
         },
+        "priceTracking": {
+            "help": "Die öffentliche API von CivitAI veröffentlicht keine Downloadpreise, daher werden sie von der Modellseite gelesen - eine zusätzliche Anfrage pro bezahltem Modell, aktualisiert im unten stehenden Intervall. Preise werden nur bei Versionen angezeigt, die Sie noch nicht haben.",
+            "enabled": "Downloadpreise für bezahlte Versionen anzeigen",
+            "enabledHelp": "Liest den Downloadpreis von der Modellseite, damit bezahlte Versionen und Versionen mit frühem Zugriff ihren Preis und das Ende des frühen Zugriffs zeigen",
+            "refreshHours": "Aktualisierungsintervall für Preise (Stunden)",
+            "refreshHoursHelp": "Wie lange ein gespeicherter Preis gültig bleibt, bevor er erneut gelesen wird"
+        },
         "licenseIcons": {
             "useNewStyle": "Aktualisierte Lizenzsymbole verwenden",
             "useNewStyleHelp": "Lizenzberechtigungen mit farbigen Indikatoren (neuer Stil) oder nur Einschränkungssymbolen (klassischer Stil) anzeigen. Orientiert sich am aktuellen CivitAI-Design."
@@ -793,6 +811,8 @@
             "downloadComplete": "Download erfolgreich abgeschlossen",
             "enableCivarchiveApi": "CivArchive API als Metadaten-Anbieter aktivieren",
             "enableCivarchiveApiHelp": "Wenn aktiviert, wird die CivArchive API als alternative Quelle für Modell-Metadaten verwendet (z. B. für von CivitAI gelöschte Modelle). Deaktivieren, um die Ratenbegrenzungen von CivArchive vollständig zu vermeiden.",
+            "enableOpenmodeldbApi": "OpenModelDB als Metadaten-Anbieter aktivieren",
+            "enableOpenmodeldbApiHelp": "Wenn aktiviert, werden Upscaler-Metadaten zusätzlich im OpenModelDB-Katalog (openmodeldb.info) nachgeschlagen, wenn CivitAI keinen Eintrag hat. Der Katalog wird lokal zwischengespeichert und täglich aktualisiert.",
             "providerOrder": "Reihenfolge der Metadaten-Anbieter",
             "providerOrderHelp": "Die CivitAI API wird immer zuerst versucht. Wählen Sie die Reihenfolge der übrigen Anbieter bei der Metadatensuche.",
             "providerOrderCivitaiArchiveSqlite": "CivitAI → CivArchive → Archive DB",
@@ -1837,6 +1857,8 @@
                 "sendToWorkflow": "An ComfyUI senden",
                 "sendToWorkflowText": "An ComfyUI senden",
                 "copyHash": "Hash kopieren",
+                "copyCivitaiId": "Civitai-ID kopieren",
+                "civitaiIdCopied": "Civitai-ID in die Zwischenablage kopiert",
                 "deleteModelWithShortcut": "Modell löschen (Del)"
             },
             "openFileLocation": {
@@ -1855,6 +1877,8 @@
                 "baseModel": "Basismodell",
                 "size": "Größe",
                 "hashes": "Hashes",
+                "civitaiModelId": "Modell-ID",
+                "civitaiVersionId": "Versions-ID",
                 "unknown": "Unbekannt",
                 "usageTips": "Nutzungstipps",
                 "additionalNotes": "Zusätzliche Notizen",
@@ -1972,7 +1996,9 @@
                 "nsfwMature": "Nicht jugendfreie Inhalte",
                 "nsfwR": "Inhalte ab 18 (R)",
                 "nsfwX": "Inhalte mit X-Einstufung",
-                "nsfwXxx": "Inhalte mit XXX-Einstufung"
+                "nsfwXxx": "Inhalte mit XXX-Einstufung",
+                "layoutGallery": "Galerieansicht",
+                "layoutList": "Listenansicht"
             },
             "versions": {
                 "heading": "Modellversionen",
@@ -2003,10 +2029,15 @@
                     "earlyAccessTooltip": "Für diese Version ist derzeit CivitAI Early Access erforderlich",
                     "paid": "Bezahlt",
                     "paidTooltip": "Diese Version erfordert eine Zahlung zum Herunterladen",
+                    "priceSaleTooltip": "Im Angebot, normalerweise {list} Buzz",
+                    "priceBlueBuzzTooltip": "Kann auch mit Blue Buzz bezahlt werden",
+                    "freeNow": "Jetzt kostenlos",
+                    "freeNowTooltip": "Diese Version erfordert keine Zahlung mehr",
                     "ignored": "Ignoriert",
                     "ignoredTooltip": "Für diese Version sind Update-Benachrichtigungen deaktiviert",
                     "onSiteOnly": "Nur On-Site",
-                    "onSiteOnlyTooltip": "Diese Version ist nur für die On-Site-Generierung auf CivitAI verfügbar"
+                    "onSiteOnlyTooltip": "Diese Version ist nur für die On-Site-Generierung auf CivitAI verfügbar",
+                    "earlyAccessTooltipUntil": "Früher Zugriff bis {date}, danach kostenlos zum Herunterladen"
                 },
                 "actions": {
                     "download": "Herunterladen",
