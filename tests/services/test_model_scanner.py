@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import shutil
 import sqlite3
 import threading
 import time
@@ -19,9 +20,11 @@ from py.services.model_hash_index import ModelHashIndex
 from py.services.model_scanner import (
     CacheBuildResult,
     ModelScanner,
+    ReconcileScope,
     _ReconcileWalkTracker,
     _count_cached_entries_per_root,
     _group_roots_by_device,
+    _root_display_labels,
 )
 from py.services.pending_delete_service import (
     PENDING_DELETE_DIR_NAME,
@@ -144,6 +147,17 @@ def _stub_service_registry_getters(monkeypatch) -> None:
     monkeypatch.setattr(ServiceRegistry, "get_lora_scanner", _none)
     monkeypatch.setattr(ServiceRegistry, "get_checkpoint_scanner", _none)
     monkeypatch.setattr(ServiceRegistry, "get_embedding_scanner", _none)
+
+
+class TwoRootScanner(DummyScanner):
+    """Scanner whose library spans two roots (primary + extra folder paths)."""
+
+    def __init__(self, primary: Path, extra: Path):
+        super().__init__(primary)
+        self._extra_root = str(extra)
+
+    def get_model_roots(self) -> List[str]:
+        return [self._root, self._extra_root]
 
 
 def _create_files(root: Path) -> tuple[Path, Path, Path]:
@@ -1568,12 +1582,16 @@ async def test_add_known_folder_ignores_empty_input(tmp_path: Path):
 @pytest.mark.asyncio
 async def test_remove_known_folder_drops_subtree_and_keeps_ancestors(tmp_path: Path):
     _create_files(tmp_path)
+    (tmp_path / "nested" / "deep" / "leaf").mkdir(parents=True)
     scanner = DummyScanner(tmp_path)
     await scanner._initialize_cache()
     cache = await scanner.get_cached_data()
     await scanner.add_known_folder("nested/deep/leaf")
+    assert "nested/deep" in cache.all_folders
 
-    await scanner.remove_known_folder("nested/deep")
+    # The delete the call reports has happened on disk.
+    shutil.rmtree(tmp_path / "nested" / "deep")
+    await scanner.remove_known_folder("nested/deep", str(tmp_path / "nested" / "deep"))
 
     assert "nested/deep" not in cache.all_folders
     assert "nested/deep/leaf" not in cache.all_folders
@@ -1589,13 +1607,110 @@ async def test_remove_known_folder_purges_stale_cache_entries(tmp_path: Path):
     cache = await scanner.get_cached_data()
     assert "nested" in cache.folders
 
-    await scanner.remove_known_folder("nested")
+    shutil.rmtree(tmp_path / "nested")
+    await scanner.remove_known_folder("nested", str(tmp_path / "nested"))
 
     assert "nested" not in cache.all_folders
     assert "nested" not in cache.folders
     assert _normalize_path(second) not in {
         item["file_path"] for item in cache.raw_data
     }
+
+
+@pytest.mark.asyncio
+async def test_remove_known_folder_legacy_call_prunes_the_entry_and_over_purges(
+    tmp_path: Path,
+):
+    # Callers that only know the relative folder keep the old purge behaviour:
+    # it matches by folder name, so a surviving twin in another root loses its
+    # model cards until the next scan. That is exactly why the delete flow hands
+    # over the removed directory's absolute path.
+    primary = tmp_path / "primary"
+    extra = tmp_path / "extra"
+    (primary / "shared").mkdir(parents=True)
+    (extra / "shared").mkdir(parents=True)
+    twin_model = extra / "shared" / "twin.txt"
+    twin_model.write_text("twin", encoding="utf-8")
+
+    scanner = TwoRootScanner(primary, extra)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    (primary / "shared").rmdir()
+
+    await scanner.remove_known_folder("shared")
+
+    # The entry itself is disk-verified even on this path: the twin keeps it.
+    assert "shared" in cache.all_folders
+    # ... while the purge, lacking a path, cannot tell the copies apart.
+    assert _normalize_path(twin_model) not in {
+        item["file_path"] for item in cache.raw_data
+    }
+
+
+@pytest.mark.asyncio
+async def test_remove_known_folder_keeps_a_twin_another_root_still_holds(tmp_path: Path):
+    primary = tmp_path / "primary"
+    extra = tmp_path / "extra"
+    (primary / "test").mkdir(parents=True)
+    (extra / "test").mkdir(parents=True)
+    scanner = TwoRootScanner(primary, extra)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    assert "test" in cache.all_folders
+
+    # The user deleted the primary copy through the sidebar.
+    (primary / "test").rmdir()
+    await scanner.remove_known_folder("test", str(primary / "test"))
+
+    # The merged folder list is a union: the node stays while any root holds it,
+    # so it can no longer vanish and reappear on the next scan.
+    assert "test" in cache.all_folders
+
+
+@pytest.mark.asyncio
+async def test_remove_known_folder_drops_the_entry_once_no_root_holds_it(tmp_path: Path):
+    primary = tmp_path / "primary"
+    extra = tmp_path / "extra"
+    (primary / "test").mkdir(parents=True)
+    (extra / "test").mkdir(parents=True)
+    scanner = TwoRootScanner(primary, extra)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    assert "test" in cache.all_folders
+
+    (primary / "test").rmdir()
+    (extra / "test").rmdir()
+    await scanner.remove_known_folder("test", str(primary / "test"))
+
+    assert "test" not in cache.all_folders
+
+
+@pytest.mark.asyncio
+async def test_remove_known_folder_purges_only_the_deleted_root_cards(tmp_path: Path):
+    primary = tmp_path / "primary"
+    extra = tmp_path / "extra"
+    (primary / "shared").mkdir(parents=True)
+    (extra / "shared").mkdir(parents=True)
+    twin_model = extra / "shared" / "twin.txt"
+    twin_model.write_text("twin", encoding="utf-8")
+
+    scanner = TwoRootScanner(primary, extra)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    assert _normalize_path(twin_model) in {
+        item["file_path"] for item in cache.raw_data
+    }
+
+    # Empty copy in the primary root goes away.
+    (primary / "shared").rmdir()
+    await scanner.remove_known_folder("shared", str(primary / "shared"))
+
+    # Purging by the removed directory, not by its relative name: the twin's
+    # model card must survive in the other root.
+    assert _normalize_path(twin_model) in {
+        item["file_path"] for item in cache.raw_data
+    }
+    assert "shared" in cache.folders
 
 
 @pytest.mark.asyncio
@@ -1625,6 +1740,41 @@ async def test_remove_known_folder_ignores_empty_input(tmp_path: Path):
     await scanner.remove_known_folder("/")
 
     assert cache.all_folders == before
+
+
+@pytest.mark.asyncio
+async def test_rename_known_folder_keeps_a_twin_in_another_root(tmp_path: Path):
+    primary = tmp_path / "primary"
+    extra = tmp_path / "extra"
+    (primary / "characters").mkdir(parents=True)
+    (extra / "characters").mkdir(parents=True)
+    twin_model = extra / "characters" / "twin.txt"
+    twin_model.write_text("twin", encoding="utf-8")
+
+    scanner = TwoRootScanner(primary, extra)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    twin_entry = next(
+        item for item in cache.raw_data
+        if item["file_path"] == _normalize_path(twin_model)
+    )
+
+    old_abs = _normalize_path(primary / "characters")
+    new_abs = _normalize_path(primary / "anime")
+    os.rename(primary / "characters", primary / "anime")
+
+    await scanner.rename_known_folder(
+        "characters", "anime", previous_path=old_abs, new_path=new_abs
+    )
+
+    # The renamed root contributes the new name; the other root still owns the
+    # old one, so both stay in the merged list.
+    assert "anime" in cache.all_folders
+    assert "characters" in cache.all_folders
+    # And the twin's records are untouched: its files never moved.
+    assert twin_entry["folder"] == "characters"
+    assert twin_entry["file_path"] == _normalize_path(twin_model)
+    assert "characters" in cache.folders
 
 
 @pytest.mark.asyncio
@@ -2331,10 +2481,9 @@ async def test_reconcile_walk_broadcasts_per_root_progress(tmp_path: Path, monke
 
 
 @pytest.mark.asyncio
-async def test_reconcile_prunes_entries_of_an_offline_root(tmp_path: Path):
-    """A root that is gone (drive switched off) is skipped by the walk, so its
-    cached entries are reported as missing. Locked in because it is the
-    documented consequence of refreshing with a drive powered down."""
+async def test_reconcile_keeps_entries_of_an_offline_root(tmp_path: Path):
+    """A configured root that is gone (drive switched off) must not be treated
+    as deleted: its entries are kept and reported as unreachable instead."""
     root_a = tmp_path / "a"
     root_b = tmp_path / "b"
     root_a.mkdir()
@@ -2350,9 +2499,453 @@ async def test_reconcile_prunes_entries_of_an_offline_root(tmp_path: Path):
 
     root_b.rename(tmp_path / "b_offline")
 
-    await scanner._reconcile_cache()
+    summary = await scanner._reconcile_cache()
 
     remaining = {item["file_path"] for item in scanner._cache.raw_data}
-    assert remaining == {_normalize_path(file_a)}
-    assert scanner._hash_index.get_path("hash-b0") is None
+    assert remaining == {_normalize_path(file_a), _normalize_path(file_b)}
+    assert scanner._hash_index.get_path("hash-b0") == _normalize_path(file_b)
     assert scanner._hash_index.get_path("hash-a0") == _normalize_path(file_a)
+
+    assert summary is not None
+    assert summary["removed"] == 0
+    assert summary["kept_unreachable"] == 1
+    assert summary["unavailable_paths_total"] == 1
+    assert [entry["path"] for entry in summary["unavailable_paths"]] == [
+        _normalize_path(root_b)
+    ]
+    assert summary["unavailable_paths"][0]["reason"] == "root_unreachable"
+    assert [entry["path"] for entry in summary["skipped_roots"]] == [
+        _normalize_path(root_b)
+    ]
+
+
+# --- scoped scans (issue #1108) --------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_reconcile_scoped_scan_leaves_other_roots_untouched(tmp_path: Path):
+    """Scanning one root must not add, remove or re-read anything in another."""
+    root_a = tmp_path / "a"
+    root_b = tmp_path / "b"
+    root_a.mkdir()
+    root_b.mkdir()
+    (root_a / "a0.txt").write_text("a", encoding="utf-8")
+    (root_b / "b0.txt").write_text("b", encoding="utf-8")
+
+    scanner = MultiRootDummyScanner([root_a, root_b])
+    await scanner._initialize_cache()
+
+    # Changes in B stay invisible while only A is scanned.
+    (root_b / "b0.txt").unlink()
+    (root_b / "b_new.txt").write_text("new", encoding="utf-8")
+    new_a = root_a / "a_new.txt"
+    new_a.write_text("new", encoding="utf-8")
+
+    summary = await scanner._reconcile_cache(scope=ReconcileScope(roots=(str(root_a),)))
+
+    assert summary is not None
+    assert summary["added"] == 1
+    assert summary["removed"] == 0
+    assert summary["scanned_roots"] == ["a"]
+
+    cached_paths = {item["file_path"] for item in scanner._cache.raw_data}
+    assert cached_paths == {
+        _normalize_path(root_a / "a0.txt"),
+        _normalize_path(new_a),
+        _normalize_path(root_b / "b0.txt"),
+    }
+
+
+@pytest.mark.asyncio
+async def test_reconcile_scoped_scan_removes_deleted_files_in_scope(tmp_path: Path):
+    """Deletions inside the scanned root still reconcile normally."""
+    root_a = tmp_path / "a"
+    root_b = tmp_path / "b"
+    root_a.mkdir()
+    root_b.mkdir()
+    deleted_a = root_a / "a0.txt"
+    deleted_a.write_text("a", encoding="utf-8")
+    (root_b / "b0.txt").write_text("b", encoding="utf-8")
+
+    scanner = MultiRootDummyScanner([root_a, root_b])
+    await scanner._initialize_cache()
+
+    deleted_a.unlink()
+
+    summary = await scanner._reconcile_cache(scope=ReconcileScope(roots=(str(root_a),)))
+
+    assert summary is not None
+    assert summary["removed"] == 1
+    assert scanner._hash_index.get_path("hash-a0") is None
+    assert {item["file_path"] for item in scanner._cache.raw_data} == {
+        _normalize_path(root_b / "b0.txt")
+    }
+
+
+@pytest.mark.asyncio
+async def test_reconcile_folder_scope_keeps_folder_tree_outside_scope(tmp_path: Path):
+    """A folder-scoped scan must not collapse the recorded folder list to the
+    scanned subtree (the sidebar would lose every other folder)."""
+    root = tmp_path / "loras"
+    (root / "alpha").mkdir(parents=True)
+    (root / "beta").mkdir()
+    (root / "alpha" / "m.txt").write_text("m", encoding="utf-8")
+
+    scanner = DummyScanner(root)
+    await scanner._initialize_cache()
+    folders_before = set(scanner._cache.all_folders or [])
+    assert "beta" in folders_before
+
+    (root / "alpha" / "nested").mkdir()
+    (root / "alpha" / "m.txt").unlink()
+
+    summary = await scanner._reconcile_cache(scope=ReconcileScope(folder="alpha"))
+
+    assert summary is not None
+    assert summary["removed"] == 1
+    folders_after = set(scanner._cache.all_folders or [])
+    assert "beta" in folders_after
+    assert "alpha/nested" in folders_after
+    assert {item["file_path"] for item in scanner._cache.raw_data} == set()
+
+
+@pytest.mark.asyncio
+async def test_reconcile_folder_scope_covers_every_root_holding_it(tmp_path: Path):
+    """The sidebar's unified tree has no root identity: a folder scope means
+    "this relative folder under every root that holds it"."""
+    primary = tmp_path / "primary"
+    usb = tmp_path / "usb"
+    for root in (primary, usb):
+        (root / "pack").mkdir(parents=True)
+        (root / "other").mkdir()
+        (root / "other" / "keep.txt").write_text("k", encoding="utf-8")
+    (primary / "pack" / "a.txt").write_text("a", encoding="utf-8")
+    (usb / "pack" / "b.txt").write_text("b", encoding="utf-8")
+    # Only the primary root holds this folder; the usb copy is gone.
+    (primary / "only-primary").mkdir()
+    (primary / "only-primary" / "c.txt").write_text("c", encoding="utf-8")
+    (usb / "only-primary").mkdir()
+
+    scanner = MultiRootDummyScanner([primary, usb])
+    await scanner._initialize_cache()
+
+    (usb / "pack" / "b.txt").unlink()
+    (primary / "only-primary" / "c.txt").unlink()
+    (primary / "pack" / "new.txt").write_text("n", encoding="utf-8")
+
+    summary = await scanner._reconcile_cache(scope=ReconcileScope(folder="pack"))
+
+    assert summary is not None
+    assert summary["scope_label"] == "pack"
+    assert summary["added"] == 1
+    assert summary["removed"] == 1
+    paths = {item["file_path"] for item in scanner._cache.raw_data}
+    # Both copies of the scoped folder were walked...
+    assert _normalize_path(primary / "pack" / "new.txt") in paths
+    assert _normalize_path(usb / "pack" / "b.txt") not in paths
+    # ...and nothing outside it was touched, including the folder that only one
+    # root holds.
+    assert _normalize_path(usb / "other" / "keep.txt") in paths
+    assert _normalize_path(primary / "only-primary" / "c.txt") in paths
+
+
+async def _startup_filtered_scanner(tmp_path: Path, monkeypatch, configured_missing: Path):
+    """Scanner whose live root list lacks a root that the config still holds.
+
+    Models the startup case: the directory did not exist when the live list was
+    built (drive switched off), so `Config` filtered it out while its cached
+    entries are still there.
+    """
+    primary = tmp_path / "primary"
+    (primary / "pack").mkdir(parents=True)
+    (primary / "pack" / "a.txt").write_text("a", encoding="utf-8")
+    configured_missing.mkdir(parents=True)
+    (configured_missing / "pack").mkdir()
+    (configured_missing / "pack" / "b.txt").write_text("b", encoding="utf-8")
+
+    scanner = MultiRootDummyScanner([primary, configured_missing])
+    await scanner._initialize_cache()
+    # The drive goes away before the process starts, as far as the live list is
+    # concerned: keep the roots the filter would have kept.
+    shutil.rmtree(configured_missing)
+    scanner._roots = [str(primary)]
+    monkeypatch.setattr(
+        scanner,
+        "get_configured_model_roots",
+        lambda: [str(primary), str(configured_missing)],
+    )
+    return scanner, primary, configured_missing
+
+
+@pytest.mark.asyncio
+async def test_describe_model_roots_reports_unavailable_configured_root(
+    tmp_path: Path, monkeypatch
+):
+    configured_missing = tmp_path / "drive-Z" / "loras"
+    scanner, primary, missing = await _startup_filtered_scanner(
+        tmp_path, monkeypatch, configured_missing
+    )
+
+    described = scanner.describe_model_roots()
+
+    assert [entry["path"] for entry in described] == [
+        _normalize_path(primary),
+        _normalize_path(missing),
+    ]
+    available, unavailable = described
+    assert available["reachable"] is True
+    assert available["available"] is True
+    # The missing root is reported with its cached count so the refresh menu can
+    # offer it as an offline row instead of hiding it until a restart.
+    assert unavailable["reachable"] is False
+    assert unavailable["available"] is False
+    assert unavailable["models"] == 1
+
+
+@pytest.mark.asyncio
+async def test_reconcile_reports_root_filtered_out_at_startup(tmp_path: Path, monkeypatch):
+    configured_missing = tmp_path / "drive-Z" / "loras"
+    scanner, _primary, missing = await _startup_filtered_scanner(
+        tmp_path, monkeypatch, configured_missing
+    )
+    kept_path = _normalize_path(missing / "pack" / "b.txt")
+
+    summary = await scanner._reconcile_cache()
+
+    assert summary is not None
+    # Nothing is added or removed...
+    assert summary["added"] == 0
+    assert summary["removed"] == 0
+    # ...but the switched-off root is no longer silent: it is reported with the
+    # entries that were kept for it.
+    assert summary["skipped_roots"] == [
+        {
+            "path": _normalize_path(missing),
+            "label": missing.name,
+            "reason": "root_unavailable",
+        }
+    ]
+    assert summary["kept_unreachable"] == 1
+    assert summary["unavailable_paths"] == [
+        {"path": _normalize_path(missing), "reason": "root_unavailable", "kept": 1}
+    ]
+    assert kept_path in {item["file_path"] for item in scanner._cache.raw_data}
+
+
+@pytest.mark.asyncio
+async def test_scoped_scan_stays_quiet_about_filtered_out_roots(tmp_path: Path, monkeypatch):
+    configured_missing = tmp_path / "drive-Z" / "loras"
+    scanner, primary, missing = await _startup_filtered_scanner(
+        tmp_path, monkeypatch, configured_missing
+    )
+
+    summary = await scanner._reconcile_cache(
+        scope=ReconcileScope(roots=(str(primary),))
+    )
+
+    assert summary is not None
+    # The caller asked for one root: a root it did not ask about is not its
+    # business, but its entries are still kept.
+    assert summary["scanned_roots"] == [primary.name]
+    assert "root_unavailable" not in {
+        entry["reason"] for entry in summary["skipped_roots"]
+    }
+    assert _normalize_path(missing / "pack" / "b.txt") in {
+        item["file_path"] for item in scanner._cache.raw_data
+    }
+
+
+@pytest.mark.asyncio
+async def test_reconcile_keeps_entries_under_unreadable_dir(tmp_path: Path, monkeypatch):
+    """A directory os.walk cannot enter (permissions, I/O error, offline
+    junction) keeps its cached entries instead of losing them."""
+    root = tmp_path / "loras"
+    sub = root / "sub"
+    sub.mkdir(parents=True)
+    (sub / "m.txt").write_text("m", encoding="utf-8")
+    (root / "top.txt").write_text("t", encoding="utf-8")
+
+    scanner = DummyScanner(root)
+    await scanner._initialize_cache()
+
+    real_scandir = os.scandir
+
+    def _failing_scandir(path=".", *args, **kwargs):
+        if os.path.normpath(str(path)) == os.path.normpath(str(sub)):
+            raise PermissionError(13, "Permission denied", str(sub))
+        return real_scandir(path, *args, **kwargs)
+
+    monkeypatch.setattr(model_scanner.os, "scandir", _failing_scandir)
+
+    summary = await scanner._reconcile_cache()
+
+    assert summary is not None
+    assert summary["removed"] == 0
+    assert summary["kept_unreachable"] == 1
+    assert summary["unavailable_paths"][0]["reason"] == "unreadable_dir"
+    assert _normalize_path(sub / "m.txt") in {
+        item["file_path"] for item in scanner._cache.raw_data
+    }
+
+
+@pytest.mark.asyncio
+async def test_reconcile_keeps_entries_under_offline_first_level_symlink(
+    tmp_path: Path, monkeypatch
+):
+    """A known first-level symlink whose target is gone protects the entries
+    that live under the link path (the linked drive is switched off)."""
+    root = tmp_path / "loras"
+    linked = root / "linked"
+    linked.mkdir(parents=True)
+    (linked / "m.txt").write_text("m", encoding="utf-8")
+
+    scanner = DummyScanner(root)
+    await scanner._initialize_cache()
+
+    # The linked folder goes away with its drive; config still knows the link.
+    linked.rename(tmp_path / "linked_offline")
+    monkeypatch.setattr(
+        model_scanner.config,
+        "iter_path_mappings",
+        lambda: [(str(tmp_path / "gone_target"), str(linked))],
+    )
+
+    summary = await scanner._reconcile_cache()
+
+    assert summary is not None
+    assert summary["removed"] == 0
+    assert summary["kept_unreachable"] == 1
+    assert summary["unavailable_paths"][0]["reason"] == "symlink_target_offline"
+    assert _normalize_path(linked / "m.txt") in {
+        item["file_path"] for item in scanner._cache.raw_data
+    }
+
+
+def test_root_display_labels_dedupe_by_parent_segments(monkeypatch):
+    labels = _root_display_labels(["/mnt/usb/loras", "/mnt/ssd/loras"])
+    assert labels == {"/mnt/usb/loras": "usb/loras", "/mnt/ssd/loras": "ssd/loras"}
+
+    # Still colliding after one parent segment: keep growing leftwards.
+    labels = _root_display_labels(["/mnt/a/models/loras", "/mnt/b/models/loras"])
+    assert labels == {
+        "/mnt/a/models/loras": "a/models/loras",
+        "/mnt/b/models/loras": "b/models/loras",
+    }
+
+    # A single root keeps the short form.
+    assert _root_display_labels(["/mnt/usb/loras"]) == {"/mnt/usb/loras": "loras"}
+
+    # Windows drive prefixes disambiguate on their own.
+    def _fake_splitdrive(path):
+        for drive in ("G:", "H:"):
+            if path.startswith(drive):
+                return drive, path[len(drive):]
+        return "", path
+
+    monkeypatch.setattr(model_scanner.os.path, "splitdrive", _fake_splitdrive)
+    labels = _root_display_labels(["G:\\x\\loras", "H:\\y\\loras"])
+    assert labels == {"G:\\x\\loras": "G: loras", "H:\\y\\loras": "H: loras"}
+
+    # Identical renderings (trailing separator / duplicated config entry) grow to
+    # the full path and then fall back to a deterministic suffix instead of
+    # silently sharing a label.
+    labels = _root_display_labels(["/mnt/x/loras", "/mnt/x/loras/"])
+    assert labels == {
+        "/mnt/x/loras": "mnt/x/loras (1)",
+        "/mnt/x/loras/": "mnt/x/loras (2)",
+    }
+
+    long_root = "/mnt/" + "d" * 60 + "/loras"
+    label = _root_display_labels([long_root])[long_root]
+    assert len(label) <= 40
+    assert label.endswith("loras")
+
+
+@pytest.mark.asyncio
+async def test_scan_excludes_recipes_dir_from_all_folders(tmp_path: Path, monkeypatch):
+    """The default recipes dir lives under the first lora root; it is a
+    reserved directory and must never appear in the folder tree."""
+    _create_files(tmp_path)
+    recipes = tmp_path / "recipes"
+    (recipes / "sub").mkdir(parents=True)
+    # A stray weight file inside the recipes dir is not indexed either.
+    (recipes / "stray.txt").write_text("stray", encoding="utf-8")
+    monkeypatch.setattr(model_scanner.config, "loras_roots", [str(tmp_path)])
+
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+
+    assert not any("/recipes/" in item["file_path"] for item in cache.raw_data)
+    all_folders = await scanner.get_all_folders()
+    assert "recipes" not in all_folders
+    assert "recipes/sub" not in all_folders
+
+
+@pytest.mark.asyncio
+async def test_all_folders_backfill_excludes_recipes_dir(tmp_path: Path, monkeypatch):
+    _create_files(tmp_path)
+    (tmp_path / "recipes").mkdir()
+    monkeypatch.setattr(model_scanner.config, "loras_roots", [str(tmp_path)])
+
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    cache.all_folders = None
+
+    await scanner.get_all_folders()
+    for _ in range(200):
+        if not scanner._all_folders_backfill_running:
+            break
+        await asyncio.sleep(0.01)
+
+    assert scanner._all_folders_backfill_running is False
+    assert cache.all_folders is not None
+    assert "recipes" not in cache.all_folders
+    assert "nested" in cache.all_folders
+
+
+@pytest.mark.asyncio
+async def test_get_all_folders_filters_recipes_dir_from_legacy_snapshots(
+    tmp_path: Path, monkeypatch
+):
+    """Snapshots persisted before the walk exclusion still carry the recipes
+    dir; readers filter it out until the next scan rewrites the list."""
+    _create_files(tmp_path)
+    monkeypatch.setattr(model_scanner.config, "loras_roots", [str(tmp_path)])
+
+    scanner = DummyScanner(tmp_path)
+    await scanner._initialize_cache()
+    cache = await scanner.get_cached_data()
+    cache.all_folders = sorted(
+        set(cache.all_folders or []) | {"recipes", "recipes/sub"},
+        key=lambda value: value.lower(),
+    )
+
+    all_folders = await scanner.get_all_folders()
+
+    assert "recipes" not in all_folders
+    assert "recipes/sub" not in all_folders
+    assert "nested" in all_folders
+
+
+def test_reconcile_walk_skips_the_recipes_dir(tmp_path: Path, monkeypatch):
+    (tmp_path / "recipes" / "sub").mkdir(parents=True)
+    (tmp_path / "keep").mkdir()
+    monkeypatch.setattr(model_scanner.config, "loras_roots", [str(tmp_path)])
+
+    result = model_scanner._walk_root_for_reconcile(
+        root_path=str(tmp_path),
+        file_extensions={".txt"},
+        cached_paths=set(),
+        path_to_item={},
+        lookups=model_scanner._CachedPathLookups(set()),
+        dir_claims=model_scanner._RealDirClaims(),
+        excluded_models=set(),
+        is_cancelled=lambda: False,
+        report_progress=lambda _files_seen: None,
+    )
+
+    assert "keep" in result.discovered_folders
+    assert "recipes" not in result.discovered_folders
+    assert "recipes/sub" not in result.discovered_folders

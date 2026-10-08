@@ -15,6 +15,7 @@ class FakeScanner:
         self._roots = [str(root) for root in roots]
         self.known_folders: List[str] = []
         self.removed_folders: List[str] = []
+        self.removed_folder_paths: List[str | None] = []
         self.renamed_folders: List[tuple] = []
         self._excluded = list(excluded or [])
 
@@ -27,8 +28,9 @@ class FakeScanner:
     async def add_known_folder(self, folder: str) -> None:
         self.known_folders.append(folder)
 
-    async def remove_known_folder(self, folder: str) -> None:
+    async def remove_known_folder(self, folder: str, absolute_path: str | None = None) -> None:
         self.removed_folders.append(folder)
+        self.removed_folder_paths.append(absolute_path)
 
     async def rename_known_folder(self, previous: str, current: str, **kwargs) -> None:
         self.renamed_folders.append((previous, current, kwargs))
@@ -107,6 +109,114 @@ async def test_create_folder_requires_path(tmp_path: Path):
     assert result["success"] is False
 
 
+def test_resolve_folder_finds_the_directory_under_the_root_that_holds_it(tmp_path: Path):
+    # The reported bug: the tree node lives under the primary root while the
+    # configured default root is the extra one. Resolution must answer with the
+    # directory that exists, not with a path fabricated from the default root.
+    primary = tmp_path / "primary"
+    extra = tmp_path / "extra"
+    primary.mkdir()
+    extra.mkdir()
+    (primary / "recipes").mkdir()
+
+    service = ModelMoveService(FakeScanner([primary, extra]), "lora")
+
+    result = service.resolve_folder("recipes")
+
+    assert result["success"] is True
+    assert result["folder"] == "recipes"
+    assert [Path(candidate["folder_path"]) for candidate in result["candidates"]] == [
+        primary / "recipes"
+    ]
+    assert result["candidates"][0]["root"] == primary.as_posix()
+    assert result["candidates"][0]["is_symlink"] is False
+
+
+def test_resolve_folder_returns_a_candidate_per_root_holding_the_folder(tmp_path: Path):
+    primary = tmp_path / "primary"
+    extra = tmp_path / "extra"
+    (primary / "characters" / "anime").mkdir(parents=True)
+    (extra / "characters" / "anime").mkdir(parents=True)
+
+    service = ModelMoveService(FakeScanner([primary, extra]), "lora")
+
+    result = service.resolve_folder("characters/anime")
+
+    # Order follows the scanner's root order so the caller can prefer the
+    # default root without losing the rest.
+    assert [Path(candidate["folder_path"]) for candidate in result["candidates"]] == [
+        primary / "characters" / "anime",
+        extra / "characters" / "anime",
+    ]
+    assert [candidate["root"] for candidate in result["candidates"]] == [
+        primary.as_posix(),
+        extra.as_posix(),
+    ]
+
+
+def test_resolve_folder_reports_no_candidate_for_a_stale_tree_node(tmp_path: Path):
+    root = tmp_path / "library"
+    root.mkdir()
+
+    service = ModelMoveService(FakeScanner([root]), "lora")
+
+    result = service.resolve_folder("gone")
+
+    assert result["success"] is True
+    assert result["candidates"] == []
+
+
+def test_resolve_folder_flags_symlinked_candidates(tmp_path: Path):
+    root = tmp_path / "library"
+    root.mkdir()
+    real = tmp_path / "real"
+    real.mkdir()
+    try:
+        (root / "linked").symlink_to(real, target_is_directory=True)
+    except (OSError, NotImplementedError):  # pragma: no cover - platform guard
+        pytest.skip("symlinks are not supported on this platform")
+
+    service = ModelMoveService(FakeScanner([root]), "lora")
+
+    result = service.resolve_folder("linked")
+
+    assert result["success"] is True
+    assert result["candidates"][0]["is_symlink"] is True
+
+
+def test_resolve_folder_normalizes_the_relative_path(tmp_path: Path):
+    root = tmp_path / "library"
+    (root / "characters" / "anime").mkdir(parents=True)
+
+    service = ModelMoveService(FakeScanner([root]), "lora")
+
+    result = service.resolve_folder("  characters\\anime/  ")
+
+    assert result["success"] is True
+    assert result["folder"] == "characters/anime"
+    assert len(result["candidates"]) == 1
+
+
+@pytest.mark.parametrize(
+    "folder",
+    ["", "   ", "/library/recipes", "C:/library/recipes", "..", "../outside", "a/../../b"],
+)
+def test_resolve_folder_rejects_paths_outside_the_relative_namespace(
+    tmp_path: Path, folder: str
+):
+    root = tmp_path / "library"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+
+    service = ModelMoveService(FakeScanner([root]), "lora")
+
+    result = service.resolve_folder(folder)
+
+    assert result["success"] is False
+    assert "candidates" not in result
+
+
 def _make_nested(root: Path) -> Path:
     target = root / "characters" / "anime"
     target.mkdir(parents=True)
@@ -127,6 +237,9 @@ async def test_delete_folder_removes_empty_directory_and_forgets_it(tmp_path: Pa
     assert result["restorable"] is True
     assert not target.exists()
     assert scanner.removed_folders == ["characters/anime"]
+    # The scanner purges by the removed directory: the same relative folder may
+    # exist under another root, whose model cards must survive.
+    assert scanner.removed_folder_paths == [str(target)]
 
 
 @pytest.mark.asyncio
@@ -515,3 +628,86 @@ async def test_rename_folder_requires_path(tmp_path: Path):
     result = await service.rename_folder("", "renamed")
 
     assert result["success"] is False
+
+
+@pytest.mark.asyncio
+async def test_delete_folder_refuses_the_recipes_dir(tmp_path: Path, monkeypatch):
+    """The default recipes dir lives in the first lora root and holds no model
+    weight files, so the model_count check alone would let it be wiped."""
+    from py.config import config
+
+    monkeypatch.setattr(config, "loras_roots", [str(tmp_path)])
+    scanner = FakeScanner([tmp_path])
+    service = ModelMoveService(scanner, "lora")
+
+    target = tmp_path / "recipes"
+    target.mkdir()
+    recipe_file = target / "abc123.recipe.json"
+    recipe_file.write_text("{}", encoding="utf-8")
+
+    result = await service.delete_folder(str(target))
+
+    assert result["success"] is False
+    assert result["code"] == "protected"
+    assert recipe_file.exists()
+
+
+@pytest.mark.asyncio
+async def test_delete_folder_refuses_an_ancestor_of_the_recipes_dir(
+    tmp_path: Path, monkeypatch
+):
+    """Deleting a parent of the recipes dir wipes the library just the same."""
+    from py.services.settings_manager import get_settings_manager
+
+    recipes_dir = tmp_path / "data" / "recipes"
+    recipes_dir.mkdir(parents=True)
+    manager = get_settings_manager()
+    monkeypatch.setitem(manager.settings, "recipes_path", str(recipes_dir))
+
+    scanner = FakeScanner([tmp_path])
+    service = ModelMoveService(scanner, "lora")
+
+    result = await service.delete_folder(str(tmp_path / "data"))
+
+    assert result["success"] is False
+    assert result["code"] == "protected"
+    assert recipes_dir.is_dir()
+
+
+@pytest.mark.asyncio
+async def test_delete_folder_allows_normal_folders_next_to_the_recipes_dir(
+    tmp_path: Path, monkeypatch
+):
+    from py.config import config
+
+    monkeypatch.setattr(config, "loras_roots", [str(tmp_path)])
+    (tmp_path / "recipes").mkdir()
+    scanner = FakeScanner([tmp_path])
+    service = ModelMoveService(scanner, "lora")
+
+    target = tmp_path / "recipes_backup"
+    target.mkdir()
+
+    result = await service.delete_folder(str(target))
+
+    assert result["success"] is True
+    assert not target.exists()
+
+
+@pytest.mark.asyncio
+async def test_rename_folder_refuses_the_recipes_dir(tmp_path: Path, monkeypatch):
+    from py.config import config
+
+    monkeypatch.setattr(config, "loras_roots", [str(tmp_path)])
+    scanner = FakeScanner([tmp_path])
+    service = ModelMoveService(scanner, "lora")
+
+    target = tmp_path / "recipes"
+    target.mkdir()
+
+    result = await service.rename_folder(str(target), "recipes2")
+
+    assert result["success"] is False
+    assert result["code"] == "protected"
+    assert target.is_dir()
+    assert scanner.renamed_folders == []

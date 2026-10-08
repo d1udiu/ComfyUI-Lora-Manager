@@ -151,6 +151,21 @@ Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
 > nothing is tracked for alerts). Register follows each file's existing norm: 你 (zh-CN),
 > 您 (zh-TW), Sie (de), tú (es), вы (ru). No remaining `[TODO: Translate]` placeholders.
 
+> **Status (2026-10, scoped scan):** the Refresh dropdown gained a per-root scope section
+> (`loras.controls.refresh.scopeSection` / `.rootOffline` / `.rootModels`) and the scan result
+> toasts (`toast.api.refreshCompleteScoped`, `.refreshKeptUnreachable`, `.scanRootUnreachable`),
+> 6 keys in total, translated in all 9 locales in the same pass (renderings in §2, "Scoped scan
+> and root availability"). The sidebar's folder-level follow-up added 2 more
+> (`sidebar.scanFolder`, `sidebar.scanFolderResult.missing`), translated in a second pass, so the
+> "no remaining placeholders" claim holds again.
+
+> **Status (2026-10, recipes folder protection):** the recipes storage directory (the first
+> lora root's `recipes/` by default) is now excluded from the folder sidebar and refused by the
+> folder delete/rename endpoints, adding 3 keys (`sidebar.deleteFolderModal.protectedTitle` /
+> `.protectedMessage`, `sidebar.folderRoot.protectedStatus`). All 9 locales are translated
+> (terminology in §2, "Folder sidebar feature" — the `recipe library` row), so the "no
+> remaining placeholders" claim holds again.
+
 > **Status (2026-10, reconcile walk progress):** a regular Refresh now reports the reconcile
 > walk per model root (which roots are being checked, how many model files have been seen, and
 > an ETA) and splits the progress bar into walk (0-50 %) and new-file (50-99 %) phases, which
@@ -158,6 +173,27 @@ Locales: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `fr`, `de`, `es`, `ru`, `he` (RTL).
 > (renderings in §2, "Scan progress (walk phase)"), so the "no remaining placeholders" claim
 > holds again. The same pass scoped the client-side ETA to the current stage in
 > `static/js/api/baseModelApi.js`; no other locale string changed.
+
+> **Status (2026-10, multi-root folder resolution):** the folder sidebar used to turn a tree
+> node into a path by prefixing the *default* model root, so a folder living under another root
+> failed to delete ("Folder no longer exists") and a same-named folder in another root could be
+> the one that got hit. Folder operations now resolve a node through the backend
+> (`GET /api/lm/{prefix}/resolve-folder`) and act on the directories that really exist. When
+> several roots hold the folder, the delete modal lists **one checkbox row per copy** — each row
+> carries its own guard verdict, every deletable copy is ticked by default, and a copy that
+> still holds models (or is a symbolic link) is unticked, disabled and explained instead of
+> silently dropped. Deleting a subset leaves the node in the sidebar, because the folder list is
+> a union over the model roots; `deleteFolderModal.keptNote` warns about that before the click.
+> The scanner bookkeeping is root-aware for the same reason: deleting one copy no longer hides
+> the node until the next scan, and no longer purges the model cards of its same-named twin in
+> another root (rename keeps the twin's records untouched too). That added 26 keys —
+> `sidebar.deleteFolderModal.{missingTitle,missingMessage,symlinkTitle,symlinkMessage,confirmMulti,deleting,keptNote}`,
+> `sidebar.deleteFolderResult.{missing,symlink,successMulti,partial}`,
+> `sidebar.renameFolderResult.{missing,symlink}`, the 12 `sidebar.folderRoot.*`
+> chooser/status strings and `sidebar.folderResult.unresolved` — all translated in all 9
+> locales (terminology below). The `en.json` wording was normalized to the established **model
+> root** noun while translating (`library root` → `model root`, R5); the count-bearing
+> `successMulti` uses the singular `success` key when only one copy was removed.
 
 ---
 
@@ -499,6 +535,31 @@ placeholders. The keys carrying `{count}` are `successWithFiles`, `notEmptyMessa
 `notEmptyMessageExcluded` and `notEmptyWithCount`; `notEmptyMessageExcluded` is the only key
 carrying `{excluded}`.
 
+#### Multi-root folder operations (resolution, copies, symlinks)
+
+The sidebar's folder tree is a union over the model roots, so a relative folder can stand for
+several directories at once. Copy is called **copy** (one directory per root), never "version"
+or "instance"; a directory the backend refuses to touch is called out as a **symbolic link**,
+and a per-row verdict reads **no models** when the copy is deletable:
+
+| Term | Rendering |
+|---|---|
+| copy (one directory per root holding the same relative folder) | zh-CN 副本 · zh-TW 副本 · ja コピー · ko 복사본 · fr copie · de Kopie · es copia · ru копия · he עותק |
+| symbolic link | zh-CN 符号链接 · zh-TW 符號連結 · ja シンボリックリンク · ko 심볼릭 링크 · fr lien symbolique · de symbolischer Link · es enlace simbólico · ru символическая ссылка · he קישור סמלי |
+| recipe library (the protected `recipes/` storage dir) | zh-CN 配方库 · zh-TW 配方庫 · ja レシピライブラリ · ko 레시피 라이브러리 · fr bibliothèque de Recipes · de Rezept-Bibliothek · es biblioteca de recetas · ru библиотека рецептов · he ספריית המתכונים — the Recipe noun follows §1-R4 per locale; `protectedStatus` is a row verdict (fragment, no capitalization/period, keeps the locale's `—`/`——` dash style of the sibling `symlinkStatus`) |
+| unchecked (row / note wording) | zh-CN 未勾选 · zh-TW 未勾選 · ja チェックを外した · ko 선택하지 않은 · fr non cochée · de nicht angehakt · es no marcada · ru неотмеченная · he שלא סומן |
+| "no models" (row verdict) | zh-CN 无模型 · zh-TW 無模型 · ja モデルなし · ko 모델 없음 · fr aucun modèle · de keine Modelle · es sin modelos · ru моделей нет · he אין מודלים |
+| model root — plural ("more than one model root", "from {count} model roots") | zh-CN 模型根目录（多个模型根目录）· zh-TW 模型根目錄（多個模型根目錄）· ja モデルルート（複数のモデルルート）· ko 모델 루트（여러 모델 루트）· fr racine de modèle (plusieurs racines de modèle) · de Modell-Stammverzeichnis (mehrere Modell-Stammverzeichnisse) · es raíz de modelo (más de una raíz de modelo) · ru корневая папка моделей (несколько корневых папок моделей) · he שורש מודלים (יותר משורש מודלים אחד) |
+
+`{count}` / `{total}` / `{failed}` / `{excluded}` / `{name}` are verbatim §1-R2 placeholders in
+`deleteFolderModal.confirmMulti`, `deleteFolderResult.successMulti` / `.partial` and
+`folderRoot.notEmptyStatus` / `.notEmptyExcludedStatus`. The row verdicts are **fragments, not
+sentences**: they sit under a path inside the chooser box, so no locale capitalizes them or adds
+a period (`de` keeps its lowercase start, `fr` too). `folderRoot.rootsHint` ends with each
+locale's colon (`：` for CJK, ASCII elsewhere). `partial` reuses the locale's "N of M" shape and
+keeps the `—` before the failed count; `successMulti` keeps the locale's plain
+`deleteFolderResult.success` verb and appends the root count.
+
 ### Settings Organization tab
 
 The settings modal's fourth nav tab groups everything about how files are arranged on
@@ -676,6 +737,30 @@ that form fits a tooltip (ru shortens both toggle labels to bare «Галере�
 | example images | zh-CN 示例图片 · zh-TW 範例圖片 · ja 例画像 · ko 예시 이미지 · fr images d'exemple · de Beispielbilder · es imágenes de ejemplo · ru примеры изображений · he תמונות דוגמה |
 | gallery / vertical list (option labels) | zh-CN 画廊 / 纵向列表 · zh-TW 圖庫 / 垂直清單 · ja ギャラリー / 縦並びリスト · ko 갤러리 / 세로 목록 · fr Galerie / Liste verticale · de Galerie / Vertikale Liste · es Galería / Lista vertical · ru Галерея / Вертикальный список · he גלריה / רשימה אנכית |
 | gallery view / list view (toggle tooltips) | zh-CN 画廊视图 / 列表视图 · zh-TW 圖庫檢視 / 清單檢視 · ja ギャラリー表示 / リスト表示 · ko 갤러리 보기 / 목록 보기 · fr Vue galerie / Vue liste · de Galerieansicht / Listenansicht · es Vista de galería / Vista de lista · ru Галерея / Список · he תצוגת גלריה / תצוגת רשימה |
+
+### Scoped scan and root availability
+
+A refresh can be restricted to one model root (the Refresh ▾ menu) or one folder (the sidebar
+context menu). The menu labels a root and reports whether it can be read at all; the result
+toasts report what the scan changed and what it deliberately left alone because a path could not
+be read (an unreachable drive is no longer treated as deleted).
+
+| Term | Rendering |
+|---|---|
+| `scopeSection` ("Scan one folder") | zh-CN 只扫描一个文件夹 · zh-TW 只掃描一個資料夾 · ja フォルダを 1 つだけスキャン · ko 폴더 하나만 스캔 · fr Analyser un seul dossier · de Nur einen Ordner scannen · es Escanear solo una carpeta · ru Сканировать только одну папку · he סרוק תיקייה אחת בלבד |
+| `rootOffline` ("Offline") | zh-CN 离线 · zh-TW 離線 · ja オフライン · ko 오프라인 · fr Hors ligne · de Offline · es Sin conexión · ru Недоступен · he לא זמין |
+| `rootModels` ("{count} models") | zh-CN {count} 个模型 · zh-TW {count} 個模型 · ja {count} 個のモデル · ko 모델 {count}개 · fr {count} modèles · de {count} Modelle · es {count} modelos · ru {count} модел(ей) · he {count} מודלים |
+| `refreshCompleteScoped` ("Scanned {scope}: {added} new, {removed} removed") | zh-CN 已扫描 {scope}：新增 {added}，移除 {removed} · zh-TW 已掃描 {scope}：新增 {added}，移除 {removed} · ja {scope} をスキャンしました：新規 {added} 件、削除 {removed} 件 · ko {scope} 스캔 완료: 새 모델 {added}개, 제거 {removed}개 · fr {scope} analysé : {added} nouveau(x), {removed} supprimé(s) · de {scope} gescannt: {added} neu, {removed} entfernt · es {scope} escaneado: {added} nuevo(s), {removed} eliminado(s) · ru {scope}: просканировано — новых {added}, удалено {removed} · he {scope} נסרק: {added} חדשים, {removed} הוסרו |
+| `refreshKeptUnreachable` ("{count} models kept: {paths} not reachable") | zh-CN 已保留 {count} 个模型：{paths} 当前不可访问 · zh-TW 已保留 {count} 個模型：{paths} 目前無法存取 · ja {count} 個のモデルを保持しました：{paths} にアクセスできません · ko 모델 {count}개 유지됨: {paths}에 접근할 수 없음 · fr {count} modèles conservés : {paths} inaccessible(s) · de {count} Modelle beibehalten: {paths} nicht erreichbar · es {count} modelos conservados: {paths} no accesible(s) · ru Сохранено моделей: {count} — {paths} недоступны · he נשמרו {count} מודלים: {paths} אינם זמינים |
+| `scanRootUnreachable` ("{scope} is not reachable right now. Nothing was changed.") | zh-CN {scope} 当前不可访问，未做任何改动。 · zh-TW {scope} 目前無法存取，未做任何變更。 · ja {scope} に現在アクセスできません。変更は行われていません。 · ko {scope}에 현재 접근할 수 없습니다. 변경된 내용은 없습니다. · fr {scope} est actuellement inaccessible. Aucune modification n’a été apportée. · de {scope} ist derzeit nicht erreichbar. Es wurde nichts geändert. · es {scope} no es accesible ahora mismo. No se ha cambiado nada. · ru {scope} сейчас недоступен. Изменений не внесено. · he {scope} אינו זמין כעת. לא בוצעו שינויים. |
+
+| `sidebar.scanFolder` ("Scan this folder") | zh-CN 扫描此文件夹 · zh-TW 掃描此資料夾 · ja このフォルダをスキャン · ko 이 폴더 스캔 · fr Analyser ce dossier · de Diesen Ordner scannen · es Escanear esta carpeta · ru Сканировать эту папку · he סרוק תיקייה זו |
+| `sidebar.scanFolderResult.missing` | identical to `sidebar.renameFolderResult.missing` / `deleteFolderResult.missing` in every locale (the folder vanished between the menu opening and the click) — reuse that rendering rather than writing a third variant |
+
+`{scope}` is a root label (`G: loras`) or a folder path, `{paths}` is a comma-joined list capped
+at three entries, and both counts arrive pre-formatted. "Offline" describes a configured root
+whose directory cannot be read right now (drive switched off, unmounted share) — it is a state of
+the *root*, never a property of the models inside it, which stay in the library.
 
 ### Scan progress (walk phase)
 

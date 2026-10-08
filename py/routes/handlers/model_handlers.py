@@ -25,7 +25,11 @@ from ...services.connectivity_guard import (
     is_expected_offline_error,
 )
 from ...services.metadata_sync_service import MetadataSyncService
-from ...services.model_file_service import ModelMoveService
+from ...services.model_file_service import (
+    ModelMoveService,
+    normalize_relative_folder,
+)
+from ...services.model_scanner import ReconcileScope
 from ...services.preview_asset_service import PreviewAssetService
 from ...services.service_registry import ServiceRegistry
 from ...services.settings_manager import SettingsManager, get_settings_manager
@@ -1139,8 +1143,50 @@ class ModelQueryHandler:
     async def scan_models(self, request: web.Request) -> web.Response:
         try:
             full_rebuild = request.query.get("full_rebuild", "false").lower() == "true"
-            await self._service.scan_models(
-                force_refresh=True, rebuild_cache=full_rebuild
+            requested_roots = [
+                value for value in request.query.getall("roots", []) if value
+            ]
+            raw_folder = (request.query.get("folder") or "").strip()
+            if (requested_roots or raw_folder) and full_rebuild:
+                return web.json_response(
+                    {
+                        "error": "Scoped scans are not supported with "
+                        "full_rebuild=true; a full rebuild always walks every root"
+                    },
+                    status=400,
+                )
+
+            folder = None
+            if raw_folder:
+                try:
+                    folder = normalize_relative_folder(raw_folder)
+                except ValueError as exc:
+                    return web.json_response({"error": str(exc)}, status=400)
+
+            # A drive that was plugged in after startup must be scannable without
+            # a restart, and callers that never open the Refresh menu (the browser
+            # extension) have no other chance to admit it.
+            self._service.refresh_model_roots()
+
+            if requested_roots:
+                configured = self._service.get_model_roots()
+                unknown = [root for root in requested_roots if root not in configured]
+                if unknown:
+                    return web.json_response(
+                        {"error": "Unknown model root(s)", "roots": unknown}, status=400
+                    )
+
+            # `folder` alone means "this relative folder in every root that has
+            # it" — the sidebar's unified tree carries no root identity.
+            scope = None
+            if requested_roots or folder:
+                scope = ReconcileScope(
+                    roots=tuple(requested_roots) if requested_roots else None,
+                    folder=folder,
+                )
+
+            summary = await self._service.scan_models(
+                force_refresh=True, rebuild_cache=full_rebuild, scope=scope
             )
             _broadcast_models_changed()
             if self._service.scanner.is_cancelled():
@@ -1150,12 +1196,13 @@ class ModelQueryHandler:
                         "message": f"{self._service.model_type.capitalize()} scan cancelled",
                     }
                 )
-            return web.json_response(
-                {
-                    "status": "success",
-                    "message": f"{self._service.model_type.capitalize()} scan completed",
-                }
-            )
+            payload: Dict[str, Any] = {
+                "status": "success",
+                "message": f"{self._service.model_type.capitalize()} scan completed",
+            }
+            if summary:
+                payload.update(summary)
+            return web.json_response(payload)
         except Exception as exc:
             self._logger.error(
                 "Error scanning %ss: %s", self._service.model_type, exc, exc_info=True
@@ -1164,8 +1211,18 @@ class ModelQueryHandler:
 
     async def get_model_roots(self, request: web.Request) -> web.Response:
         try:
+            # A drive plugged in after startup is admitted here, so the menu shows
+            # it as a normal row instead of "unavailable" until the next restart.
+            self._service.refresh_model_roots()
             roots = self._service.get_model_roots()
-            return web.json_response({"success": True, "roots": roots})
+            try:
+                root_details = self._service.describe_model_roots()
+            except Exception as exc:  # pragma: no cover - defensive
+                self._logger.debug("Root details unavailable: %s", exc)
+                root_details = []
+            return web.json_response(
+                {"success": True, "roots": roots, "root_details": root_details}
+            )
         except Exception as exc:
             self._logger.error(
                 "Error getting %s roots: %s",
@@ -2513,6 +2570,22 @@ class ModelMoveHandler:
             self._logger.error("Error creating folder: %s", exc, exc_info=True)
             return web.json_response({"success": False, "error": str(exc)}, status=500)
 
+    async def resolve_folder(self, request: web.Request) -> web.Response:
+        """Resolve a library-relative folder onto the roots that hold it.
+
+        The unified folder tree is a merged relative-path namespace, so the
+        client cannot tell which root a node came from; this is what lets the
+        sidebar act on the directory the user actually sees.
+        """
+        try:
+            folder = request.query.get("folder", "")
+            result = self._move_service.resolve_folder(folder)
+            status = 200 if result.get("success") else 400
+            return web.json_response(result, status=status)
+        except Exception as exc:
+            self._logger.error("Error resolving folder: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
     async def delete_folder(self, request: web.Request) -> web.Response:
         try:
             data = await request.json()
@@ -3614,6 +3687,7 @@ class ModelHandlerSet:
             "move_model": self.move.move_model,
             "move_models_bulk": self.move.move_models_bulk,
             "create_folder": self.move.create_folder,
+            "resolve_folder": self.move.resolve_folder,
             "delete_folder": self.move.delete_folder,
             "rename_folder": self.move.rename_folder,
             "auto_organize_models": self.auto_organize.auto_organize_models,

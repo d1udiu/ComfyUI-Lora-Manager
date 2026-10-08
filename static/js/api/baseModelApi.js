@@ -511,8 +511,10 @@ export class BaseModelApiClient {
         }
     }
 
-    async refreshModels(fullRebuild = false) {
+    async refreshModels(fullRebuild = false, { roots = null, folder = null } = {}) {
         const abortController = new AbortController();
+        const scopeRoots = Array.isArray(roots) ? roots.filter(Boolean) : [];
+        const scopeFolder = typeof folder === 'string' && folder ? folder : null;
         const displayName = this.apiConfig.config.displayName;
         const singularName = this.apiConfig.config.singularName;
         const actionText = translate(
@@ -600,6 +602,12 @@ export class BaseModelApiClient {
 
             const url = new URL(this.apiConfig.endpoints.scan, window.location.origin);
             url.searchParams.append('full_rebuild', fullRebuild);
+            for (const root of scopeRoots) {
+                url.searchParams.append('roots', root);
+            }
+            if (scopeFolder) {
+                url.searchParams.append('folder', scopeFolder);
+            }
 
             const response = await fetch(url, { signal: abortController.signal });
 
@@ -615,7 +623,7 @@ export class BaseModelApiClient {
 
             resetAndReload(true);
 
-            showToast('toast.api.refreshComplete', { action: actionText }, 'success');
+            this._showRefreshSummary(data, actionText, scopeRoots, scopeFolder);
         } catch (error) {
             if (error.name === 'AbortError') {
                 showToast('toast.api.operationCancelled', {}, 'info');
@@ -629,6 +637,62 @@ export class BaseModelApiClient {
             }
             state.loadingManager.hide();
             state.loadingManager.restoreProgressBar();
+        }
+    }
+
+    /**
+     * Report what a finished scan did.
+     *
+     * A scoped scan names the folder it scanned and how many models changed; a
+     * scan that could not read part of its scope says so instead of silently
+     * looking like "nothing found" (the entries are kept, not deleted).
+     * @param {Object} summary - Scan response payload
+     * @param {string} actionText - Localized "Refresh" / "Full rebuild"
+     * @param {Array<string>} scopeRoots - Roots the scan was restricted to
+     */
+    _showRefreshSummary(summary, actionText, scopeRoots = [], scopeFolder = null) {
+        const payload = summary || {};
+        const scannedRoots = Array.isArray(payload.scanned_roots) ? payload.scanned_roots : [];
+        // A folder scan is named by the folder the user clicked; a root scan by
+        // the roots it walked.
+        const scopeLabel = payload.scope_label
+            || (scannedRoots.length ? scannedRoots.join(', ') : '');
+
+        if ((scopeRoots.length || scopeFolder) && scopeLabel) {
+            showToast(
+                'toast.api.refreshCompleteScoped',
+                {
+                    scope: scopeLabel,
+                    added: Number(payload.added || 0),
+                    removed: Number(payload.removed || 0),
+                },
+                'success'
+            );
+        } else {
+            showToast('toast.api.refreshComplete', { action: actionText }, 'success');
+        }
+
+        const keptCount = Number(payload.kept_unreachable || 0);
+        if (keptCount > 0) {
+            const unavailable = Array.isArray(payload.unavailable_paths)
+                ? payload.unavailable_paths
+                : [];
+            const skipped = Array.isArray(payload.skipped_roots) ? payload.skipped_roots : [];
+            // Skipped roots already carry a short label; the remaining
+            // unreadable folders only have a path.
+            const names = (
+                skipped.length
+                    ? skipped.map(entry => entry?.label || entry?.path)
+                    : unavailable.map(entry => entry?.path)
+            ).filter(Boolean);
+            showToast(
+                'toast.api.refreshKeptUnreachable',
+                {
+                    count: keptCount.toLocaleString(),
+                    paths: names.slice(0, 3).join(', ') || '—',
+                },
+                'info'
+            );
         }
     }
 
@@ -1419,6 +1483,34 @@ export class BaseModelApiClient {
 
         if (!response.ok || result.success === false) {
             const error = new Error(result.error || `Failed to rename folder`);
+            error.code = result.code || null;
+            throw error;
+        }
+
+        return result;
+    }
+
+    /**
+     * Resolve a library-relative folder onto the directories it stands for.
+     *
+     * The unified folder tree merges every model root into one relative-path
+     * namespace, so a tree node cannot be turned into a business path by
+     * prefixing a root: the same relative folder may live under several roots,
+     * or only under one that is not the default root. Callers that hold a node
+     * ask here first; the answer is what the folder APIs must be given.
+     *
+     * @param {string} folderPath Library-relative folder path (e.g. `a/b`)
+     * @returns {Promise<{folder: string, candidates: Array<{folder_path: string, root: string, is_symlink: boolean}>}>}
+     *   `candidates` is empty when no root holds the directory on disk.
+     */
+    async resolveFolder(folderPath) {
+        const params = new URLSearchParams({ folder: folderPath });
+        const response = await fetch(`${this.apiConfig.endpoints.resolveFolder}?${params}`);
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || result.success === false) {
+            const error = new Error(result.error || `Failed to resolve folder`);
             error.code = result.code || null;
             throw error;
         }

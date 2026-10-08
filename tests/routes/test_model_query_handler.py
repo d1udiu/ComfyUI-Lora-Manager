@@ -196,3 +196,231 @@ async def test_get_folder_tree_threads_include_empty():
 
     assert payload["success"] is True
     assert service.received_include_empty is True
+
+
+class QueryParams(dict):
+    """Minimal stand-in for aiohttp's MultiDict query (supports getall)."""
+
+    def getall(self, key, default=None):
+        value = self.get(key)
+        if value is None:
+            return list(default) if default else []
+        return value if isinstance(value, list) else [value]
+
+
+class ScopedScanService:
+    """Stub service recording the scan scope the handler resolves."""
+
+    model_type = "lora"
+
+    def __init__(self, roots=None, summary=None, cancelled=False, unavailable=None):
+        self._roots = list(roots or [])
+        self._unavailable = list(unavailable or [])
+        self._summary = summary
+        self.cancelled = cancelled
+        self.scanner = SimpleNamespace(is_cancelled=lambda: self.cancelled)
+        self.received_scope = "not-called"
+        self.received_rebuild = None
+        self.root_refreshes = 0
+
+    def get_model_roots(self):
+        return list(self._roots)
+
+    def refresh_model_roots(self):
+        """Mimic the scanner admitting roots that became readable again."""
+        self.root_refreshes += 1
+        return []
+
+    def describe_model_roots(self):
+        return [
+            {
+                "path": root,
+                "label": root.rsplit("/", 1)[-1],
+                "reachable": True,
+                "available": True,
+                "models": 7,
+            }
+            for root in self._roots
+        ] + [
+            {
+                "path": root,
+                "label": root.rsplit("/", 1)[-1],
+                "reachable": False,
+                "available": False,
+                "models": 3,
+            }
+            for root in self._unavailable
+        ]
+
+    async def scan_models(self, force_refresh=False, rebuild_cache=False, scope=None):
+        self.received_scope = scope
+        self.received_rebuild = rebuild_cache
+        return self._summary
+
+
+SUMMARY = {
+    "added": 3,
+    "removed": 0,
+    "repaired": 1,
+    "scanned_roots": ["a"],
+    "skipped_roots": [],
+    "unavailable_paths": [],
+    "unavailable_paths_total": 0,
+    "kept_unreachable": 0,
+}
+
+
+@pytest.mark.asyncio
+async def test_scan_models_accepts_roots_param():
+    service = ScopedScanService(roots=["/mnt/a", "/mnt/b"], summary=SUMMARY)
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    response = await handler.scan_models(
+        SimpleNamespace(query=QueryParams({"roots": ["/mnt/a"]}))
+    )
+    payload = json.loads(response.text)
+
+    assert response.status == 200
+    assert payload["status"] == "success"
+    assert payload["added"] == 3
+    assert payload["scanned_roots"] == ["a"]
+    assert service.received_scope is not None
+    assert service.received_scope.roots == ("/mnt/a",)
+    assert service.received_rebuild is False
+    # A drive plugged in after startup is admitted before the roots are validated.
+    assert service.root_refreshes == 1
+
+
+@pytest.mark.asyncio
+async def test_scan_models_without_roots_scans_every_root():
+    service = ScopedScanService(roots=["/mnt/a"], summary=SUMMARY)
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    await handler.scan_models(SimpleNamespace(query=QueryParams({})))
+
+    assert service.received_scope is None
+
+
+@pytest.mark.asyncio
+async def test_scan_models_rejects_unknown_root():
+    service = ScopedScanService(roots=["/mnt/a"], summary=SUMMARY)
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    response = await handler.scan_models(
+        SimpleNamespace(query=QueryParams({"roots": ["/mnt/nope"]}))
+    )
+    payload = json.loads(response.text)
+
+    assert response.status == 400
+    assert payload["roots"] == ["/mnt/nope"]
+    assert service.received_scope == "not-called"
+
+
+@pytest.mark.asyncio
+async def test_scan_models_rejects_roots_with_full_rebuild():
+    service = ScopedScanService(roots=["/mnt/a"], summary=SUMMARY)
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    response = await handler.scan_models(
+        SimpleNamespace(
+            query=QueryParams({"roots": ["/mnt/a"], "full_rebuild": "true"})
+        )
+    )
+
+    assert response.status == 400
+    assert service.received_scope == "not-called"
+
+
+@pytest.mark.asyncio
+async def test_get_model_roots_reports_configured_but_unavailable_roots():
+    """Wave 6: a root whose directory was missing at startup is still reported."""
+    service = ScopedScanService(
+        roots=["/mnt/a"], unavailable=["/mnt/drive-Z/loras"]
+    )
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    response = await handler.get_model_roots(SimpleNamespace(query=QueryParams({})))
+    payload = json.loads(response.text)
+
+    assert response.status == 200
+    assert payload["roots"] == ["/mnt/a"]
+    details = {entry["path"]: entry for entry in payload["root_details"]}
+    assert details["/mnt/a"]["available"] is True
+    assert details["/mnt/drive-Z/loras"]["available"] is False
+    assert details["/mnt/drive-Z/loras"]["reachable"] is False
+    assert details["/mnt/drive-Z/loras"]["models"] == 3
+    # Describing the roots admits anything that became readable again.
+    assert service.root_refreshes == 1
+
+
+@pytest.mark.asyncio
+async def test_scan_models_accepts_folder_param():
+    service = ScopedScanService(roots=["/mnt/a", "/mnt/b"], summary=SUMMARY)
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    response = await handler.scan_models(
+        SimpleNamespace(query=QueryParams({"folder": "pack\\sub"}))
+    )
+
+    assert response.status == 200
+    assert service.received_scope is not None
+    # Backslashes are normalized and no root is pinned: the backend walks this
+    # relative folder under every root that holds it.
+    assert service.received_scope.folder == "pack/sub"
+    assert service.received_scope.roots is None
+
+
+@pytest.mark.asyncio
+async def test_scan_models_rejects_absolute_folder():
+    service = ScopedScanService(roots=["/mnt/a"], summary=SUMMARY)
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    for folder in ("/mnt/a/pack", "../pack", "C:/models/pack"):
+        response = await handler.scan_models(
+            SimpleNamespace(query=QueryParams({"folder": folder}))
+        )
+        assert response.status == 400, folder
+        assert "error" in json.loads(response.text)
+
+    assert service.received_scope == "not-called"
+
+
+@pytest.mark.asyncio
+async def test_scan_models_rejects_folder_with_full_rebuild():
+    service = ScopedScanService(roots=["/mnt/a"], summary=SUMMARY)
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    response = await handler.scan_models(
+        SimpleNamespace(query=QueryParams({"folder": "pack", "full_rebuild": "true"}))
+    )
+
+    assert response.status == 400
+    assert service.received_scope == "not-called"
+
+
+@pytest.mark.asyncio
+async def test_scan_models_combines_folder_and_roots():
+    service = ScopedScanService(roots=["/mnt/a", "/mnt/b"], summary=SUMMARY)
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    response = await handler.scan_models(
+        SimpleNamespace(query=QueryParams({"folder": "pack", "roots": ["/mnt/b"]}))
+    )
+
+    assert response.status == 200
+    assert service.received_scope.folder == "pack"
+    assert service.received_scope.roots == ("/mnt/b",)
+
+
+@pytest.mark.asyncio
+async def test_get_model_roots_reports_details():
+    service = ScopedScanService(roots=["/mnt/a", "/mnt/b"])
+    handler = ModelQueryHandler(service=service, logger=logging.getLogger(__name__))
+
+    response = await handler.get_model_roots(SimpleNamespace(query=QueryParams({})))
+    payload = json.loads(response.text)
+
+    # `roots` stays a plain list of paths for the existing callers.
+    assert payload["roots"] == ["/mnt/a", "/mnt/b"]
+    assert [detail["label"] for detail in payload["root_details"]] == ["a", "b"]
+    assert all(detail["models"] == 7 for detail in payload["root_details"])

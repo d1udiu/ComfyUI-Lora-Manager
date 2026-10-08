@@ -44,6 +44,26 @@ def _normalize_root_identity(path: str) -> str:
     return normalized
 
 
+def _append_new_paths(current: List[str], candidates: Iterable[str]) -> List[str]:
+    """Return ``current`` plus any candidate it does not already hold.
+
+    Order is preserved and nothing is ever removed: ``*_roots[0]`` derives the
+    recipes directory and the usage-stats file location, so a mid-session change
+    to the root *order* would move user data.
+    """
+    merged = list(current)
+    seen = {_normalize_root_identity(path) for path in merged}
+    for path in candidates:
+        if not isinstance(path, str) or not path.strip():
+            continue
+        identity = _normalize_root_identity(path)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        merged.append(path)
+    return merged
+
+
 def _resolve_valid_default_root(
     current: str, primary_paths: List[str], allowed_paths: List[str], name: str
 ) -> str:
@@ -169,6 +189,12 @@ class Config:
         self._preview_root_paths: Set[Path] = set()
         # Fingerprint of the symlink layout from the last successful scan
         self._cached_fingerprint: Optional[Dict[str, object]] = None
+        # Configured (existence-unfiltered) primary roots per model type. The live
+        # lists below drop paths whose directory is missing right now (a drive
+        # that is switched off), which must not be mistaken for "the user
+        # removed this path": these are what `save_folder_paths_to_settings()`
+        # persists and what `/roots` reports as unavailable.
+        self._configured_root_paths: Dict[str, List[str]] = {}
         self.loras_roots = self._init_lora_paths()
         self.checkpoints_roots = None
         self.unet_roots = None
@@ -227,6 +253,8 @@ class Config:
             recipes_path = library_config.get("recipes_path", "")
             if isinstance(recipes_path, str) and recipes_path:
                 self.recipes_path = recipes_path
+
+            self._remember_library_configured_paths(library_config)
 
             extra_folder_paths = library_config.get("extra_folder_paths")
             if not isinstance(extra_folder_paths, dict):
@@ -340,16 +368,40 @@ class Config:
                 comfy_library = libraries.get("comfyui", {})
                 default_library = libraries.get("default", {})
 
+            # Persist what is *configured*, not what is readable right now:
+            # `upsert_library(folder_paths=...)` replaces the library's paths, so
+            # writing the existence-filtered live lists would erase the path of a
+            # drive that happened to be switched off when ComfyUI started.
             target_folder_paths = {
-                "loras": list(self.loras_roots),
-                "checkpoints": list(self.checkpoints_roots or []),
-                "unet": list(self.unet_roots or []),
-                "embeddings": list(self.embeddings_roots or []),
+                "loras": _append_new_paths(
+                    self.configured_roots_for("lora"), self.loras_roots or []
+                ),
+                "checkpoints": _append_new_paths(
+                    self.configured_roots_for("checkpoint"),
+                    self.checkpoints_roots or [],
+                ),
+                "unet": _append_new_paths(
+                    self.configured_roots_for("unet"), self.unet_roots or []
+                ),
+                "embeddings": _append_new_paths(
+                    self.configured_roots_for("embedding"),
+                    self.embeddings_roots or [],
+                ),
             }
             # Persist the other-model roots under their original folder_paths
             # keys so library switching round-trips them.
             for key, roots in (self.other_folder_roots or {}).items():
                 target_folder_paths[key] = list(roots)
+            # ...and keep an other-model root that is configured but unavailable.
+            configured_other = self.configured_roots_for("other")
+            if configured_other:
+                for key in self._get_enabled_other_folder_keys():
+                    configured_key_roots = self._configured_other_paths_for_key(key)
+                    if not configured_key_roots:
+                        continue
+                    target_folder_paths[key] = _append_new_paths(
+                        configured_key_roots, target_folder_paths.get(key, [])
+                    )
 
             normalized_target_paths = _normalize_folder_paths_for_comparison(
                 target_folder_paths
@@ -420,7 +472,14 @@ class Config:
 
             default_lora_root = _resolve_valid_default_root(
                 comfy_library.get("default_lora_root", ""),
-                list(self.loras_roots or []),
+                # A configured-but-unavailable root is still a valid choice: it
+                # must not be "repaired" away just because its drive is off.
+                _append_new_paths(
+                    self.configured_roots_for(
+                        "lora"
+                    ),
+                    self.loras_roots or [],
+                ),
                 list(self.loras_roots or [])
                 + list(comfy_library.get("extra_folder_paths", {}).get("loras", []) or []),
                 "default_lora_root",
@@ -428,7 +487,14 @@ class Config:
 
             default_checkpoint_root = _resolve_valid_default_root(
                 comfy_library.get("default_checkpoint_root", ""),
-                list(self.checkpoints_roots or []),
+                # A configured-but-unavailable root is still a valid choice: it
+                # must not be "repaired" away just because its drive is off.
+                _append_new_paths(
+                    self.configured_roots_for(
+                        "checkpoint"
+                    ),
+                    self.checkpoints_roots or [],
+                ),
                 list(self.checkpoints_roots or [])
                 + list(comfy_library.get("extra_folder_paths", {}).get("checkpoints", []) or []),
                 "default_checkpoint_root",
@@ -436,7 +502,14 @@ class Config:
 
             default_embedding_root = _resolve_valid_default_root(
                 comfy_library.get("default_embedding_root", ""),
-                list(self.embeddings_roots or []),
+                # A configured-but-unavailable root is still a valid choice: it
+                # must not be "repaired" away just because its drive is off.
+                _append_new_paths(
+                    self.configured_roots_for(
+                        "embedding"
+                    ),
+                    self.embeddings_roots or [],
+                ),
                 list(self.embeddings_roots or [])
                 + list(comfy_library.get("extra_folder_paths", {}).get("embeddings", []) or []),
                 "default_embedding_root",
@@ -797,6 +870,16 @@ class Config:
                         )
         except Exception as e:
             logger.error(f"Error scanning links in {root}: {e}")
+
+    def iter_path_mappings(self) -> List[Tuple[str, str]]:
+        """Return the known ``(physical target, virtual link)`` symlink pairs.
+
+        Only symlinks directly under a model root are tracked (see
+        :meth:`_scan_symbolic_links`), so callers must treat this as a partial
+        view of the on-disk link layout — enough to notice that a linked drive
+        went away, not enough to resolve nested links.
+        """
+        return list(self._path_mappings.items())
 
     def add_path_mapping(self, link_path: str, target_path: str):
         """Add a symbolic link path mapping
@@ -1321,6 +1404,14 @@ class Config:
         unet_paths = folder_paths.get("unet", []) or []
         embedding_paths = folder_paths.get("embeddings", []) or []
 
+        # The snapshot is the authoritative configured set: unlike the live lists
+        # below it keeps paths whose directory is missing right now, and a path
+        # the user removed from the library is forgotten here.
+        self._remember_configured_paths("lora", lora_paths)
+        self._remember_configured_paths("checkpoint", checkpoint_paths)
+        self._remember_configured_paths("unet", unet_paths)
+        self._remember_configured_paths("embedding", embedding_paths)
+
         self.loras_roots = self._prepare_lora_paths(lora_paths)
         (
             self.base_models_roots,
@@ -1333,6 +1424,10 @@ class Config:
             key: folder_paths.get(key, []) or []
             for key in self._get_enabled_other_folder_keys()
         }
+        self._remember_configured_paths(
+            "other",
+            [path for paths in other_path_map.values() for path in paths],
+        )
         (
             self.other_roots,
             self.other_root_subtypes,
@@ -1388,10 +1483,60 @@ class Config:
 
         self._initialize_symlink_mappings()
 
+    def _remember_library_configured_paths(
+        self, library_config: Mapping[str, Any]
+    ) -> None:
+        """Remember the paths the library configures, missing directories included.
+
+        In standalone mode the host mock already filters non-existent paths out of
+        ``folder_paths`` (see ``standalone.MockFolderPaths.get_folder_paths``), so
+        the library snapshot is the only record of what the user configured and it
+        wins there. In plugin mode ComfyUI's own list is unfiltered and therefore
+        authoritative — a path removed from the host config must be forgotten, not
+        resurrected from our mirror of it.
+        """
+        if not standalone_mode:
+            return
+
+        from .services.settings_manager import get_settings_manager
+
+        folder_paths_map = (
+            library_config.get("folder_paths")
+            if isinstance(library_config, Mapping)
+            else None
+        )
+        if not isinstance(folder_paths_map, Mapping):
+            folder_paths_map = getattr(
+                get_settings_manager(), "settings", {}
+            ).get("folder_paths", {})
+        if not isinstance(folder_paths_map, Mapping):
+            return
+
+        for key, model_type in (
+            ("loras", "lora"),
+            ("checkpoints", "checkpoint"),
+            ("unet", "unet"),
+            ("embeddings", "embedding"),
+        ):
+            paths = folder_paths_map.get(key)
+            if isinstance(paths, (list, tuple)):
+                self._remember_configured_paths(model_type, paths)
+
+        core_keys = {"loras", "checkpoints", "unet", "embeddings"}
+        other_paths = [
+            path
+            for key, paths in folder_paths_map.items()
+            if key not in core_keys and isinstance(paths, (list, tuple))
+            for path in paths
+        ]
+        if other_paths:
+            self._remember_configured_paths("other", other_paths)
+
     def _init_lora_paths(self) -> List[str]:
         """Initialize and validate LoRA paths from ComfyUI settings"""
         try:
             raw_paths = folder_paths.get_folder_paths("loras")
+            self._remember_configured_paths("lora", raw_paths)
             unique_paths = self._prepare_lora_paths(raw_paths)
             logger.info(
                 "Found LoRA roots:"
@@ -1412,6 +1557,8 @@ class Config:
         try:
             raw_checkpoint_paths = folder_paths.get_folder_paths("checkpoints")
             raw_unet_paths = folder_paths.get_folder_paths("unet")
+            self._remember_configured_paths("checkpoint", raw_checkpoint_paths)
+            self._remember_configured_paths("unet", raw_unet_paths)
             (
                 unique_paths,
                 self.checkpoints_roots,
@@ -1438,6 +1585,7 @@ class Config:
         """Initialize and validate embedding paths from ComfyUI settings"""
         try:
             raw_paths = folder_paths.get_folder_paths("embeddings")
+            self._remember_configured_paths("embedding", raw_paths)
             unique_paths = self._prepare_embedding_paths(raw_paths)
             logger.info(
                 "Found embedding roots:"
@@ -1475,6 +1623,10 @@ class Config:
                 except Exception as exc:
                     logger.debug("Error reading folder paths for '%s': %s", key, exc)
 
+            self._remember_configured_paths(
+                "other", [path for paths in folder_path_map.values() for path in paths]
+            )
+
             (
                 unique_paths,
                 self.other_root_subtypes,
@@ -1493,6 +1645,137 @@ class Config:
             return unique_paths
         except Exception as e:
             logger.warning(f"Error initializing other model paths: {e}")
+            return []
+
+    def _remember_configured_paths(
+        self, model_type: str, paths: Iterable[str]
+    ) -> None:
+        """Record the configured roots of a model type (they may not exist yet).
+
+        Replaces the previous value rather than merging: every caller knows the
+        complete configured set for its type, so a path the user removed must be
+        forgotten here too.
+        """
+        configured = [
+            path.strip()
+            for path in paths or []
+            if isinstance(path, str) and path.strip()
+        ]
+        # Tolerate partially constructed instances (`Config.__new__`), which the
+        # path-resolution tests build to exercise a single initializer.
+        configured_map = getattr(self, "_configured_root_paths", None)
+        if configured_map is None:
+            configured_map = {}
+            self._configured_root_paths = configured_map
+        configured_map[model_type] = configured
+
+    def configured_roots_for(self, model_type: str) -> List[str]:
+        """Configured roots of a model type, including ones that are unavailable.
+
+        ``get_model_roots()`` on the scanners answers "what can be walked right
+        now"; this answers "what did the user (or the host) configure", which is
+        the set that must survive a switched-off drive in the configuration and
+        the set the refresh menu reports as offline.
+        """
+        return list((getattr(self, "_configured_root_paths", None) or {}).get(model_type, []))
+
+    def admit_configured_roots(self) -> List[str]:
+        """Append configured roots that became readable again, never removing any.
+
+        The live lists are built once at startup (and when a library snapshot is
+        applied), so a drive plugged in later is invisible until the process is
+        restarted. Re-running the per-type prepare helpers against the configured
+        paths and appending only the new entries is what makes "plug the drive
+        in, scan it" work without a restart. Nothing is ever dropped or
+        re-ordered — see ``_append_new_paths`` for why order matters.
+
+        Returns the paths that were admitted by this call.
+        """
+        admitted: List[str] = []
+
+        def _extend(current, candidates) -> List[str]:
+            merged = _append_new_paths(list(current or []), candidates)
+            admitted.extend(
+                path for path in merged if path not in (current or [])
+            )
+            return merged
+
+        try:
+            lora_configured = self.configured_roots_for("lora")
+            if lora_configured:
+                self.loras_roots = _extend(
+                    self.loras_roots, self._prepare_lora_paths(lora_configured)
+                )
+
+            checkpoint_configured = self.configured_roots_for("checkpoint")
+            unet_configured = self.configured_roots_for("unet")
+            if checkpoint_configured or unet_configured:
+                (
+                    all_roots,
+                    checkpoint_roots,
+                    unet_roots,
+                ) = self._prepare_checkpoint_paths(
+                    checkpoint_configured, unet_configured
+                )
+                self.base_models_roots = _extend(self.base_models_roots, all_roots)
+                self.checkpoints_roots = _extend(self.checkpoints_roots, checkpoint_roots)
+                self.unet_roots = _extend(self.unet_roots, unet_roots)
+
+            embedding_configured = self.configured_roots_for("embedding")
+            if embedding_configured:
+                self.embeddings_roots = _extend(
+                    self.embeddings_roots,
+                    self._prepare_embedding_paths(embedding_configured),
+                )
+
+            other_configured = self.configured_roots_for("other")
+            if other_configured:
+                (
+                    other_roots,
+                    other_subtypes,
+                    other_per_key,
+                ) = self._prepare_other_paths(
+                    {
+                        key: [
+                            path
+                            for path in self._configured_other_paths_for_key(key)
+                        ]
+                        for key in self._get_enabled_other_folder_keys()
+                    }
+                )
+                self.other_roots = _extend(self.other_roots, other_roots)
+                for root, sub_type in other_subtypes.items():
+                    self.other_root_subtypes.setdefault(root, sub_type)
+                for key, roots in other_per_key.items():
+                    self.other_folder_roots[key] = _append_new_paths(
+                        self.other_folder_roots.get(key, []), roots
+                    )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.warning("Failed to admit configured roots: %s", exc)
+            return admitted
+
+        if admitted:
+            logger.info(
+                "Admitted %d previously unavailable model root(s): %s",
+                len(admitted),
+                ", ".join(admitted),
+            )
+            try:
+                # Previews of the newly admitted drive must be servable again.
+                self.refresh_preview_roots()
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.debug("Failed to refresh preview roots: %s", exc)
+        return admitted
+
+    def _configured_other_paths_for_key(self, key: str) -> List[str]:
+        """Configured other-model paths for one folder_paths key (may not exist)."""
+        try:
+            return [
+                path.strip()
+                for path in folder_paths.get_folder_paths(key) or []
+                if isinstance(path, str) and path.strip()
+            ]
+        except Exception:
             return []
 
     def refresh_other_roots(self) -> None:
