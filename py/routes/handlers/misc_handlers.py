@@ -23,6 +23,7 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from urllib.parse import quote
 from typing import Any, Awaitable, Callable, Dict, Mapping, Protocol, Sequence
 
 from aiohttp import web
@@ -76,6 +77,7 @@ from ...utils.sidecar_paths import (
     get_configured_sidecar_root,
     get_metadata_path,
     get_preview_dir,
+    get_sidecar_dir,
     get_storage_mode,
     get_unmatched_sidecar_components,
 )
@@ -437,6 +439,35 @@ def _wsl_to_windows_path(wsl_path: str) -> str | None:
 def _has_gui_display() -> bool:
     """Check whether a GUI session is reachable for xdg-open."""
     return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+
+
+def _select_in_linux_file_manager(file_path: str) -> bool:
+    """Reveal ``file_path`` selected in the desktop file manager.
+
+    Uses the freedesktop ``org.freedesktop.FileManager1.ShowItems`` DBus
+    interface, which is supported by GNOME Files (Nautilus), KDE Dolphin,
+    Nemo, Caja, and recent Thunar.  Returns ``False`` when the interface is
+    unavailable so the caller can fall back to plain ``xdg-open``.
+    """
+    uri = "file://" + quote(file_path)
+    try:
+        result = subprocess.run(
+            [
+                "dbus-send",
+                "--session",
+                "--print-reply",
+                "--dest=org.freedesktop.FileManager1",
+                "/org/freedesktop/FileManager1",
+                "org.freedesktop.FileManager1.ShowItems",
+                f"array:string:{uri}",
+                "string:",
+            ],
+            capture_output=True,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.SubprocessError, OSError):
+        return False
+    return result.returncode == 0
 
 
 class PromptServerProtocol(Protocol):
@@ -2881,9 +2912,10 @@ class ModelLibraryHandler:
 
             try:
                 response = await metadata_provider.get_model_versions(model_id)
-            except ResourceNotFoundError:
+            except ResourceNotFoundError as exc:
                 return web.json_response(
-                    {"success": False, "error": "Model not found"}, status=404
+                    {"success": False, "error": str(exc) or "Model not found"},
+                    status=404,
                 )
             if not response or not response.get("modelVersions"):
                 return web.json_response(
@@ -3466,6 +3498,63 @@ class FileSystemHandler:
             {"success": True, "message": f"Opened folder: {path}", "path": path}
         )
 
+    async def _reveal_file(self, file_path: str) -> web.Response:
+        """Open the platform file manager with ``file_path`` selected."""
+        if os.name == "nt":
+            subprocess.Popen(["explorer", "/select,", file_path])
+        elif os.name == "posix":
+            if _is_docker():
+                return web.json_response(
+                    {
+                        "success": True,
+                        "message": "Running in Docker: Path available for copying",
+                        "path": file_path,
+                        "mode": "clipboard",
+                    }
+                )
+            elif _is_wsl():
+                windows_path = _wsl_to_windows_path(file_path)
+                if windows_path:
+                    subprocess.Popen(["explorer.exe", "/select,", windows_path])
+                else:
+                    logger.error(
+                        "Failed to convert WSL path to Windows path: %s", file_path
+                    )
+                    return web.json_response(
+                        {
+                            "success": False,
+                            "error": "Failed to open file location: path conversion error",
+                        },
+                        status=500,
+                    )
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", "-R", file_path])
+            else:
+                if not _has_gui_display():
+                    # Headless/SSH session: no file manager to open, so
+                    # hand the path to the browser for copying instead
+                    # of reporting a success that never happened.
+                    return web.json_response(
+                        {
+                            "success": True,
+                            "message": "Headless session: path available for copying",
+                            "path": file_path,
+                            "mode": "clipboard",
+                        }
+                    )
+                selected = _select_in_linux_file_manager(file_path)
+                if not selected:
+                    folder = os.path.dirname(file_path)
+                    subprocess.Popen(["xdg-open", folder])
+
+        return web.json_response(
+            {
+                "success": True,
+                "message": f"Opened folder and selected file: {file_path}",
+                "path": file_path,
+            }
+        )
+
     async def open_file_location(self, request: web.Request) -> web.Response:
         try:
             data = await request.json()
@@ -3481,47 +3570,47 @@ class FileSystemHandler:
                     {"success": False, "error": "File does not exist"}, status=404
                 )
 
-            if os.name == "nt":
-                subprocess.Popen(["explorer", "/select,", file_path])
-            elif os.name == "posix":
-                if _is_docker():
-                    return web.json_response(
-                        {
-                            "success": True,
-                            "message": "Running in Docker: Path available for copying",
-                            "path": file_path,
-                            "mode": "clipboard",
-                        }
-                    )
-                elif _is_wsl():
-                    windows_path = _wsl_to_windows_path(file_path)
-                    if windows_path:
-                        subprocess.Popen(["explorer.exe", "/select,", windows_path])
-                    else:
-                        logger.error(
-                            "Failed to convert WSL path to Windows path: %s", file_path
-                        )
-                        return web.json_response(
-                            {
-                                "success": False,
-                                "error": "Failed to open file location: path conversion error",
-                            },
-                            status=500,
-                        )
-                elif sys.platform == "darwin":
-                    subprocess.Popen(["open", "-R", file_path])
-                else:
-                    folder = os.path.dirname(file_path)
-                    subprocess.Popen(["xdg-open", folder])
-
-            return web.json_response(
-                {
-                    "success": True,
-                    "message": f"Opened folder and selected file: {file_path}",
-                }
-            )
+            return await self._reveal_file(file_path)
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error("Failed to open file location: %s", exc, exc_info=True)
+            return web.json_response({"success": False, "error": str(exc)}, status=500)
+
+    async def open_model_sidecar_location(self, request: web.Request) -> web.Response:
+        """Reveal the model's ``.metadata.json`` sidecar in the file manager.
+
+        Sidecar/preview path derivation must go through
+        :mod:`py.utils.sidecar_paths` so centralized storage mode resolves to
+        the mirror tree.  When the sidecar has not been written yet, the
+        containing sidecar directory is opened instead.
+        """
+        try:
+            data = await request.json()
+            file_path = data.get("file_path")
+            if not file_path:
+                return web.json_response(
+                    {"success": False, "error": "Missing file_path parameter"},
+                    status=400,
+                )
+            file_path = os.path.abspath(file_path)
+            if not os.path.isfile(file_path):
+                return web.json_response(
+                    {"success": False, "error": "File does not exist"}, status=404
+                )
+
+            metadata_path = get_metadata_path(file_path)
+            if os.path.isfile(metadata_path):
+                return await self._reveal_file(metadata_path)
+
+            sidecar_dir = get_sidecar_dir(file_path)
+            if os.path.isdir(sidecar_dir):
+                return await self._open_path(sidecar_dir)
+
+            return web.json_response(
+                {"success": False, "error": "Sidecar does not exist yet"},
+                status=404,
+            )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("Failed to open sidecar location: %s", exc, exc_info=True)
             return web.json_response({"success": False, "error": str(exc)}, status=500)
 
     async def open_settings_location(self, request: web.Request) -> web.Response:
@@ -4409,6 +4498,7 @@ class MiscHandlerSet:
             "open_backup_location": self.filesystem.open_backup_location,
             "open_wildcards_location": self.filesystem.open_wildcards_location,
             "open_sidecar_location": self.filesystem.open_sidecar_location,
+            "open_model_sidecar_location": self.filesystem.open_model_sidecar_location,
             "browse_directory": self.filesystem.browse_directory,
             "validate_path": self.filesystem.validate_path,
             "search_custom_words": self.custom_words.search_custom_words,

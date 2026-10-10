@@ -297,7 +297,9 @@
             "loraAvailability": "LoRA 可用性",
             "availabilityReady": "可直接使用",
             "availabilityMissing": "包含缺少的 LoRA",
-            "availabilityDeleted": "包含已刪除的 LoRA"
+            "availabilityDeleted": "包含已刪除的 LoRA",
+            "workflow": "工作流",
+            "hasWorkflow": "包含工作流"
         },
         "theme": {
             "toggle": "切換主題",
@@ -1069,7 +1071,8 @@
             "sendWorkflow": "傳送工作流到 ComfyUI",
             "sent": "工作流已傳送到 ComfyUI",
             "sendFailed": "傳送工作流到 ComfyUI 失敗",
-            "noWorkflow": "此配方中未找到內嵌工作流"
+            "noWorkflow": "此配方中未找到內嵌工作流",
+            "hasWorkflow": "包含 ComfyUI 工作流"
         },
         "status": {
             "ready": "可直接使用",
@@ -1892,6 +1895,7 @@
                 "viewOnHuggingFaceText": "在 Hugging Face 查看",
                 "viewCreatorProfile": "查看創作者個人檔案",
                 "openFileLocation": "開啟檔案位置",
+                "openSidecarLocation": "開啟中繼資料位置",
                 "sendToWorkflow": "傳送到 ComfyUI",
                 "sendToWorkflowText": "傳送到 ComfyUI",
                 "copyHash": "複製雜湊值",
@@ -1902,6 +1906,12 @@
             "openFileLocation": {
                 "success": "檔案位置已成功開啟",
                 "failed": "開啟檔案位置失敗",
+                "copied": "路徑已複製到剪貼簿：{{path}}",
+                "clipboardFallback": "路徑：{{path}}"
+            },
+            "openSidecarLocation": {
+                "success": "中繼資料位置已成功開啟",
+                "failed": "開啟中繼資料位置失敗",
                 "copied": "路徑已複製到剪貼簿：{{path}}",
                 "clipboardFallback": "路徑：{{path}}"
             },
@@ -2130,6 +2140,7 @@
             "statSuccess": "成功",
             "statFailed": "失敗",
             "statSkipped": "已跳過",
+            "statOffline": "磁碟機離線",
             "statTotal": "總計掃描",
             "statDuration": "耗時",
             "successMessage": "全部 {count} 個 {type} 更新成功！",

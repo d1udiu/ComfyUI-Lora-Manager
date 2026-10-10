@@ -297,7 +297,9 @@
             "loraAvailability": "Disponibilidad de LoRAs",
             "availabilityReady": "Listos para usar",
             "availabilityMissing": "Con LoRAs faltantes",
-            "availabilityDeleted": "Con LoRAs eliminados"
+            "availabilityDeleted": "Con LoRAs eliminados",
+            "workflow": "Workflow",
+            "hasWorkflow": "Con workflow"
         },
         "theme": {
             "toggle": "Cambiar tema",
@@ -1069,7 +1071,8 @@
             "sendWorkflow": "Enviar workflow a ComfyUI",
             "sent": "Workflow enviado a ComfyUI",
             "sendFailed": "Error al enviar el workflow a ComfyUI",
-            "noWorkflow": "No se encontró ningún workflow integrado en esta receta"
+            "noWorkflow": "No se encontró ningún workflow integrado en esta receta",
+            "hasWorkflow": "Contiene un workflow de ComfyUI"
         },
         "status": {
             "ready": "Listo para usar",
@@ -1892,6 +1895,7 @@
                 "viewOnHuggingFaceText": "Ver en Hugging Face",
                 "viewCreatorProfile": "Ver perfil del creador",
                 "openFileLocation": "Abrir ubicación del archivo",
+                "openSidecarLocation": "Abrir ubicación de los metadatos",
                 "sendToWorkflow": "Enviar a ComfyUI",
                 "sendToWorkflowText": "Enviar a ComfyUI",
                 "copyHash": "Copiar hash",
@@ -1902,6 +1906,12 @@
             "openFileLocation": {
                 "success": "Ubicación del archivo abierta exitosamente",
                 "failed": "Error al abrir la ubicación del archivo",
+                "copied": "Ruta copiada al portapapeles: {{path}}",
+                "clipboardFallback": "Ruta: {{path}}"
+            },
+            "openSidecarLocation": {
+                "success": "Ubicación de los metadatos abierta exitosamente",
+                "failed": "Error al abrir la ubicación de los metadatos",
                 "copied": "Ruta copiada al portapapeles: {{path}}",
                 "clipboardFallback": "Ruta: {{path}}"
             },
@@ -2130,6 +2140,7 @@
             "statSuccess": "Éxito",
             "statFailed": "Fallido",
             "statSkipped": "Omitido",
+            "statOffline": "Unidad sin conexión",
             "statTotal": "Total escaneado",
             "statDuration": "Duración",
             "successMessage": "¡Todos los {count} {type}s actualizados correctamente!",

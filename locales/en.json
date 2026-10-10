@@ -297,7 +297,9 @@
       "loraAvailability": "Lora Availability",
       "availabilityReady": "Ready to use",
       "availabilityMissing": "Has missing",
-      "availabilityDeleted": "Has deleted"
+      "availabilityDeleted": "Has deleted",
+      "workflow": "Workflow",
+      "hasWorkflow": "Has Workflow"
     },
     "theme": {
       "toggle": "Toggle theme",
@@ -555,8 +557,8 @@
       "cardBlurAmountHelp": "Adjust the blur intensity of the header and footer overlays on model and recipe cards (0 = no blur, 20 = maximum blur)."
     },
     "folderSettings": {
-      "activeLibrary": "Active Library",
-      "activeLibraryHelp": "Switch between configured libraries to update default folders. Changing the selection reloads the page.",
+      "activeLibrary": "Active Library (Deprecated)",
+      "activeLibraryHelp": "Switch between configured libraries to update default folders. Changing the selection reloads the page. Deprecated: multi-library support will be removed in an upcoming release. Multiple folder roots within a single library remain fully supported.",
       "loadingLibraries": "Loading libraries...",
       "noLibraries": "No libraries configured",
       "defaultLoraRoot": "LoRA Root",
@@ -1069,7 +1071,8 @@
       "sendWorkflow": "Send Workflow to ComfyUI",
       "sent": "Workflow sent to ComfyUI",
       "sendFailed": "Failed to send workflow to ComfyUI",
-      "noWorkflow": "No embedded workflow found in this recipe"
+      "noWorkflow": "No embedded workflow found in this recipe",
+      "hasWorkflow": "Contains a ComfyUI workflow"
     },
     "status": {
       "ready": "Ready to use",
@@ -1892,6 +1895,7 @@
         "viewOnHuggingFaceText": "View on Hugging Face",
         "viewCreatorProfile": "View Creator Profile",
         "openFileLocation": "Open File Location",
+        "openSidecarLocation": "Open metadata location",
         "sendToWorkflow": "Send to ComfyUI",
         "sendToWorkflowText": "Send to ComfyUI",
         "copyHash": "Copy hash",
@@ -1902,6 +1906,12 @@
       "openFileLocation": {
         "success": "File location opened successfully",
         "failed": "Failed to open file location",
+        "copied": "Path copied to clipboard: {{path}}",
+        "clipboardFallback": "Path: {{path}}"
+      },
+      "openSidecarLocation": {
+        "success": "Metadata location opened successfully",
+        "failed": "Failed to open metadata location",
         "copied": "Path copied to clipboard: {{path}}",
         "clipboardFallback": "Path: {{path}}"
       },
@@ -2130,6 +2140,7 @@
       "statSuccess": "Success",
       "statFailed": "Failed",
       "statSkipped": "Skipped",
+      "statOffline": "Drive Offline",
       "statTotal": "Total Scanned",
       "statDuration": "Duration",
       "successMessage": "All {count} {type}s updated successfully!",

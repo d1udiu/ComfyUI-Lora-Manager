@@ -37,6 +37,7 @@ from py.utils.session_logging import (
 )
 from py.routes.misc_route_registrar import MISC_ROUTE_DEFINITIONS, MiscRouteRegistrar
 from py.routes.misc_routes import MiscRoutes
+from py.services.errors import ResourceNotFoundError
 
 
 def _json_payload(response) -> dict[str, Any]:
@@ -807,6 +808,252 @@ async def test_open_wildcards_location_creates_and_opens_directory(tmp_path, mon
     assert payload["path"] == str(wildcards_dir)
     assert wildcards_dir.is_dir()
     assert calls == [["xdg-open", str(wildcards_dir)]]
+
+
+@pytest.mark.asyncio
+async def test_open_file_location_linux_selects_via_dbus(tmp_path, monkeypatch):
+    """On a Linux desktop the handler should ask the freedesktop FileManager1
+    DBus service to open the folder with the file selected."""
+    model_file = tmp_path / "model.safetensors"
+    model_file.write_text("x", encoding="utf-8")
+
+    handler = FileSystemHandler(settings_service=SimpleNamespace())
+
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_docker", lambda: False)
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_wsl", lambda: False)
+
+    run_calls = []
+    popen_calls = []
+
+    def fake_run(args, **kwargs):
+        run_calls.append(args)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: popen_calls.append(args))
+
+    request = FakeRequest(json_data={"file_path": str(model_file)})
+    response = await handler.open_file_location(request)  # pyright: ignore[reportArgumentType]
+    payload = _json_payload(response)
+
+    assert response.status == 200
+    assert payload["success"] is True
+    assert len(run_calls) == 1
+    dbus_cmd = run_calls[0]
+    assert dbus_cmd[0] == "dbus-send"
+    assert any(
+        arg.startswith("array:string:file://") and "model.safetensors" in arg
+        for arg in dbus_cmd
+    )
+    assert popen_calls == []
+
+
+@pytest.mark.asyncio
+async def test_open_file_location_linux_falls_back_to_xdg_open(tmp_path, monkeypatch):
+    """When the FileManager1 DBus interface is unavailable, fall back to
+    opening the containing folder with xdg-open."""
+    model_file = tmp_path / "model.safetensors"
+    model_file.write_text("x", encoding="utf-8")
+
+    handler = FileSystemHandler(settings_service=SimpleNamespace())
+
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_docker", lambda: False)
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_wsl", lambda: False)
+
+    popen_calls = []
+
+    monkeypatch.setattr(
+        subprocess, "run", lambda *args, **kwargs: SimpleNamespace(returncode=1)
+    )
+    monkeypatch.setattr(
+        subprocess, "Popen", lambda *args, **kwargs: popen_calls.append(args[0])
+    )
+
+    request = FakeRequest(json_data={"file_path": str(model_file)})
+    response = await handler.open_file_location(request)  # pyright: ignore[reportArgumentType]
+    payload = _json_payload(response)
+
+    assert response.status == 200
+    assert payload["success"] is True
+    assert popen_calls == [["xdg-open", str(tmp_path)]]
+
+
+@pytest.mark.asyncio
+async def test_open_file_location_headless_returns_clipboard_mode(tmp_path, monkeypatch):
+    """Without a GUI session there is no file manager to open; the handler
+    must hand the path to the browser instead of failing silently."""
+    model_file = tmp_path / "model.safetensors"
+    model_file.write_text("x", encoding="utf-8")
+
+    handler = FileSystemHandler(settings_service=SimpleNamespace())
+
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_docker", lambda: False)
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_wsl", lambda: False)
+
+    popen_calls = []
+    run_calls = []
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: popen_calls.append(args))
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: run_calls.append(args))
+
+    request = FakeRequest(json_data={"file_path": str(model_file)})
+    response = await handler.open_file_location(request)  # pyright: ignore[reportArgumentType]
+    payload = _json_payload(response)
+
+    assert response.status == 200
+    assert payload["success"] is True
+    assert payload["mode"] == "clipboard"
+    assert payload["path"] == str(model_file)
+    assert popen_calls == []
+    assert run_calls == []
+
+
+def _patch_linux_desktop(monkeypatch):
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_docker", lambda: False)
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_wsl", lambda: False)
+
+
+@pytest.mark.asyncio
+async def test_open_model_sidecar_location_reveals_metadata_file(tmp_path, monkeypatch):
+    """Centralized mode: the resolved .metadata.json is revealed selected,
+    even though it lives in the mirror tree rather than next to the model."""
+    model_file = tmp_path / "model.safetensors"
+    model_file.write_text("x", encoding="utf-8")
+    metadata_file = tmp_path / "mirror" / "model.metadata.json"
+    metadata_file.parent.mkdir(parents=True)
+    metadata_file.write_text("{}", encoding="utf-8")
+
+    handler = FileSystemHandler(settings_service=SimpleNamespace())
+    _patch_linux_desktop(monkeypatch)
+    monkeypatch.setattr(
+        "py.routes.handlers.misc_handlers.get_metadata_path",
+        lambda path: str(metadata_file),
+    )
+
+    run_calls = []
+    popen_calls = []
+    monkeypatch.setattr(
+        subprocess, "run", lambda *args, **kwargs: run_calls.append(args[0]) or SimpleNamespace(returncode=0)
+    )
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: popen_calls.append(args))
+
+    request = FakeRequest(json_data={"file_path": str(model_file)})
+    response = await handler.open_model_sidecar_location(request)  # pyright: ignore[reportArgumentType]
+    payload = _json_payload(response)
+
+    assert response.status == 200
+    assert payload["success"] is True
+    assert payload["path"] == str(metadata_file)
+    assert len(run_calls) == 1
+    assert any("model.metadata.json" in arg for arg in run_calls[0])
+    assert popen_calls == []
+
+
+@pytest.mark.asyncio
+async def test_open_model_sidecar_location_falls_back_to_sidecar_dir(tmp_path, monkeypatch):
+    """When the sidecar has not been written yet, open the sidecar directory
+    itself instead of reporting an error."""
+    model_file = tmp_path / "model.safetensors"
+    model_file.write_text("x", encoding="utf-8")
+    sidecar_dir = tmp_path / "mirror"
+    sidecar_dir.mkdir()
+
+    handler = FileSystemHandler(settings_service=SimpleNamespace())
+    _patch_linux_desktop(monkeypatch)
+    monkeypatch.setattr(
+        "py.routes.handlers.misc_handlers.get_metadata_path",
+        lambda path: str(sidecar_dir / "model.metadata.json"),
+    )
+    monkeypatch.setattr(
+        "py.routes.handlers.misc_handlers.get_sidecar_dir",
+        lambda path: str(sidecar_dir),
+    )
+
+    popen_calls = []
+    monkeypatch.setattr(
+        subprocess, "Popen", lambda *args, **kwargs: popen_calls.append(args[0])
+    )
+
+    request = FakeRequest(json_data={"file_path": str(model_file)})
+    response = await handler.open_model_sidecar_location(request)  # pyright: ignore[reportArgumentType]
+    payload = _json_payload(response)
+
+    assert response.status == 200
+    assert payload["success"] is True
+    assert payload["path"] == str(sidecar_dir)
+    assert popen_calls == [["xdg-open", str(sidecar_dir)]]
+
+
+@pytest.mark.asyncio
+async def test_open_model_sidecar_location_missing_sidecar_returns_404(tmp_path, monkeypatch):
+    model_file = tmp_path / "model.safetensors"
+    model_file.write_text("x", encoding="utf-8")
+    missing_dir = tmp_path / "missing"
+
+    handler = FileSystemHandler(settings_service=SimpleNamespace())
+    monkeypatch.setattr(
+        "py.routes.handlers.misc_handlers.get_metadata_path",
+        lambda path: str(missing_dir / "model.metadata.json"),
+    )
+    monkeypatch.setattr(
+        "py.routes.handlers.misc_handlers.get_sidecar_dir",
+        lambda path: str(missing_dir),
+    )
+
+    request = FakeRequest(json_data={"file_path": str(model_file)})
+    response = await handler.open_model_sidecar_location(request)  # pyright: ignore[reportArgumentType]
+    payload = _json_payload(response)
+
+    assert response.status == 404
+    assert payload["success"] is False
+
+
+@pytest.mark.asyncio
+async def test_open_model_sidecar_location_headless_returns_clipboard_mode(tmp_path, monkeypatch):
+    model_file = tmp_path / "model.safetensors"
+    model_file.write_text("x", encoding="utf-8")
+    metadata_file = tmp_path / "mirror" / "model.metadata.json"
+    metadata_file.parent.mkdir(parents=True)
+    metadata_file.write_text("{}", encoding="utf-8")
+
+    handler = FileSystemHandler(settings_service=SimpleNamespace())
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_docker", lambda: False)
+    monkeypatch.setattr("py.routes.handlers.misc_handlers._is_wsl", lambda: False)
+    monkeypatch.setattr(
+        "py.routes.handlers.misc_handlers.get_metadata_path",
+        lambda path: str(metadata_file),
+    )
+
+    popen_calls = []
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: popen_calls.append(args))
+
+    request = FakeRequest(json_data={"file_path": str(model_file)})
+    response = await handler.open_model_sidecar_location(request)  # pyright: ignore[reportArgumentType]
+    payload = _json_payload(response)
+
+    assert response.status == 200
+    assert payload["success"] is True
+    assert payload["mode"] == "clipboard"
+    assert payload["path"] == str(metadata_file)
+    assert popen_calls == []
+
+
+@pytest.mark.asyncio
+async def test_open_model_sidecar_location_validates_input(tmp_path):
+    handler = FileSystemHandler(settings_service=SimpleNamespace())
+
+    response = await handler.open_model_sidecar_location(FakeRequest())  # pyright: ignore[reportArgumentType]
+    assert response.status == 400
+
+    request = FakeRequest(json_data={"file_path": str(tmp_path / "missing.safetensors")})
+    response = await handler.open_model_sidecar_location(request)  # pyright: ignore[reportArgumentType]
+    assert response.status == 404
 
 
 class RecordingRouter:
@@ -2746,6 +2993,38 @@ async def test_get_model_versions_status_supported_type_stays_interactive():
             "hasBeenDownloaded": False,
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_get_model_versions_status_surfaces_not_found_details():
+    """A missing CivitAI model keeps the provider's diagnostic message."""
+
+    class NotFoundProvider:
+        async def get_model_versions(self, _model_id):
+            raise ResourceNotFoundError("Civitai model 3390681 was not found")
+
+    async def metadata_factory():
+        return NotFoundProvider()
+
+    handler = ModelLibraryHandler(
+        ServiceRegistryAdapter(
+            get_lora_scanner=fake_scanner_factory,
+            get_checkpoint_scanner=fake_scanner_factory,
+            get_embedding_scanner=fake_scanner_factory,
+            get_other_scanner=fake_scanner_factory,
+            get_downloaded_version_history_service=fake_download_history_service_factory,
+        ),
+        metadata_provider_factory=metadata_factory,
+    )
+
+    response = await handler.get_model_versions_status(
+        FakeRequest(query={"modelId": "3390681"})  # pyright: ignore[reportArgumentType]
+    )
+    payload = _json_payload(response)
+
+    assert response.status == 404
+    assert payload["success"] is False
+    assert "3390681" in payload["error"]
 
 
 class DummySidecarMigrationUseCase:

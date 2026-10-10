@@ -297,7 +297,9 @@
             "loraAvailability": "זמינות LoRA",
             "availabilityReady": "מוכנים לשימוש",
             "availabilityMissing": "עם LoRAs חסרים",
-            "availabilityDeleted": "עם LoRAs שנמחקו"
+            "availabilityDeleted": "עם LoRAs שנמחקו",
+            "workflow": "workflow",
+            "hasWorkflow": "עם workflow"
         },
         "theme": {
             "toggle": "החלף ערכת נושא",
@@ -1069,7 +1071,8 @@
             "sendWorkflow": "שלח workflow ל-ComfyUI",
             "sent": "ה-workflow נשלח ל-ComfyUI",
             "sendFailed": "שליחת ה-workflow ל-ComfyUI נכשלה",
-            "noWorkflow": "לא נמצא workflow מוטבע במתכון זה"
+            "noWorkflow": "לא נמצא workflow מוטבע במתכון זה",
+            "hasWorkflow": "מכיל workflow של ComfyUI"
         },
         "status": {
             "ready": "מוכן לשימוש",
@@ -1892,6 +1895,7 @@
                 "viewOnHuggingFaceText": "צפייה ב-Hugging Face",
                 "viewCreatorProfile": "הצג פרופיל יוצר",
                 "openFileLocation": "פתח מיקום קובץ",
+                "openSidecarLocation": "פתח מיקום מטא-נתונים",
                 "sendToWorkflow": "שלח ל-ComfyUI",
                 "sendToWorkflowText": "שלח ל-ComfyUI",
                 "copyHash": "העתק hash",
@@ -1902,6 +1906,12 @@
             "openFileLocation": {
                 "success": "מיקום הקובץ נפתח בהצלחה",
                 "failed": "פתיחת מיקום הקובץ נכשלה",
+                "copied": "הנתיב הועתק ללוח העריכה: {{path}}",
+                "clipboardFallback": "נתיב: {{path}}"
+            },
+            "openSidecarLocation": {
+                "success": "מיקום המטא-נתונים נפתח בהצלחה",
+                "failed": "פתיחת מיקום המטא-נתונים נכשלה",
                 "copied": "הנתיב הועתק ללוח העריכה: {{path}}",
                 "clipboardFallback": "נתיב: {{path}}"
             },
@@ -2130,6 +2140,7 @@
             "statSuccess": "הצלחה",
             "statFailed": "נכשל",
             "statSkipped": "דולג",
+            "statOffline": "כונן לא זמין",
             "statTotal": "סה\"כ נסרק",
             "statDuration": "משך",
             "successMessage": "כל {count} {type}s עודכנו בהצלחה!",

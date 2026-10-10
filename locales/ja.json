@@ -297,7 +297,9 @@
             "loraAvailability": "LoRA の利用状況",
             "availabilityReady": "使用可能",
             "availabilityMissing": "不足 LoRA あり",
-            "availabilityDeleted": "削除済み LoRA あり"
+            "availabilityDeleted": "削除済み LoRA あり",
+            "workflow": "ワークフロー",
+            "hasWorkflow": "ワークフローあり"
         },
         "theme": {
             "toggle": "テーマの切り替え",
@@ -1069,7 +1071,8 @@
             "sendWorkflow": "ワークフローをComfyUIへ送信",
             "sent": "ワークフローをComfyUIへ送信しました",
             "sendFailed": "ワークフローをComfyUIへ送信できませんでした",
-            "noWorkflow": "このレシピに埋め込まれたワークフローが見つかりません"
+            "noWorkflow": "このレシピに埋め込まれたワークフローが見つかりません",
+            "hasWorkflow": "ComfyUI ワークフローを含む"
         },
         "status": {
             "ready": "使用可能",
@@ -1892,6 +1895,7 @@
                 "viewOnHuggingFaceText": "Hugging Face で見る",
                 "viewCreatorProfile": "作成者プロフィールを表示",
                 "openFileLocation": "ファイルの場所を開く",
+                "openSidecarLocation": "メタデータの場所を開く",
                 "sendToWorkflow": "ComfyUI に送信",
                 "sendToWorkflowText": "ComfyUI に送信",
                 "copyHash": "ハッシュをコピー",
@@ -1902,6 +1906,12 @@
             "openFileLocation": {
                 "success": "ファイルの場所を正常に開きました",
                 "failed": "ファイルの場所を開くのに失敗しました",
+                "copied": "パスをクリップボードにコピーしました: {{path}}",
+                "clipboardFallback": "パス: {{path}}"
+            },
+            "openSidecarLocation": {
+                "success": "メタデータの場所を正常に開きました",
+                "failed": "メタデータの場所を開くのに失敗しました",
                 "copied": "パスをクリップボードにコピーしました: {{path}}",
                 "clipboardFallback": "パス: {{path}}"
             },
@@ -2130,6 +2140,7 @@
             "statSuccess": "成功",
             "statFailed": "失敗",
             "statSkipped": "スキップ",
+            "statOffline": "ドライブ オフライン",
             "statTotal": "スキャン合計",
             "statDuration": "所要時間",
             "successMessage": "すべての{count}件の{type}を正常に更新しました",

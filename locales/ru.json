@@ -297,7 +297,9 @@
             "loraAvailability": "Доступность LoRAs",
             "availabilityReady": "Готовы к использованию",
             "availabilityMissing": "Есть отсутствующие",
-            "availabilityDeleted": "Есть удалённые"
+            "availabilityDeleted": "Есть удалённые",
+            "workflow": "Workflow",
+            "hasWorkflow": "С Workflow"
         },
         "theme": {
             "toggle": "Переключить тему",
@@ -1069,7 +1071,8 @@
             "sendWorkflow": "Отправить workflow в ComfyUI",
             "sent": "Workflow отправлен в ComfyUI",
             "sendFailed": "Не удалось отправить workflow в ComfyUI",
-            "noWorkflow": "В этом рецепте не найден встроенный workflow"
+            "noWorkflow": "В этом рецепте не найден встроенный workflow",
+            "hasWorkflow": "Содержит Workflow ComfyUI"
         },
         "status": {
             "ready": "Готово к использованию",
@@ -1892,6 +1895,7 @@
                 "viewOnHuggingFaceText": "Открыть Hugging Face",
                 "viewCreatorProfile": "Посмотреть профиль создателя",
                 "openFileLocation": "Открыть расположение файла",
+                "openSidecarLocation": "Открыть расположение метаданных",
                 "sendToWorkflow": "Отправить в ComfyUI",
                 "sendToWorkflowText": "Отправить в ComfyUI",
                 "copyHash": "Копировать хеш",
@@ -1902,6 +1906,12 @@
             "openFileLocation": {
                 "success": "Расположение файла успешно открыто",
                 "failed": "Не удалось открыть расположение файла",
+                "copied": "Путь скопирован в буфер обмена: {{path}}",
+                "clipboardFallback": "Путь: {{path}}"
+            },
+            "openSidecarLocation": {
+                "success": "Расположение метаданных успешно открыто",
+                "failed": "Не удалось открыть расположение метаданных",
                 "copied": "Путь скопирован в буфер обмена: {{path}}",
                 "clipboardFallback": "Путь: {{path}}"
             },
@@ -2130,6 +2140,7 @@
             "statSuccess": "Успешно",
             "statFailed": "Ошибка",
             "statSkipped": "Пропущено",
+            "statOffline": "Диск недоступен",
             "statTotal": "Всего проверено",
             "statDuration": "Длительность",
             "successMessage": "Все {count} {type}s успешно обновлены",

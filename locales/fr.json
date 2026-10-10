@@ -297,7 +297,9 @@
             "loraAvailability": "Disponibilité des LoRAs",
             "availabilityReady": "Prêts à l'emploi",
             "availabilityMissing": "Avec LoRAs manquants",
-            "availabilityDeleted": "Avec LoRAs supprimés"
+            "availabilityDeleted": "Avec LoRAs supprimés",
+            "workflow": "Workflow",
+            "hasWorkflow": "Avec Workflow"
         },
         "theme": {
             "toggle": "Basculer le thème",
@@ -1069,7 +1071,8 @@
             "sendWorkflow": "Envoyer le workflow vers ComfyUI",
             "sent": "Workflow envoyé vers ComfyUI",
             "sendFailed": "Échec de l'envoi du workflow vers ComfyUI",
-            "noWorkflow": "Aucun workflow intégré trouvé dans cette Recipe"
+            "noWorkflow": "Aucun workflow intégré trouvé dans cette Recipe",
+            "hasWorkflow": "Contient un Workflow ComfyUI"
         },
         "status": {
             "ready": "Prêt à l'emploi",
@@ -1892,6 +1895,7 @@
                 "viewOnHuggingFaceText": "Voir sur Hugging Face",
                 "viewCreatorProfile": "Voir le profil du créateur",
                 "openFileLocation": "Ouvrir l'emplacement du fichier",
+                "openSidecarLocation": "Ouvrir l'emplacement des métadonnées",
                 "sendToWorkflow": "Envoyer vers ComfyUI",
                 "sendToWorkflowText": "Envoyer vers ComfyUI",
                 "copyHash": "Copier le hash",
@@ -1902,6 +1906,12 @@
             "openFileLocation": {
                 "success": "Emplacement du fichier ouvert avec succès",
                 "failed": "Échec de l'ouverture de l'emplacement du fichier",
+                "copied": "Chemin copié dans le presse-papiers: {{path}}",
+                "clipboardFallback": "Chemin: {{path}}"
+            },
+            "openSidecarLocation": {
+                "success": "Emplacement des métadonnées ouvert avec succès",
+                "failed": "Échec de l'ouverture de l'emplacement des métadonnées",
                 "copied": "Chemin copié dans le presse-papiers: {{path}}",
                 "clipboardFallback": "Chemin: {{path}}"
             },
@@ -2130,6 +2140,7 @@
             "statSuccess": "Réussi",
             "statFailed": "Échoué",
             "statSkipped": "Ignoré",
+            "statOffline": "Lecteur hors ligne",
             "statTotal": "Total scanné",
             "statDuration": "Durée",
             "successMessage": "Tous les {count} {type}s mis à jour avec succès !",
