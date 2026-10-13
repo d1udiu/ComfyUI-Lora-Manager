@@ -24,6 +24,13 @@
   --color-accent-border: oklch(var(--color-accent-l) var(--color-accent-c) var(--color-accent-h) / 0.25);
   --color-accent-transparent: oklch(var(--color-accent-l) var(--color-accent-c) var(--color-accent-h) / 0.6);
 
+  /* Text/icon color on top of a solid accent background. The accent is a
+     mid-to-bright color (L 52-72%) in every theme/preset, so a dark,
+     low-chroma color of the same hue reads far better than white or the
+     page text color (WCAG: dark on L60% accent ≈ 4.4:1, white ≈ 3.5:1).
+     Derived from --color-accent-h so every preset picks it up. */
+  --color-accent-contrast: oklch(20% 0.02 var(--color-accent-h));
+
   --color-warning: oklch(var(--color-warning-l) var(--color-warning-c) var(--color-warning-h));
   --color-warning-bg: oklch(var(--color-warning-l) var(--color-warning-c) var(--color-warning-h) / 0.15);
   --color-warning-border: oklch(var(--color-warning-l) var(--color-warning-c) var(--color-warning-h) / 0.3);
@@ -80,6 +87,17 @@
 
   --favorite-color: #d4a017;
   --favorite-glow: oklch(65% 0.15 85 / 0.5);
+}
+
+/* Opaque variants of the elevated surfaces. The elevated tokens are
+   translucent; a layer stacked on top of an elevated surface (sticky modal
+   footers, sticky table headers) must use the solid variant, otherwise the
+   translucent layer double-composites over the surface and shows as a
+   visible seam in light themes. Derived here so every theme/preset override
+   of the source tokens is picked up automatically. */
+:root {
+  --bg-elevated-solid: oklch(from var(--bg-elevated) l c h / 1);
+  --surface-elevated-solid: oklch(from var(--surface-elevated) l c h / 1);
 }
 
 :root[data-theme="dark"] {

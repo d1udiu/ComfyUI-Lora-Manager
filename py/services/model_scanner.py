@@ -25,6 +25,7 @@ from ..utils.recipes_paths import (
     get_effective_recipes_dir,
     normalized_recipes_dir_key,
 )
+from ..utils.root_paths import normalize_root_identity
 from .model_cache import ModelCache
 from .model_hash_index import ModelHashIndex
 from .model_lifecycle_service import delete_model_artifacts, _require_path_in_library_roots
@@ -203,16 +204,33 @@ def _root_display_labels(roots: Sequence[str]) -> Dict[str, str]:
     return {root: _truncate_label(label) for root, label in labels.items()}
 
 
+def _root_identity(root: str) -> str:
+    """Comparable identity of a model root, folding the host's spelling (issue #1146).
+
+    The live root list is forward-slashed while ``Config`` keeps the configured
+    paths exactly as the host handed them over -- ComfyUI's ``os.path.normpath()``
+    output is all backslashes on Windows. Comparing the two as raw strings turns
+    one directory into two roots: a duplicated menu row, a bogus "unavailable"
+    report, and -- worse -- an unreachable prefix registered over a root the walk
+    just read, which stops deleted models from ever being pruned.
+    """
+    return normalize_root_identity(root)
+
+
 def _normalized_root_prefix(root: str) -> str:
     """Forward-slash root prefix used to attribute cached paths to a root."""
-    prefix = os.path.normpath(root).replace(os.sep, "/")
-    if not prefix.endswith("/"):
+    prefix = _root_identity(root)
+    if prefix and not prefix.endswith("/"):
         prefix += "/"
-    return prefix.lower() if _CASE_INSENSITIVE_PATHS else prefix
+    return prefix
 
 
 def _path_matches_prefix(path: str, prefix: str) -> bool:
     """Match a cached business path against a normalized scope prefix."""
+    if not prefix:
+        # An empty prefix would match every path; callers filter empty roots, so
+        # keep it inert instead of turning it into a catch-all.
+        return False
     candidate = path.lower() if _CASE_INSENSITIVE_PATHS else path
     return candidate.startswith(prefix)
 
@@ -291,6 +309,36 @@ class _UnreachablePaths:
                 return prefix
         return None
 
+    def covers_folder(self, root: str, folder: str) -> bool:
+        """Whether *folder* (relative to *root*) sits in an unreadable area.
+
+        Used when refreshing the recorded folder list: an entry the walk did not
+        find is only kept while a *specific* area we could not read may still hold
+        it -- a directory ``os.walk`` failed to enter, or a first-level symlink
+        whose target is gone. Both directions count: the folder may be inside the
+        unreadable directory, or hold it.
+
+        A root that is unreadable *as a whole* (drive switched off) deliberately
+        does not count here. The recorded list holds library-relative names, so a
+        missing root would trivially "cover" every entry and no ghost could ever be
+        cleared (issue #1145). Its folders still show up while they hold cached
+        models -- ``get_all_folders()`` unions the model-derived folders -- and a
+        genuinely empty folder comes back the next time that root is walked.
+        """
+        relative = (folder or "").replace("\\", "/").strip("/")
+        if not relative:
+            return False
+
+        root_prefix = _normalized_root_prefix(root)
+        candidate = f"{root_prefix}{relative}/"
+        if _CASE_INSENSITIVE_PATHS:
+            candidate = candidate.lower()
+        return any(
+            prefix != root_prefix
+            and (candidate.startswith(prefix) or prefix.startswith(candidate))
+            for prefix in self._prefixes
+        )
+
     def record_kept(self, prefix: str, amount: int = 1) -> None:
         detail = self._details.get(prefix)
         if detail is not None:
@@ -332,7 +380,8 @@ def _count_cached_entries_for_prefixes(
     for path in cached_paths:
         candidate = path.lower() if case_insensitive else path
         for key, prefix in ordered:
-            if candidate.startswith(prefix):
+            # An empty prefix would claim every path; see _path_matches_prefix.
+            if prefix and candidate.startswith(prefix):
                 counts[key] += 1
                 break
     return counts
@@ -1621,8 +1670,9 @@ class ModelScanner:
         seen: Set[str] = set()
         for key in keys:
             for root in config.configured_roots_for(key):
-                if root and root not in seen:
-                    seen.add(root)
+                identity = _root_identity(root)
+                if identity and identity not in seen:
+                    seen.add(identity)
                     roots.append(root)
         return roots
 
@@ -1651,32 +1701,44 @@ class ModelScanner:
         roots: List[str] = []
         seen: Set[str] = set()
         for root in self.get_model_roots():
-            if not root or root in seen:
+            identity = _root_identity(root)
+            if not identity or identity in seen:
                 continue
-            seen.add(root)
+            seen.add(identity)
             roots.append(root)
 
         # Configured roots that are missing from the live list: their directory
         # did not exist when it was built (a drive switched off at startup).
-        # They are reported so the menu offers a row in both states instead of
-        # hiding the root until the process is restarted.
-        unavailable = [
-            root for root in self.get_configured_model_roots() if root not in seen
-        ]
+        # Compared by identity, never by string -- the live list is forward-slashed
+        # while Config keeps the host's own spelling, which is all backslashes on
+        # Windows (issue #1146). Only roots that still hold cached entries are
+        # reported: a path that neither exists nor was ever scanned has nothing to
+        # keep, and ComfyUI registers `<output>/loras` for its save nodes whether or
+        # not that directory is there.
+        candidates: List[str] = []
+        reported: Set[str] = set()
+        for root in self.get_configured_model_roots():
+            identity = _root_identity(root)
+            if not identity or identity in seen or identity in reported:
+                continue
+            reported.add(identity)
+            candidates.append(root)
 
-        labels = _root_display_labels(roots + unavailable)
         cached_paths = (
             {item.get('file_path', '') for item in self._cache.raw_data}
             if self._cache is not None
             else set()
         )
-        counts = _count_cached_entries_per_root(cached_paths, roots + unavailable)
+        counts = _count_cached_entries_per_root(cached_paths, roots + candidates)
+        unavailable = [root for root in candidates if counts.get(root, 0)]
+
+        labels = _root_display_labels(roots + unavailable)
         return [
             {
                 'path': root.replace(os.sep, '/'),
                 'label': labels[root],
                 'reachable': os.path.exists(root),
-                'available': root in seen,
+                'available': _root_identity(root) in seen,
                 'models': counts.get(root, 0),
             }
             for root in roots + unavailable
@@ -1801,25 +1863,37 @@ class ModelScanner:
             configured_roots: List[str] = []
             seen_roots: Set[str] = set()
             for root_path in self.get_model_roots():
-                if not root_path or root_path in seen_roots:
+                identity = _root_identity(root_path)
+                if not identity or identity in seen_roots:
                     continue
-                seen_roots.add(root_path)
+                seen_roots.add(identity)
                 configured_roots.append(root_path)
 
             # Configured roots that never made it into the live list (their
             # directory was missing when it was built). They are outside the scan
             # scope entirely — which is exactly why their cached entries survive
             # — so they only need reporting, and their labels must not collide
-            # with the live ones.
-            configured_only = [
-                root for root in self.get_configured_model_roots()
-                if root and root not in seen_roots
-            ]
+            # with the live ones. Identity, not string: the live list is
+            # forward-slashed while Config keeps the host's own spelling -- all
+            # backslashes on Windows -- and a raw compare would report every root
+            # twice and shadow it as unreachable (issue #1146).
+            configured_only: List[str] = []
+            for root in self.get_configured_model_roots():
+                identity = _root_identity(root)
+                if not identity or identity in seen_roots:
+                    continue
+                seen_roots.add(identity)
+                configured_only.append(root)
 
             all_labels = _root_display_labels(configured_roots + configured_only)
+            scope_root_ids = (
+                {_root_identity(root) for root in scope.roots}
+                if scope is not None and scope.roots is not None
+                else None
+            )
             scope_roots = [
                 root for root in configured_roots
-                if scope is None or scope.roots is None or root in scope.roots
+                if scope_root_ids is None or _root_identity(root) in scope_root_ids
             ]
             scope_folder = scope.folder if scope is not None else None
 
@@ -1853,7 +1927,12 @@ class ModelScanner:
                 )
                 for root_path, _prefix in folder_candidates:
                     kept = folder_counts.get(root_path, 0)
-                    if scope_folder is not None and not kept:
+                    # Only a root that still holds cached entries is reported --
+                    # and protected from pruning. A configured path that neither
+                    # exists nor was ever scanned has nothing to keep, and ComfyUI
+                    # registers `<output>/loras` for its save nodes even when that
+                    # directory is absent (issue #1146).
+                    if not kept:
                         continue
                     unreachable.add(root_path, 'root_unavailable', kept=kept)
                     skipped_roots.append({
@@ -2148,22 +2227,43 @@ class ModelScanner:
                     total_removed += dedup_removed
             
             # The walk above visited every directory *in scope*, so refresh the
-            # recorded folder list (including empty folders) when nothing was
-            # left unverified — e.g. an empty folder was created or removed
-            # externally. A scoped scan, or one with unreadable paths, can only
-            # add to the list: dropping folders this walk never looked at would
-            # empty the sidebar for every drive that was not scanned.
+            # recorded folder list (including empty folders) when this run could
+            # speak for every root: e.g. an empty folder was created or removed
+            # externally.
+            #
+            # A folder the walk did not find is dropped unless a root we could not
+            # read still covers it — the drive is off, ``os.walk`` failed to enter
+            # a directory, or a first-level symlink lost its target. Keeping the
+            # *whole* list whenever anything was unreadable is what made a ghost
+            # folder outlive every refresh, a restart and even the folder being
+            # deleted in the UI (issue #1145). A scoped scan cannot speak for the
+            # roots it was not asked about, so it still only adds: dropping
+            # folders it never looked at would empty the sidebar for every drive
+            # that was not scanned.
             sorted_discovered = sorted(discovered_folders, key=lambda x: x.lower())
-            fully_verified = (
-                len(roots) == len(configured_roots)
-                and scope_folder is None
-                and not unreachable.has_entries()
+            discovered_set = set(sorted_discovered)
+            recorded = set(self._cache.all_folders or [])
+            speaks_for_every_root = scope_folder is None and (
+                scope is None
+                or scope.roots is None
+                or len(scope_roots) == len(configured_roots)
             )
-            if fully_verified:
-                merged_folders = sorted_discovered
+            if speaks_for_every_root:
+                merged_folders = sorted(
+                    discovered_set
+                    | {
+                        folder
+                        for folder in recorded - discovered_set
+                        if any(
+                            unreachable.covers_folder(root, folder)
+                            for root in configured_roots + configured_only
+                        )
+                    },
+                    key=lambda x: x.lower(),
+                )
             else:
                 merged_folders = sorted(
-                    set(self._cache.all_folders or []) | set(sorted_discovered),
+                    recorded | discovered_set,
                     key=lambda x: x.lower(),
                 )
             folders_changed = self._cache.all_folders != merged_folders
@@ -2994,12 +3094,28 @@ class ModelScanner:
         return await MetadataManager.create_default_metadata(file_path, self.model_class)
     
     def _calculate_folder(self, file_path: str) -> str:
-        """Calculate the folder path for a model file"""
+        """Return the library-relative folder holding *file_path*.
+
+        The path arrives in whichever spelling its caller holds: ComfyUI's own
+        (backslashes on Windows) or the forward-slashed business form used for
+        cache entries. A raw ``startswith(root)`` matched neither the mixed nor
+        the opposite spelling, so every forward-slashed path on Windows resolved
+        to the root folder and a moved model was filed under the library root.
+        Compare identities instead, then slice the relative part off.
+        """
+        candidate = _root_identity(file_path)
+        if not candidate:
+            return ""
         for root in self.get_model_roots():
-            if file_path.startswith(root):
-                rel_path = os.path.relpath(file_path, root)
-                return os.path.dirname(rel_path).replace(os.path.sep, '/')
-        return ''
+            identity = _root_identity(root)
+            if not identity:
+                continue
+            if candidate == identity:
+                return ""
+            if candidate.startswith(f"{identity}/"):
+                relative = candidate[len(identity) + 1:]
+                return relative.rsplit("/", 1)[0] if "/" in relative else ""
+        return ""
 
     def adjust_metadata(self, metadata, file_path, root_path):
         """Hook for subclasses: adjust metadata during scanning"""

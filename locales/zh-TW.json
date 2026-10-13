@@ -497,6 +497,42 @@
                 "saveFailed": "無法儲存已排除的基礎模型：{message}"
             }
         },
+        "downloadRootRules": {
+            "title": "下載根目錄規則",
+            "help": "根據模型的基礎模型或標籤，將下載路由到其他根目錄。",
+            "description": "規則依序檢查，首個命中的規則生效；未匹配的下載使用預設根目錄。",
+            "defaultHint": "預設：{root} — 未匹配的下載將儲存到這裡",
+            "defaultSuffix": "預設",
+            "addBaseModelRule": "基礎模型規則",
+            "addTagRule": "標籤規則",
+            "removeRule": "移除規則",
+            "moveUp": "上移",
+            "moveDown": "下移",
+            "noRoots": "此模型類型尚未設定根目錄。",
+            "matchTypes": {
+                "baseModel": "基礎模型",
+                "tag": "標籤"
+            },
+            "matchTypeChips": {
+                "baseModel": "BM",
+                "tag": "標籤"
+            },
+            "tagPlaceholder": "character, style, realistic",
+            "summary": {
+                "selectBaseModels": "選擇基礎模型...",
+                "enterTags": "輸入標籤...",
+                "more": "還有 {count} 項"
+            },
+            "types": {
+                "loras": "LoRA",
+                "checkpoints": "Checkpoint",
+                "unet": "Diffusion Model",
+                "embeddings": "Embedding"
+            },
+            "validation": {
+                "saveFailed": "無法儲存下載根目錄規則：{message}"
+            }
+        },
         "skipPreviouslyDownloadedModelVersions": {
             "label": "跳過已下載的模型版本",
             "help": "啟用後，如果下載歷史服務記錄顯示該版本已下載，LoRA Manager 將跳過下載該模型版本。適用於所有下載流程。"
@@ -839,6 +875,8 @@
             "migrationDeferred": "現有附屬檔案未遷移。您稍後可以在「設定 > 模型庫 > 附屬檔案儲存」中遷移它們。",
             "confirmToCentralized": "儲存模式已變更，但現有的 .metadata.json 附屬檔案與預覽圖片不會自動遷移。要現在將它們移入集中儲存目錄嗎？您也可以稍後使用「立即遷移附屬檔案」按鈕完成。",
             "confirmToAlongside": "儲存模式已變更，但現有的 .metadata.json 附屬檔案與預覽圖片不會自動遷移。要現在將它們移回各自的模型檔案旁邊嗎？您也可以稍後使用「立即遷移附屬檔案」按鈕完成。",
+            "confirmToCentralizedManual": "要現在將現有的 .metadata.json 附屬檔案與預覽圖片移入集中儲存目錄嗎？",
+            "confirmToAlongsideManual": "要現在將現有的 .metadata.json 附屬檔案與預覽圖片移回各自的模型檔案旁邊嗎？",
             "confirmRelocateRoot": "集中儲存目錄已變更，但現有的附屬檔案與預覽圖片仍在原目錄中。要現在將它們移到新目錄嗎？",
             "effectivePathLabel": "實際儲存位置：",
             "openFolderButton": "開啟資料夾",
@@ -1416,7 +1454,8 @@
             "notEmptyMessageCount": "該資料夾中仍有 {count} 個模型檔案，請先刪除或移出這些模型 —— 刪除資料夾不會串聯刪除模型檔案。",
             "notEmptyMessageExcluded": "該資料夾中仍有 {count} 個模型檔案，其中 {excluded} 個已從模型庫中排除。請先在「管理已排除的模型」中取消排除並刪除它們 —— 刪除資料夾不會串聯刪除模型檔案。",
             "missingTitle": "未找到資料夾",
-            "missingMessage": "該資料夾在磁碟上已不存在，請重新整理側邊欄後再試。",
+            "missingMessage": "[TODO: Translate] This folder no longer exists on disk. You can remove it from the list.",
+            "removeFromList": "[TODO: Translate] Remove from list",
             "symlinkTitle": "資料夾是符號連結",
             "symlinkMessage": "該資料夾的每一份副本都是符號連結；請在 LoRA Manager 之外刪除該連結或其指向的目標。",
             "protectedTitle": "資料夾受保護",
@@ -1438,6 +1477,8 @@
             "busy": "該資料夾內仍有待處理的刪除操作，請等待復原時間結束。",
             "unsupported": "此頁面不支援刪除資料夾",
             "missing": "該資料夾在磁碟上已不存在，請重新整理側邊欄後再試。",
+            "forgotten": "[TODO: Translate] Folder \"{name}\" removed from the list",
+            "exists": "[TODO: Translate] The folder is back on disk. Delete it instead.",
             "symlink": "該資料夾是符號連結，無法從側邊欄中刪除。",
             "successMulti": "已從 {count} 個模型根目錄中刪除資料夾 \"{name}\"",
             "partial": "已刪除 {total} 份副本中的 {count} 份 —— {failed} 份無法刪除。請重新整理側邊欄後再試。"
@@ -1628,6 +1669,10 @@
                 "label": "目標類型：",
                 "tooltip": "根據模型中繼資料自動偵測。如果偵測結果有誤，請切換；切換會為本次下載關閉「使用預設路徑」。"
             },
+            "routedByRule": {
+                "baseModel": "已由規則路由：基礎模型「{value}」",
+                "tag": "已由規則路由：標籤「{value}」"
+            },
             "targetFolderPath": "目標資料夾路徑：",
             "browseFolders": "瀏覽資料夾：",
             "createNewFolder": "建立新資料夾",
@@ -1749,7 +1794,8 @@
             "titleToAlongside": "要將附屬檔案移回模型檔案旁邊嗎？",
             "confirmButton": "立即遷移",
             "titleRelocateRoot": "要將附屬檔案移到新的儲存目錄嗎？",
-            "destination": "目標位置：{path}"
+            "destination": "目標位置：{path}",
+            "defaultLocationHint": "將使用預設儲存位置。如需使用自訂資料夾，請取消，在上方設定儲存路徑，然後點擊「立即遷移附屬檔案」。"
         },
         "sidecarMigrationResult": {
             "title": "附屬檔案遷移摘要",

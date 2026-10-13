@@ -1,7 +1,8 @@
 import asyncio
 import fnmatch
-import os
 import logging
+import os
+import posixpath
 import shutil
 from typing import Any, Dict, List, Optional, Sequence, Set
 from abc import ABC, abstractmethod
@@ -12,7 +13,10 @@ from ..utils.recipes_paths import path_is_or_contains_recipes_dir
 from ..utils.sidecar_paths import is_centralized, resolve_centralized_dir_for_dir
 from ..services.settings_manager import get_settings_manager
 from ..services.model_lifecycle_service import _require_path_in_library_roots
-from ..services.pending_delete_service import PENDING_DELETE_DIR_NAME
+from ..services.pending_delete_service import (
+    PENDING_DELETE_DIR_NAME,
+    staging_dir_has_content,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +37,11 @@ def normalize_relative_folder(folder: str) -> str:
     if normalized.startswith("/") or (len(normalized) > 1 and normalized[1] == ":"):
         raise ValueError("Folder path must be relative to a library root")
 
-    normalized = os.path.normpath(normalized)
-    if (
-        normalized == ".."
-        or normalized.startswith("../")
-        or normalized.startswith(".." + os.sep)
-    ):
+    # posixpath, not os.path: ntpath.normpath would fold the business form back
+    # to backslashes, and every stored folder, cache entry and comparison in the
+    # app is forward-slashed.
+    normalized = posixpath.normpath(normalized)
+    if normalized == ".." or normalized.startswith("../"):
         raise ValueError("Folder path must stay inside the library root")
 
     return normalized
@@ -589,6 +592,33 @@ class ModelMoveService:
                 return rel.replace(os.sep, "/")
         return ""
 
+    async def forget_folder(self, folder: str) -> Dict[str, Any]:
+        """Drop the records of a folder that is on disk under no root (#1145).
+
+        A directory moved or deleted with a file manager can leave the sidebar
+        holding a node no delete can clear: the folder is gone, so there is
+        nothing to remove and every attempt answered "Folder no longer exists".
+        This drops what remains — the recorded folder entry and the cached model
+        rows under it — and is refused while any root still holds the directory,
+        because then the caller wants a delete, not a cleanup.
+        """
+        resolution = self.resolve_folder(folder)
+        if not resolution.get("success"):
+            return resolution
+
+        normalized = resolution.get("folder") or ""
+        if not normalized:
+            return {"success": False, "error": "Folder is required"}
+        if resolution.get("candidates"):
+            return {
+                "success": False,
+                "code": "exists",
+                "error": "The folder still exists on disk",
+            }
+
+        await self._forget_folder(normalized)
+        return {"success": True, "folder": normalized}
+
     def resolve_folder(self, folder: str) -> Dict[str, Any]:
         """Map a library-relative folder onto the directories it stands for.
 
@@ -685,11 +715,29 @@ class ModelMoveService:
                 }
             if not os.path.isdir(absolute_path):
                 # `missing` is its own code so the sidebar can tell "this node's
-                # directory is gone, refresh" apart from a failed operation.
+                # directory is gone" apart from a failed operation. There is
+                # nothing left to delete, but the sidebar can still be holding the
+                # node: a folder moved or removed with a file manager leaves its
+                # records behind, and "Folder no longer exists" was a dead end --
+                # the ghost could not be cleared from the UI at all (issue #1145).
+                # The real delete therefore forgets those records and reports
+                # success; the dry run stays a pure read and keeps answering
+                # `missing`, which is what makes the dialog offer the removal.
+                if dry_run:
+                    return {
+                        "success": False,
+                        "code": "missing",
+                        "error": "Folder no longer exists",
+                    }
+
+                relative_folder = self._calculate_relative_folder(absolute_path)
+                await self._forget_folder(relative_folder, absolute_path)
                 return {
-                    "success": False,
+                    "success": True,
                     "code": "missing",
-                    "error": "Folder no longer exists",
+                    "already_missing": True,
+                    "folder": relative_folder,
+                    "folder_path": absolute_path.replace(os.sep, "/"),
                 }
 
             if self._is_model_root(absolute_path):
@@ -836,7 +884,12 @@ class ModelMoveService:
         excluded_paths = self._excluded_model_paths()
 
         for dirpath, dirnames, filenames in os.walk(absolute_path):
-            if PENDING_DELETE_DIR_NAME in dirnames:
+            # The container alone means nothing: an empty `.lm-pending-delete`
+            # is a leftover from a purge, an undo or a failed staging, and
+            # treating it as pending made the folder undeletable for good.
+            if PENDING_DELETE_DIR_NAME in dirnames and staging_dir_has_content(
+                os.path.join(dirpath, PENDING_DELETE_DIR_NAME)
+            ):
                 pending_delete_job = True
 
             for name in dirnames:
@@ -1009,7 +1062,12 @@ class ModelMoveService:
 
             new_relative = self._calculate_relative_folder(target)
             await self._rename_folder_records(
-                previous_relative, new_relative, absolute_path, target
+                previous_relative,
+                new_relative,
+                # Business paths, like every other absolute path this service
+                # hands out: the scanner re-keys cache entries by prefix.
+                absolute_path.replace(os.sep, "/"),
+                target.replace(os.sep, "/"),
             )
 
             return {
@@ -1027,9 +1085,15 @@ class ModelMoveService:
 
     @staticmethod
     def _has_pending_delete_job(absolute_path: str) -> bool:
-        """Return True when a staged-delete batch lives inside the subtree."""
-        for _dirpath, dirnames, _filenames in os.walk(absolute_path):
-            if PENDING_DELETE_DIR_NAME in dirnames:
+        """Return True when a staged-delete batch lives inside the subtree.
+
+        An empty ``.lm-pending-delete`` container does not count: it is a
+        leftover, not a batch, and a rename must not be refused because of one.
+        """
+        for dirpath, dirnames, _filenames in os.walk(absolute_path):
+            if PENDING_DELETE_DIR_NAME in dirnames and staging_dir_has_content(
+                os.path.join(dirpath, PENDING_DELETE_DIR_NAME)
+            ):
                 return True
         return False
 

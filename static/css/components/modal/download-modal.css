@@ -373,7 +373,7 @@
 
 .create-folder-form button.confirm {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     border-color: var(--lora-accent);
 }
 
@@ -789,7 +789,10 @@
     position: sticky;
     bottom: 0;
     z-index: 1;
-    background: var(--lora-surface);
+    /* Solid surface: must fully mask the step content scrolling underneath;
+       the translucent --lora-surface would double-composite over the modal
+       surface and show a seam in light themes. */
+    background: var(--lora-surface-solid);
     border-top: 1px solid var(--lora-border);
     padding-top: var(--space-2);
     padding-bottom: var(--space-1);
@@ -1096,6 +1099,12 @@
     margin-bottom: var(--space-2);
 }
 
+.download-rule-match-hint {
+    margin-top: var(--space-1);
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
 .routing-override-group label {
     display: block;
     margin-bottom: 8px;
@@ -1136,7 +1145,7 @@
 
 .routing-override-option.active {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     border-color: var(--lora-accent);
     opacity: 1;
     cursor: default;

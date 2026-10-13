@@ -497,6 +497,42 @@
                 "saveFailed": "除外するベースモデルを保存できませんでした: {message}"
             }
         },
+        "downloadRootRules": {
+            "title": "ダウンロードルートのルール",
+            "help": "モデルのベースモデルまたはタグに基づいて、ダウンロードを別のルートフォルダに振り分けます。",
+            "description": "ルールは順番にチェックされます。最初に一致したルールが適用され、一致しないダウンロードはデフォルトルートを使用します。",
+            "defaultHint": "デフォルト：{root} — 一致しないダウンロードはここに保存されます",
+            "defaultSuffix": "デフォルト",
+            "addBaseModelRule": "ベースモデルルール",
+            "addTagRule": "タグルール",
+            "removeRule": "ルールを削除",
+            "moveUp": "上に移動",
+            "moveDown": "下に移動",
+            "noRoots": "このモデルタイプにはルートが設定されていません。",
+            "matchTypes": {
+                "baseModel": "ベースモデル",
+                "tag": "タグ"
+            },
+            "matchTypeChips": {
+                "baseModel": "BM",
+                "tag": "タグ"
+            },
+            "tagPlaceholder": "character, style, realistic",
+            "summary": {
+                "selectBaseModels": "ベースモデルを選択...",
+                "enterTags": "タグを入力...",
+                "more": "他 {count} 件"
+            },
+            "types": {
+                "loras": "LoRA",
+                "checkpoints": "Checkpoint",
+                "unet": "Diffusion Model",
+                "embeddings": "Embedding"
+            },
+            "validation": {
+                "saveFailed": "ダウンロードルートのルールを保存できませんでした：{message}"
+            }
+        },
         "skipPreviouslyDownloadedModelVersions": {
             "label": "以前にダウンロードしたモデルバージョンをスキップ",
             "help": "有効にすると、ダウンロード履歴サービスがそのバージョンが既にダウンロード済みと記録している場合、LoRA Managerはそのモデルバージョンのダウンロードをスキップします。すべてのダウンロードフローに適用されます。"
@@ -839,6 +875,8 @@
             "migrationDeferred": "既存のサイドカーファイルは移動されませんでした。後で「設定 > ライブラリ > サイドカーファイルの保存」から移動できます。",
             "confirmToCentralized": "保存モードが変更されましたが、既存の .metadata.json サイドカーファイルとプレビュー画像は自動では移動しません。今すぐ集中保存ディレクトリに移動しますか？「今すぐサイドカーファイルを移動」ボタンで後から実行することもできます。",
             "confirmToAlongside": "保存モードが変更されましたが、既存の .metadata.json サイドカーファイルとプレビュー画像は自動では移動しません。今すぐ各モデルファイルの隣に戻しますか？「今すぐサイドカーファイルを移動」ボタンで後から実行することもできます。",
+            "confirmToCentralizedManual": "既存の .metadata.json サイドカーファイルとプレビュー画像を今すぐ集中保存ディレクトリに移動しますか？",
+            "confirmToAlongsideManual": "既存の .metadata.json サイドカーファイルとプレビュー画像を今すぐ各モデルファイルの隣に戻しますか？",
             "confirmRelocateRoot": "集中保存ディレクトリが変更されましたが、既存のサイドカーファイルとプレビュー画像はまだ以前のディレクトリにあります。今すぐ新しいディレクトリに移動しますか？",
             "effectivePathLabel": "実際の保存場所：",
             "openFolderButton": "フォルダを開く",
@@ -1416,7 +1454,8 @@
             "notEmptyMessageCount": "このフォルダにはまだ {count} 個のモデルファイルがあります。先に削除するか移動してください —— フォルダを削除してもモデルファイルがまとめて削除されることはありません。",
             "notEmptyMessageExcluded": "このフォルダにはまだ {count} 個のモデルファイルがあり、そのうち {excluded} 個はライブラリから除外されています。「除外モデルを管理」で除外を解除してから削除してください —— フォルダを削除してもモデルファイルがまとめて削除されることはありません。",
             "missingTitle": "フォルダが見つかりません",
-            "missingMessage": "このフォルダはディスク上に存在しません。サイドバーを再読み込みしてからもう一度お試しください。",
+            "missingMessage": "[TODO: Translate] This folder no longer exists on disk. You can remove it from the list.",
+            "removeFromList": "[TODO: Translate] Remove from list",
             "symlinkTitle": "フォルダがシンボリックリンクです",
             "symlinkMessage": "このフォルダのすべてのコピーがシンボリックリンクです。LoRA Manager の外でリンクまたはそのリンク先を削除してください。",
             "protectedTitle": "フォルダは保護されています",
@@ -1438,6 +1477,8 @@
             "busy": "このフォルダ内に保留中の削除があります。取り消し可能な時間が過ぎるまでお待ちください。",
             "unsupported": "このページではフォルダを削除できません",
             "missing": "このフォルダはディスク上に存在しません。サイドバーを再読み込みしてからもう一度お試しください。",
+            "forgotten": "[TODO: Translate] Folder \"{name}\" removed from the list",
+            "exists": "[TODO: Translate] The folder is back on disk. Delete it instead.",
             "symlink": "このフォルダはシンボリックリンクです。サイドバーからは削除できません。",
             "successMulti": "{count} 個のモデルルートからフォルダ \"{name}\" を削除しました",
             "partial": "{total} 個のコピーのうち {count} 個を削除しました —— {failed} 個は削除できませんでした。サイドバーを再読み込みしてからもう一度お試しください。"
@@ -1628,6 +1669,10 @@
                 "label": "保存先タイプ：",
                 "tooltip": "モデルのメタデータから自動検出されます。誤検出の場合は切り替えてください。切り替えると、このダウンロードでは「デフォルトパスを使用」がオフになります。"
             },
+            "routedByRule": {
+                "baseModel": "ルールで振り分け：ベースモデル「{value}」",
+                "tag": "ルールで振り分け：タグ「{value}」"
+            },
             "targetFolderPath": "ターゲットフォルダパス：",
             "browseFolders": "フォルダを参照：",
             "createNewFolder": "新しいフォルダを作成",
@@ -1749,7 +1794,8 @@
             "titleToAlongside": "サイドカーファイルをモデルファイルの隣に戻しますか？",
             "confirmButton": "今すぐ移動",
             "titleRelocateRoot": "サイドカーファイルを新しい保存ディレクトリに移動しますか？",
-            "destination": "移動先：{path}"
+            "destination": "移動先：{path}",
+            "defaultLocationHint": "デフォルトの保存場所が使用されます。カスタムフォルダを使用するには、キャンセルして上の保存先パスを設定してから、「今すぐサイドカーファイルを移動」をクリックしてください。"
         },
         "sidecarMigrationResult": {
             "title": "サイドカーファイル移動の概要",

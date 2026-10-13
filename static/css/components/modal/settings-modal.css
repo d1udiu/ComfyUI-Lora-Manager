@@ -15,7 +15,7 @@
 
 .settings-toggle:hover {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     transform: translateY(-2px);
 }
 
@@ -86,13 +86,13 @@
 }
 
 .settings-nav-item:hover {
-    background: rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+    background: oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
     color: var(--lora-accent);
 }
 
 .settings-nav-item.active {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     font-weight: 600;
 }
 
@@ -160,7 +160,7 @@
 .settings-search-input:focus {
     border-color: var(--lora-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
 }
 
 .settings-search-input::placeholder {
@@ -193,7 +193,7 @@
 
 /* Search Highlight Styles */
 .settings-search-highlight {
-    background-color: rgba(var(--lora-accent-rgb, 79, 70, 229), 0.3);
+    background-color: oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.3);
     color: var(--lora-accent);
     padding: 0 2px;
     border-radius: 2px;
@@ -265,7 +265,7 @@
 }
 
 .settings-action-link:focus-visible {
-    box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.2);
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.2);
 }
 
 /* Settings Links */
@@ -296,7 +296,7 @@
 
 .settings-link:hover {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     transform: translateY(-2px);
 }
 
@@ -364,7 +364,7 @@
 .api-key-input input:focus {
     border-color: var(--lora-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
 }
 
 .api-key-input .toggle-visibility {
@@ -491,7 +491,7 @@
 .text-input-wrapper input:focus {
     border-color: var(--lora-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
 }
 
 /* Dark theme specific adjustments */
@@ -577,7 +577,7 @@
 .base-model-skip-search:focus {
     border-color: var(--lora-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
 }
 
 .base-model-skip-list {
@@ -602,11 +602,12 @@
 
 .base-model-skip-option:hover {
     border-color: var(--lora-accent);
-    background-color: rgba(var(--lora-accent-rgb, 79, 70, 229), 0.05);
+    background-color: oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.05);
 }
 
 .base-model-skip-option input {
     margin: 0;
+    accent-color: var(--lora-accent);
 }
 
 .base-model-skip-option span {
@@ -620,10 +621,150 @@
     opacity: 0.75;
 }
 
-.priority-tags-input:focus {
+.download-root-rule-group {
+    margin-bottom: var(--space-3);
+}
+
+.download-root-rule-group:last-child {
+    margin-bottom: 0;
+}
+
+.download-root-rule-group-header {
+    font-weight: 600;
+    font-size: 0.95em;
+    margin-bottom: var(--space-1);
+}
+
+.download-root-rule-toggle {
+    width: 100%;
+    min-width: 0;
+}
+
+.download-root-rule-summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.download-root-rule-root {
+    width: 100%;
+    min-width: 0;
+}
+
+.download-root-rule-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.rule-move-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-base);
+}
+
+.rule-move-btn:hover:not(:disabled) {
+    border-color: var(--lora-accent);
+    color: var(--lora-accent);
+}
+
+.rule-move-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.download-root-rules-hint {
+    font-size: 0.9em;
+    opacity: 0.6;
+    padding: 4px 0;
+}
+
+.download-root-rule-default-hint {
+    padding-top: 0;
+    overflow-wrap: anywhere;
+}
+
+.download-root-rule-panel {
+    margin-top: var(--space-1);
+}
+
+/* Rule rows have 4 children (chip, summary toggle, root select, actions);
+   override the 3-column .mapping-controls grid so the chip keeps its
+   natural width and the actions stay on the same row. The compound
+   selector wins over .mapping-controls regardless of source order. */
+.mapping-controls.download-root-rule-controls {
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr) auto;
+}
+
+.download-root-rule-match-chip {
+    justify-self: start;
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--border-color);
+    background-color: var(--lora-surface);
+    color: var(--text-color);
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    opacity: 0.8;
+    align-self: center;
+    cursor: default;
+}
+
+.download-root-rule-match-chip.is-tag {
+    border-color: var(--lora-accent);
+    color: var(--lora-accent);
+}
+
+.download-root-rule-chevron {
+    flex-shrink: 0;
+    opacity: 0.75;
+    transition: transform 0.15s ease;
+}
+
+.download-root-rule-toggle[aria-expanded="true"] .download-root-rule-chevron {
+    transform: rotate(180deg);
+}
+
+.download-root-rule-add-row {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.download-root-rule-add-row .add-mapping-btn {
+    flex: 1;
+}
+
+.download-root-rule-tag-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border-radius: var(--border-radius-xs);
+    border: 1px solid var(--border-color);
+    background-color: var(--settings-bg);
+    color: var(--text-color);
+}
+
+.download-root-rule-tag-input:focus {
     border-color: var(--lora-accent);
     outline: none;
     box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+}
+
+.priority-tags-input:focus {
+    border-color: var(--lora-accent);
+    outline: none;
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
 }
 
 .priority-tags-item {
@@ -681,7 +822,7 @@
 
 .priority-tags-example code {
     font-family: var(--font-mono);
-    background-color: rgba(var(--lora-accent-rgb, 79, 70, 229), 0.12);
+    background-color: oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.12);
     padding: 2px 6px;
     border-radius: var(--border-radius-xs);
     display: inline-block;
@@ -1268,7 +1409,7 @@ input:checked + .toggle-slider:before {
     gap: 6px;
     padding: 6px 12px;
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     border: none;
     border-radius: var(--border-radius-xs);
     cursor: pointer;
@@ -1315,7 +1456,7 @@ input:checked + .toggle-slider:before {
 .path-value-input:focus {
     border-color: var(--lora-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
 }
 
 .remove-mapping-btn {
@@ -1442,7 +1583,7 @@ input:checked + .toggle-slider:before {
 .placeholder-tag {
     display: inline-block;
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
     padding: 2px 6px;
     border-radius: 3px;
     font-family: var(--font-mono);
@@ -1468,6 +1609,9 @@ input:checked + .toggle-slider:before {
 
 .template-custom-input {
     width: 96%;
+    /* Space from the label/apply-button row above; the row has no bottom
+       margin, so without this the input sits flush against the button. */
+    margin-top: var(--space-1);
     padding: 6px 10px;
     border-radius: var(--border-radius-xs);
     border: 1px solid var(--border-color);
@@ -1482,7 +1626,7 @@ input:checked + .toggle-slider:before {
 .template-custom-input:focus {
     border-color: var(--lora-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
 }
 
 .template-custom-input::placeholder {
@@ -1561,55 +1705,9 @@ input:checked + .toggle-slider:before {
     opacity: 1;
 }
 
-/* Tooltip using data-tooltip attribute */
-.info-icon[data-tooltip] {
-    position: relative;
-}
-
-.info-icon[data-tooltip]::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: calc(100% + 8px);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: normal;
-    font-family: var(--font-body);
-    white-space: normal;
-    max-width: 220px;
-    width: max-content;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
-    pointer-events: none;
-    z-index: 10000;
-    line-height: 1.4;
-    box-shadow: var(--shadow-elevated);
-    text-transform: none;
-}
-
-.info-icon[data-tooltip]:hover::after {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Fix tooltip overflow on left edge - when icon is near left side of modal */
-.settings-subsection-header .info-icon[data-tooltip]::after {
-    left: 0;
-    transform: translateX(0);
-}
-
-.settings-subsection-header .info-icon[data-tooltip]::before {
-    left: 12px;
-}
-
-/* Dark theme adjustments for tooltip - Fully opaque */
-[data-theme="dark"] .info-icon[data-tooltip]::after {
-    background: rgba(40, 40, 40, 0.95);
-    box-shadow: var(--shadow-dark-lg);
-}
+/* Help tooltips are rendered by static/js/utils/tooltip.js into <body> instead
+   of a pseudo-element, so the scrollable settings pane cannot clip them - see
+   static/css/components/tooltip.css. */
 
 /* Extra Folder Paths - Single input layout */
 .extra-folder-path-row {
@@ -1646,7 +1744,7 @@ input:checked + .toggle-slider:before {
 .extra-folder-path-row .path-controls .extra-folder-path-input:focus {
     border-color: var(--lora-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(var(--lora-accent-rgb, 79, 70, 229), 0.1);
+    box-shadow: 0 0 0 2px oklch(var(--lora-accent-l) var(--lora-accent-c) var(--lora-accent-h) / 0.1);
 }
 
 .extra-folder-path-row .path-controls .extra-folder-path-input.has-error {
@@ -1713,7 +1811,7 @@ input:checked + .toggle-slider:before {
 
 #settingsModal .browse-path-btn:hover {
     background: var(--lora-accent);
-    color: white;
+    color: var(--text-on-accent);
 }
 
 /* Inset variant (static path fields): the button floats inside the right
@@ -1846,6 +1944,7 @@ input:checked + .toggle-slider:before {
 
 .other-subtype-checkbox input[type="checkbox"] {
     cursor: pointer;
+    accent-color: var(--lora-accent);
 }
 
 .other-subtype-toggles.is-disabled {

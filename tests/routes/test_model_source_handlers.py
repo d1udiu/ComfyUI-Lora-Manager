@@ -403,9 +403,7 @@ def test_find_matching_root_includes_other_roots(isolated_config_roots, tmp_path
     vae_root = tmp_path / "vae"
     isolated_config_roots.other_roots = [str(vae_root)]
 
-    assert model_source_handlers._find_matching_root(str(vae_root / "sub")) == str(
-        vae_root
-    )
+    assert model_source_handlers._find_matching_root(str(vae_root / "sub")) == str(vae_root).replace(os.sep, "/").replace(os.sep, "/")
 
 
 def test_find_matching_root_respects_path_boundaries(isolated_config_roots, tmp_path):
@@ -1239,7 +1237,7 @@ async def test_download_hydrates_the_card_from_the_site(tmp_path, monkeypatch):
         "https://resources.modelscope.cn/cover-images/b.png",
         "https://resources.modelscope.cn/cover-images/c.png",
     ]
-    assert saved["preview_url"] == str(tmp_path / "preview.webp")
+    assert saved["preview_url"] == str(tmp_path / "preview.webp").replace(os.sep, "/")
     assert saved["usage_tips"] == (
         '{"strength_min": 0.5, "strength_max": 1.2, "strength_range": "0.5-1.2"}'
     )

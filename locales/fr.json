@@ -497,6 +497,42 @@
                 "saveFailed": "Impossible d’enregistrer les modèles de base exclus : {message}"
             }
         },
+        "downloadRootRules": {
+            "title": "Règles de racine de téléchargement",
+            "help": "Route les téléchargements vers un autre dossier racine en fonction du modèle de base ou des tags du modèle.",
+            "description": "Les règles sont vérifiées dans l’ordre. La première correspondance l’emporte ; les téléchargements sans correspondance utilisent la racine par défaut.",
+            "defaultHint": "Par défaut : {root} — les téléchargements sans correspondance arrivent ici",
+            "defaultSuffix": "par défaut",
+            "addBaseModelRule": "Règle de modèle de base",
+            "addTagRule": "Règle de tag",
+            "removeRule": "Supprimer la règle",
+            "moveUp": "Monter",
+            "moveDown": "Descendre",
+            "noRoots": "Aucune racine configurée pour ce type de modèle.",
+            "matchTypes": {
+                "baseModel": "Modèle de base",
+                "tag": "Tag"
+            },
+            "matchTypeChips": {
+                "baseModel": "BM",
+                "tag": "Tag"
+            },
+            "tagPlaceholder": "character, style, realistic",
+            "summary": {
+                "selectBaseModels": "Sélectionner des modèles de base...",
+                "enterTags": "Saisir des tags...",
+                "more": "+{count} de plus"
+            },
+            "types": {
+                "loras": "LoRA",
+                "checkpoints": "Checkpoint",
+                "unet": "Diffusion Model",
+                "embeddings": "Embedding"
+            },
+            "validation": {
+                "saveFailed": "Impossible d’enregistrer les règles de racine de téléchargement : {message}"
+            }
+        },
         "skipPreviouslyDownloadedModelVersions": {
             "label": "Ignorer les versions de modèles précédemment téléchargées",
             "help": "Lorsque activé, LoRA Manager ignorera le téléchargement d'une version de modèle si le service d'historique des téléchargements enregistre cette version exacte comme déjà téléchargée. S'applique à tous les flux de téléchargement."
@@ -839,6 +875,8 @@
             "migrationDeferred": "Les fichiers sidecar existants n’ont pas été déplacés. Vous pouvez les migrer plus tard depuis Paramètres → Bibliothèque → Stockage des fichiers sidecar.",
             "confirmToCentralized": "Le mode de stockage a changé, mais les fichiers sidecar .metadata.json et les images d’aperçu existants ne sont pas déplacés automatiquement. Les déplacer maintenant dans le dossier de stockage centralisé ? Vous pouvez aussi le faire plus tard avec le bouton « Migrer les fichiers sidecar maintenant ».",
             "confirmToAlongside": "Le mode de stockage a changé, mais les fichiers sidecar .metadata.json et les images d’aperçu existants ne sont pas déplacés automatiquement. Les remettre maintenant à côté de leurs fichiers de modèle ? Vous pouvez aussi le faire plus tard avec le bouton « Migrer les fichiers sidecar maintenant ».",
+            "confirmToCentralizedManual": "Déplacer maintenant les fichiers sidecar .metadata.json et les images d’aperçu existants dans le dossier de stockage centralisé ?",
+            "confirmToAlongsideManual": "Remettre maintenant les fichiers sidecar .metadata.json et les images d’aperçu existants à côté de leurs fichiers de modèle ?",
             "confirmRelocateRoot": "Le dossier de stockage centralisé a changé, mais les fichiers sidecar et les images d’aperçu existants se trouvent encore dans le dossier précédent. Les déplacer maintenant dans le nouveau dossier ?",
             "effectivePathLabel": "Emplacement de stockage effectif :",
             "openFolderButton": "Ouvrir le dossier",
@@ -1416,7 +1454,8 @@
             "notEmptyMessageCount": "Ce dossier contient encore {count} fichier(s) de modèle. Supprimez-les ou déplacez-les d’abord — la suppression d’un dossier n’entraîne jamais celle des fichiers de modèles.",
             "notEmptyMessageExcluded": "Ce dossier contient encore {count} fichier(s) de modèle, dont {excluded} sont exclus de la bibliothèque. Annulez leur exclusion dans « Gérer les modèles exclus » et supprimez-les d’abord — la suppression d’un dossier n’entraîne jamais celle des fichiers de modèles.",
             "missingTitle": "Dossier introuvable",
-            "missingMessage": "Ce dossier n’existe plus sur le disque. Actualisez la barre latérale et réessayez.",
+            "missingMessage": "[TODO: Translate] This folder no longer exists on disk. You can remove it from the list.",
+            "removeFromList": "[TODO: Translate] Remove from list",
             "symlinkTitle": "Le dossier est un lien symbolique",
             "symlinkMessage": "Toutes les copies de ce dossier sont des liens symboliques ; supprimez le lien ou sa cible en dehors de LoRA Manager.",
             "protectedTitle": "Dossier protégé",
@@ -1438,6 +1477,8 @@
             "busy": "Une suppression est encore en attente dans ce dossier. Attendez la fin de la fenêtre d’annulation.",
             "unsupported": "La suppression de dossiers n’est pas prise en charge sur cette page",
             "missing": "Ce dossier n’existe plus sur le disque. Actualisez la barre latérale et réessayez.",
+            "forgotten": "[TODO: Translate] Folder \"{name}\" removed from the list",
+            "exists": "[TODO: Translate] The folder is back on disk. Delete it instead.",
             "symlink": "Ce dossier est un lien symbolique ; il ne peut pas être supprimé depuis la barre latérale.",
             "successMulti": "Dossier \"{name}\" supprimé de {count} racines de modèle",
             "partial": "{count} copie(s) sur {total} supprimée(s) — {failed} en échec. Actualisez la barre latérale et réessayez."
@@ -1628,6 +1669,10 @@
                 "label": "Type de destination :",
                 "tooltip": "Détecté automatiquement à partir des métadonnées du modèle. Changez si la détection est incorrecte ; changer désactive « Utiliser le chemin par défaut » pour ce téléchargement."
             },
+            "routedByRule": {
+                "baseModel": "Routé par règle : modèle de base « {value} »",
+                "tag": "Routé par règle : tag « {value} »"
+            },
             "targetFolderPath": "Chemin du dossier cible :",
             "browseFolders": "Parcourir les dossiers :",
             "createNewFolder": "Créer un nouveau dossier",
@@ -1749,7 +1794,8 @@
             "titleToAlongside": "Remettre les fichiers sidecar à côté des fichiers de modèle ?",
             "confirmButton": "Migrer maintenant",
             "titleRelocateRoot": "Déplacer les fichiers sidecar vers le nouveau dossier de stockage ?",
-            "destination": "Destination : {path}"
+            "destination": "Destination : {path}",
+            "defaultLocationHint": "L’emplacement par défaut sera utilisé. Pour utiliser un dossier personnalisé, annulez, définissez le chemin de stockage ci-dessus, puis cliquez sur « Migrer les fichiers sidecar maintenant »."
         },
         "sidecarMigrationResult": {
             "title": "Résumé de la migration des fichiers sidecar",

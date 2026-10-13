@@ -497,6 +497,42 @@
         "saveFailed": "Unable to save excluded base models: {message}"
       }
     },
+    "downloadRootRules": {
+      "title": "Download Root Rules",
+      "help": "Route downloads to a different root folder based on the model's base model or tags.",
+      "description": "Rules are checked in order. First match wins; unmatched downloads use the default root.",
+      "defaultHint": "Default: {root} — unmatched downloads go here",
+      "defaultSuffix": "default",
+      "addBaseModelRule": "Base model rule",
+      "addTagRule": "Tag rule",
+      "removeRule": "Remove rule",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "noRoots": "No roots configured for this model type.",
+      "matchTypes": {
+        "baseModel": "Base model",
+        "tag": "Tag"
+      },
+      "matchTypeChips": {
+        "baseModel": "BM",
+        "tag": "Tag"
+      },
+      "tagPlaceholder": "character, style, realistic",
+      "summary": {
+        "selectBaseModels": "Select base models...",
+        "enterTags": "Enter tags...",
+        "more": "+{count} more"
+      },
+      "types": {
+        "loras": "LoRA",
+        "checkpoints": "Checkpoint",
+        "unet": "Diffusion Model",
+        "embeddings": "Embedding"
+      },
+      "validation": {
+        "saveFailed": "Unable to save download root rules: {message}"
+      }
+    },
     "skipPreviouslyDownloadedModelVersions": {
       "label": "Skip previously downloaded model versions",
       "help": "When enabled, versions downloaded before will be skipped."
@@ -839,6 +875,8 @@
       "migrationDeferred": "Existing sidecars were not moved. You can migrate them later from Settings → Library → Sidecar Storage.",
       "confirmToCentralized": "The storage mode changed, but existing .metadata.json sidecars and preview images are not moved automatically. Move them into the centralized storage directory now? You can also do this later with the \"Migrate Sidecars Now\" button.",
       "confirmToAlongside": "The storage mode changed, but existing .metadata.json sidecars and preview images are not moved automatically. Move them back next to their model files now? You can also do this later with the \"Migrate Sidecars Now\" button.",
+      "confirmToCentralizedManual": "Move existing .metadata.json sidecars and preview images into the centralized storage directory now?",
+      "confirmToAlongsideManual": "Move existing .metadata.json sidecars and preview images back next to their model files now?",
       "confirmRelocateRoot": "The centralized storage directory changed, but existing sidecars and preview images are still in the previous directory. Move them to the new directory now?",
       "effectivePathLabel": "Effective storage location:",
       "openFolderButton": "Open Folder",
@@ -1416,7 +1454,8 @@
       "notEmptyMessageCount": "This folder still contains {count} model file(s). Delete or move them first — deleting a folder never cascades over model files.",
       "notEmptyMessageExcluded": "This folder still contains {count} model file(s), {excluded} of them excluded from the library. Un-exclude them in Manage Excluded Models and delete them first — deleting a folder never cascades over model files.",
       "missingTitle": "Folder not found",
-      "missingMessage": "This folder no longer exists on disk. Refresh the sidebar and try again.",
+      "missingMessage": "This folder no longer exists on disk. You can remove it from the list.",
+      "removeFromList": "Remove from list",
       "symlinkTitle": "Folder is a symbolic link",
       "symlinkMessage": "Every copy of this folder is a symbolic link; remove the link or its target outside LoRA Manager.",
       "protectedTitle": "Folder is protected",
@@ -1438,6 +1477,8 @@
       "busy": "A deletion is still pending inside this folder. Wait for the undo window to expire.",
       "unsupported": "Folder deletion is not supported on this page",
       "missing": "This folder no longer exists on disk. Refresh the sidebar and try again.",
+      "forgotten": "Folder \"{name}\" removed from the list",
+      "exists": "The folder is back on disk. Delete it instead.",
       "symlink": "This folder is a symbolic link; it cannot be deleted from the sidebar.",
       "successMulti": "Folder \"{name}\" deleted from {count} model roots",
       "partial": "Deleted {count} of {total} copies — {failed} could not be deleted. Refresh the sidebar and retry."
@@ -1628,6 +1669,10 @@
         "label": "Destination type:",
         "tooltip": "Auto-detected from the model metadata. Switch if it was misdetected; switching turns off \"Use Default Path\" for this download."
       },
+      "routedByRule": {
+        "baseModel": "Routed by rule: base model \"{value}\"",
+        "tag": "Routed by rule: tag \"{value}\""
+      },
       "targetFolderPath": "Target Folder Path:",
       "browseFolders": "Browse Folders:",
       "createNewFolder": "Create new folder",
@@ -1749,7 +1794,8 @@
       "titleToAlongside": "Move sidecars back next to model files?",
       "confirmButton": "Migrate Now",
       "titleRelocateRoot": "Move sidecars to the new storage directory?",
-      "destination": "Destination: {path}"
+      "destination": "Destination: {path}",
+      "defaultLocationHint": "This uses the default location. To use a custom folder, cancel, set the storage path above, then click \"Migrate Sidecars Now\"."
     },
     "sidecarMigrationResult": {
       "title": "Sidecar Migration Summary",
