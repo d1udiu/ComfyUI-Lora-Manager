@@ -42,7 +42,7 @@ from ..utils.paid_access import (
 )
 from ..utils.file_utils import calculate_sha256, calculate_autov3
 from ..utils.preview_selection import resolve_mature_threshold, select_preview_media
-from ..utils.utils import calculate_filename_for_model, sanitize_folder_name
+from ..utils.utils import calculate_filename_for_model, fit_stem_to_path_budget, sanitize_folder_name
 from ..utils.exif_utils import ExifUtils
 from ..utils.metadata_manager import MetadataManager
 from ..utils.sidecar_paths import get_metadata_path, get_preview_dir
@@ -72,13 +72,14 @@ CIVITAI_DOWNLOAD_URL_PREFIXES = (
     "https://civitai.red/api/download/",
 )
 
-# Hosts a model download may hit (metadata + file transfer). The pre-flight
-# cooldown gate consults the RateLimitCoordinator for these before a download
-# occupies a concurrency slot. civarchive.com is only gated for downloads
-# whose source is CivArchive: a cooldown armed by background metadata fetches
-# must not block plain CivitAI downloads.
+# Hosts the pre-flight cooldown gate consults before a download occupies a
+# concurrency slot. civarchive.com is deliberately absent: a CivArchive-sourced
+# download can fall back to CivitAI for both metadata and file bytes, so a
+# cooldown armed by CivArchive API throttling must not hard-block it. The
+# CivArchive legs stay protected on their own — the metadata fetch goes
+# through the coordinator's wait_for_slot, and mirrors whose host is cooling
+# down are deprioritized once the concrete download URLs are known.
 DOWNLOAD_PREFLIGHT_HOSTS = ("civitai.com", "civitai.red")
-DOWNLOAD_PREFLIGHT_HOSTS_CIVARCHIVE = DOWNLOAD_PREFLIGHT_HOSTS + ("civarchive.com",)
 
 # Fallback retry_after when neither the vendor nor the coordinator can supply
 # a number (matches the Retry-After parsing default in downloader.py).
@@ -265,9 +266,7 @@ class DownloadManager:
         hostname = urlparse(url).hostname
         return hostname.lower() if hostname else "unknown"
 
-    async def _preflight_rate_limit_error(
-        self, source: str | None = None
-    ) -> Optional[DownloadRateLimitError]:
+    async def _preflight_rate_limit_error(self) -> Optional[DownloadRateLimitError]:
         """Fail fast when a download target host is in a rate-limit cooldown.
 
         Consults the RateLimitCoordinator's per-host cooldown state for the
@@ -276,19 +275,16 @@ class DownloadManager:
         Deliberately non-blocking: the caller is expected to pace itself (the
         companion extension auto-pauses on the structured 429 response).
 
-        civarchive.com is only consulted when ``source == "civarchive"`` —
-        other downloads never touch it, so a cooldown armed there (typically
-        by bulk metadata fetches) must not block them.
+        Only the CivitAI hosts are gated here. civarchive.com is not: a
+        CivArchive-sourced download can still resolve metadata and file bytes
+        from CivitAI, and the CivArchive-specific legs are gated separately
+        (metadata fetch via ``wait_for_slot``, mirrors via
+        ``_deprioritize_cooled_down_urls``).
         """
-        hosts = (
-            DOWNLOAD_PREFLIGHT_HOSTS_CIVARCHIVE
-            if source == "civarchive"
-            else DOWNLOAD_PREFLIGHT_HOSTS
-        )
         coordinator = await RateLimitCoordinator.get_instance()
         worst_host: Optional[str] = None
         worst_remaining = 0.0
-        for host in hosts:
+        for host in DOWNLOAD_PREFLIGHT_HOSTS:
             remaining = coordinator.remaining_seconds(host)
             if remaining > worst_remaining:
                 worst_host = host
@@ -696,7 +692,7 @@ class DownloadManager:
 
         # Pre-flight cooldown gate: fail fast (without holding a semaphore
         # slot) when a target host is still cooling down from an earlier 429.
-        preflight_error = await self._preflight_rate_limit_error(source)
+        preflight_error = await self._preflight_rate_limit_error()
         if preflight_error is not None:
             logger.info(
                 "Download %s skipped: %s", task_id, preflight_error
@@ -1100,6 +1096,38 @@ class DownloadManager:
 
         return download_urls
 
+    async def _deprioritize_cooled_down_urls(
+        self, download_urls: List[str]
+    ) -> List[str]:
+        """Move mirrors whose host is in a rate-limit cooldown to the end.
+
+        The transfer loop tries URLs in order and a cooled-down first URL
+        would raise a structured 429 instead of falling through, so a cooldown
+        armed on one mirror host (e.g. civarchive.com after its API throttled
+        us) must not hold up the download while another mirror can serve the
+        file immediately. Order within each group is preserved. When every
+        host is cooling down the list is returned unchanged and the transfer's
+        own rate-limit handling decides (wait within the cap, else structured
+        429 and re-queue).
+        """
+        if len(download_urls) < 2:
+            return download_urls
+        coordinator = await RateLimitCoordinator.get_instance()
+        cooled: List[str] = []
+        ready: List[str] = []
+        for url in download_urls:
+            if coordinator.remaining_seconds(self._url_host(url)) > 0:
+                cooled.append(url)
+            else:
+                ready.append(url)
+        if not ready or not cooled:
+            return download_urls
+        logger.info(
+            "Deprioritizing mirrors on cooled-down hosts: %s",
+            sorted({self._url_host(url) for url in cooled}),
+        )
+        return ready + cooled
+
     async def _fetch_raw_file_name(
         self,
         metadata_provider,
@@ -1215,6 +1243,9 @@ class DownloadManager:
                     if not download_urls:
                         result = {"success": False, "error": "No mirror URL found"}
                     else:
+                        download_urls = await self._deprioritize_cooled_down_urls(
+                            download_urls
+                        )
                         result = await self._execute_download(
                             download_urls=download_urls,
                             save_dir=save_dir,
@@ -1672,9 +1703,22 @@ class DownloadManager:
                 metadata_provider = await get_default_metadata_provider()
 
             # Get version info based on the provided identifier
-            version_info = await metadata_provider.get_model_version(
-                cast(int, model_id), cast(int, model_version_id)
-            )
+            civarchive_rate_limit: Optional[RateLimitError] = None
+            try:
+                version_info = await metadata_provider.get_model_version(
+                    cast(int, model_id), cast(int, model_version_id)
+                )
+            except RateLimitError as exc:
+                if source != "civarchive":
+                    raise
+                # A CivArchive cooldown must not block models that still live
+                # on CivitAI: fall back to the default provider below and only
+                # re-raise if that yields nothing either (archive-only model).
+                logger.info(
+                    "CivArchive metadata fetch rate limited, trying default provider"
+                )
+                civarchive_rate_limit = exc
+                version_info = None
 
             if not version_info:
                 # If CivArchive provider failed and source was 'civarchive', try default provider as fallback
@@ -1688,6 +1732,10 @@ class DownloadManager:
                     )
 
             if not version_info:
+                if civarchive_rate_limit is not None:
+                    # Archive-only model and CivArchive is cooling down: keep
+                    # the structured 429 so the download is re-queued, not failed.
+                    raise civarchive_rate_limit
                 return {"success": False, "error": "Failed to fetch model metadata"}
 
             model_type_from_info = version_info.get("model", {}).get("type", "").lower()
@@ -2169,6 +2217,8 @@ class DownloadManager:
             if not download_urls:
                 return {"success": False, "error": "No mirror URL found"}
 
+            download_urls = await self._deprioritize_cooled_down_urls(download_urls)
+
             # The public REST API rewrites files[].name to
             # "{model}_{version}" for non-LoRA model types, so every
             # precision variant of a multi-file version shares one name and
@@ -2191,6 +2241,30 @@ class DownloadManager:
             file_name = file_info.get("name", "")
             if not file_name:
                 return {"success": False, "error": "No filename found in file info"}
+            # Raw stored filenames carry no length cap, and the fixed stem
+            # cap only applies to template renames; trim to the real path
+            # budget (model path and sidecar mirror alike) so the target
+            # stays writable on Windows (#1142).
+            file_stem, file_ext = os.path.splitext(file_name)
+            fitted_stem = fit_stem_to_path_budget(save_dir, file_stem, file_ext)
+            if not fitted_stem:
+                return {
+                    "success": False,
+                    "error": (
+                        "Download target path would exceed the OS path length "
+                        "limit. Choose a shallower destination folder."
+                    ),
+                }
+            if fitted_stem != file_stem:
+                logger.info(
+                    "[download] Truncating filename '%s' to fit the path length limit",
+                    file_name,
+                )
+                # Rewrite file_info like the raw-name lookup above (#1100):
+                # from this point the name is the on-disk identity, which is
+                # what metadata, history and the scanner all agree on.
+                file_name = fitted_stem + file_ext
+                file_info = {**file_info, "name": file_name}
             save_path = os.path.join(save_dir, file_name)
 
             # 5. Prepare metadata based on model type
@@ -3088,8 +3162,12 @@ class DownloadManager:
                 if not isinstance(file_path, str) or not file_path:
                     continue
 
-                new_stem = calculate_filename_for_model(metadata_dict, model_type)
+                new_stem = calculate_filename_for_model(
+                    metadata_dict, model_type, target_dir=os.path.dirname(file_path)
+                )
                 if not new_stem:
+                    # An empty stem here also covers "no viable name fits the
+                    # path budget": keep the name already on disk.
                     continue
 
                 current_stem = os.path.splitext(os.path.basename(file_path))[0]

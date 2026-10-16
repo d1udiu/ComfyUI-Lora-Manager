@@ -190,6 +190,31 @@ def _create_files(root: Path) -> tuple[Path, Path, Path]:
 
 
 @pytest.mark.asyncio
+async def test_calculate_folder_preserves_case_with_drive_letter_paths(tmp_path: Path):
+    scanner = DummyScanner(tmp_path)
+    # The host may spell the root in a different case than the file path.
+    scanner._root = "c:/models/loras"
+    folder = scanner._calculate_folder("C:/Models/Loras/Krea 2/Kroma/Merges/model.safetensors")
+    assert folder == "Krea 2/Kroma/Merges"
+
+
+@pytest.mark.asyncio
+async def test_calculate_folder_preserves_case_with_backslash_paths(tmp_path: Path):
+    scanner = DummyScanner(tmp_path)
+    scanner._root = "C:\\Models\\Loras"
+    folder = scanner._calculate_folder("C:\\Models\\Loras\\Krea 2\\model.safetensors")
+    assert folder == "Krea 2"
+
+
+@pytest.mark.asyncio
+async def test_calculate_folder_returns_empty_for_root_and_unknown_paths(tmp_path: Path):
+    scanner = DummyScanner(tmp_path)
+    scanner._root = "C:/Models/Loras"
+    assert scanner._calculate_folder("C:/Models/Loras/model.safetensors") == ""
+    assert scanner._calculate_folder("D:/Elsewhere/model.safetensors") == ""
+
+
+@pytest.mark.asyncio
 async def test_initialize_cache_populates_cache(tmp_path: Path):
     _create_files(tmp_path)
     scanner = DummyScanner(tmp_path)
@@ -3277,3 +3302,24 @@ async def test_root_scoped_scan_of_every_root_still_cleans_folders(tmp_path: Pat
     assert "a_folder" not in folders
     assert "b_folder" in folders
 
+
+async def test_on_library_changed_schedules_refreeze_after_reinit(tmp_path: Path, monkeypatch):
+    """Re-init after a library change re-freezes the GC once it finishes (#1147)."""
+    scanner = DummyScanner(str(tmp_path))
+    calls: List[Any] = []
+
+    async def _noop_initialize(reconcile: bool = False) -> None:
+        calls.append(("init", reconcile))
+
+    monkeypatch.setattr(scanner, "initialize_in_background", _noop_initialize)
+    monkeypatch.setattr(
+        model_scanner,
+        "schedule_refreeze_after_rebuild",
+        lambda reason: calls.append(("freeze", reason)),
+    )
+
+    scanner.on_library_changed(reconcile=True)
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+
+    assert calls == [("init", True), ("freeze", "dummy library change")]

@@ -9,9 +9,11 @@ from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Type, Union, cast
 
-from ..utils.models import BaseModelMetadata, autov3_from_civitai_files
+from ..utils.models import BaseModelMetadata, autov3_from_civitai_files, quantization_from_civitai_files
 from ..config import config
 from ..utils.file_utils import find_preview_file, get_preview_extension, calculate_sha256, calculate_autov3
+from ..utils.gc_utils import schedule_refreeze_after_rebuild
+from ..utils.gguf_utils import detect_quantization
 from ..utils.metadata_manager import MetadataManager
 from ..utils.sidecar_paths import (
     get_metadata_path,
@@ -25,7 +27,7 @@ from ..utils.recipes_paths import (
     get_effective_recipes_dir,
     normalized_recipes_dir_key,
 )
-from ..utils.root_paths import normalize_root_identity
+from ..utils.root_paths import normalize_root_identity, normalize_root_spelling
 from .model_cache import ModelCache
 from .model_hash_index import ModelHashIndex
 from .model_lifecycle_service import delete_model_artifacts, _require_path_in_library_roots
@@ -822,6 +824,7 @@ class ModelScanner:
         self._defer_persist_depth = 0
         self._deferred_persist_pending = False
         self._autov3_backfill_scheduled = False  # One-time AutoV3 backfill trigger per process
+        self._quantization_backfill_scheduled = False  # One-time quantization backfill trigger per process
         # Summary of the last incremental reconcile (see last_reconcile_summary)
         self._last_reconcile_summary: Optional[Dict[str, Any]] = None
         # Guard against concurrent all-folders backfill walks (cold fallback
@@ -914,7 +917,16 @@ class ModelScanner:
         if loop and not loop.is_closed():
             self._loop = loop
             self.loop = loop
-            loop.create_task(self.initialize_in_background(reconcile=reconcile))
+            loop.create_task(self._reinitialize_after_library_change(reconcile=reconcile))
+
+    async def _reinitialize_after_library_change(self, reconcile: bool = False) -> None:
+        """Re-hydrate the cache for the new library, then re-freeze the GC.
+
+        The replacement cache is built from freshly allocated objects, which
+        are GC-tracked again (issue #1147).
+        """
+        await self.initialize_in_background(reconcile=reconcile)
+        schedule_refreeze_after_rebuild(f"{self.model_type} library change")
 
     def _resolve_name_display_mode(self) -> str:
         """Return the configured display mode for name sorting."""
@@ -1037,6 +1049,17 @@ class ModelScanner:
         else:
             entry_autov3 = get_value('autov3', None)
 
+        # quantization follows the same three-state contract as autov3:
+        # absent/None = not checked yet, "" = checked but no quantization
+        # detected, otherwise the canonical name ("Q4_K_M", "FP8", ...).
+        if is_mapping:
+            if 'quantization' in source:
+                entry_quantization = source['quantization'] or ''
+            else:
+                entry_quantization = None
+        else:
+            entry_quantization = get_value('quantization', None)
+
         entry: Dict[str, Any] = {
             'file_path': normalized_path,
             # file_name is always stored WITHOUT extension (e.g. "OWSMianne_ANIMA_V1",
@@ -1051,6 +1074,7 @@ class ModelScanner:
             'modified': float(get_value('modified', 0.0) or 0.0),
             'sha256': (get_value('sha256', '') or '').lower(),
             'autov3': entry_autov3,
+            'quantization': entry_quantization,
             'base_model': get_value('base_model', '') or '',
             'preview_url': preview_url,
             'preview_nsfw_level': int(get_value('preview_nsfw_level', 0) or 0),
@@ -1354,6 +1378,17 @@ class ModelScanner:
             if loop is not None:
                 loop.create_task(self._run_autov3_backfill())
 
+        # Same one-time scheduling for the quantization backfill (snapshots
+        # that predate the quantization column).
+        if not self._quantization_backfill_scheduled:
+            self._quantization_backfill_scheduled = True
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is not None:
+                loop.create_task(self._run_quantization_backfill())
+
         return True
 
     def _rebuild_persisted_cache(self) -> Optional[Tuple[CacheBuildResult, List[Dict[str, Any]]]]:
@@ -1433,6 +1468,14 @@ class ModelScanner:
             await Autov3BackfillService.get_instance().backfill(self)
         except Exception as exc:
             logger.warning("AutoV3 backfill failed: %s", exc)
+
+    async def _run_quantization_backfill(self) -> None:
+        """Backfill quantization for entries loaded from the persisted cache that lack it."""
+        try:
+            from ..services.quantization_backfill_service import QuantizationBackfillService  # lazy import (module created by another unit)
+            await QuantizationBackfillService.get_instance().backfill(self)
+        except Exception as exc:
+            logger.warning("Quantization backfill failed: %s", exc)
 
     async def _save_persistent_cache(self, scan_result: CacheBuildResult, *, force: bool = False) -> None:
         if not scan_result or not getattr(self, '_persistent_cache', None):
@@ -1810,6 +1853,10 @@ class ModelScanner:
                     f"{self.model_type.capitalize()} Scanner: Cache initialization completed in {time.time() - start_time:.2f} seconds, "
                     f"found {len(scan_result.raw_data)} models"
                 )
+                # A full rebuild replaces the (frozen) cache with freshly
+                # allocated, GC-tracked objects; re-freeze once the follow-up
+                # work settles (issue #1147).
+                schedule_refreeze_after_rebuild(f"{self.model_type} cache rebuild")
             else:
                 await self._broadcast_scan_progress(
                     'cancelled', 'process_models', last_progress_percent, True,
@@ -3102,10 +3149,21 @@ class ModelScanner:
         the opposite spelling, so every forward-slashed path on Windows resolved
         to the root folder and a moved model was filed under the library root.
         Compare identities instead, then slice the relative part off.
+
+        The identity folds case on case-insensitive filesystems, so the slice
+        comes from the case-preserving spelling: slicing the identity itself
+        recorded every folder in lowercase on Windows, and the sidebar grew a
+        lowercase twin branch on every move until the next disk walk healed it.
         """
         candidate = _root_identity(file_path)
         if not candidate:
             return ""
+        spelling = normalize_root_spelling(file_path)
+        if len(spelling) != len(candidate):
+            # Case folding changed the length (e.g. a Unicode character whose
+            # lowercase form spans two code points): fall back to the identity
+            # rather than slice at a wrong offset.
+            spelling = candidate
         for root in self.get_model_roots():
             identity = _root_identity(root)
             if not identity:
@@ -3113,7 +3171,7 @@ class ModelScanner:
             if candidate == identity:
                 return ""
             if candidate.startswith(f"{identity}/"):
-                relative = candidate[len(identity) + 1:]
+                relative = spelling[len(identity) + 1:]
                 return relative.rsplit("/", 1)[0] if "/" in relative else ""
         return ""
 
@@ -3307,6 +3365,40 @@ class ModelScanner:
                         await MetadataManager.save_metadata(file_path, metadata)
             except Exception as e:
                 logger.error(f"Failed to resolve AutoV3 for {file_path}: {e}")
+
+        # Quantization resolution: content detection (GGUF file_type /
+        # safetensors dtypes) is authoritative and only runs for models never
+        # checked before (quantization is None). The Civitai fp8 flag is only
+        # a fallback — it may upgrade a checked-unavailable state ('') to
+        # "FP8", but never overrides a content-detected value, and the header
+        # is never re-read for an already-checked model.
+        current_quantization = model_data.get('quantization')
+        if current_quantization in (None, ''):
+            try:
+                quantization = None
+                if current_quantization is None:
+                    quantization = detect_quantization(os.path.realpath(file_path))
+                if not quantization:
+                    civitai_data = None
+                    if isinstance(metadata, BaseModelMetadata):
+                        civitai_data = metadata.civitai
+                    elif isinstance(metadata, dict):
+                        civitai_data = metadata.get("civitai")
+                    quantization = quantization_from_civitai_files(
+                        civitai_data, model_data.get("sha256") or ""
+                    )
+                quantization = quantization or ""
+                if quantization != current_quantization:
+                    model_data['quantization'] = quantization
+                    if isinstance(metadata, BaseModelMetadata):
+                        metadata.quantization = quantization
+                        await MetadataManager.save_metadata(file_path, metadata)
+                    elif isinstance(metadata, dict):
+                        # Dict payload: JSON null encodes the checked-unavailable state.
+                        metadata['quantization'] = quantization or None
+                        await MetadataManager.save_metadata(file_path, metadata)
+            except Exception as e:
+                logger.error(f"Failed to resolve quantization for {file_path}: {e}")
 
         # Skip excluded models
         if model_data.get('exclude', False):
@@ -4295,6 +4387,70 @@ class ModelScanner:
             return True
         except Exception as exc:
             logger.warning("Failed to update AutoV3 for %s: %s", file_path, exc)
+            return False
+
+    async def update_quantization_for_model(self, model_type: str, file_path: str, quantization: str) -> bool:
+        """Persist a quantization value for a single model (single write path used by the backfill service).
+
+        Locates the in-memory cache entry by ``file_path`` and updates only its
+        ``quantization`` field: the SQLite snapshot via
+        :meth:`PersistentModelCache.update_single_model` and the
+        ``.metadata.json`` sidecar. sha256, tags, and every other field are
+        left untouched, so the persistent delta only ever differs in
+        quantization. Unlike autov3, quantization is not part of the hash
+        index, so no index update is needed.
+
+        Returns:
+            ``True`` when the entry was found and updated, ``False`` otherwise.
+            Never raises — failures are logged and swallowed.
+        """
+        try:
+            if self._cache is None:
+                return False
+
+            entry = next(
+                (item for item in self._cache.raw_data if item.get('file_path') == file_path),
+                None,
+            )
+            if entry is None:
+                return False
+
+            # Normalize once so the memory entry, sidecar, and SQLite row agree.
+            # Canonical names are case-sensitive ("Q4_K_M", "FP8"), so unlike
+            # autov3 no lowering happens here.
+            quantization = quantization or ""
+
+            # Capture the pre-mutation state so update_single_model only sees
+            # a quantization delta between old and new.
+            old_item = dict(entry)
+
+            entry['quantization'] = quantization
+
+            persistent = getattr(self, '_persistent_cache', None)
+            if persistent is not None:
+                await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    persistent.update_single_model,
+                    model_type,
+                    entry,
+                    old_item,
+                )
+
+            # Sidecar write-back: JSON null encodes the checked-unavailable
+            # state. Skip silently when the sidecar does not exist.
+            metadata_path = get_metadata_path(file_path)
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r', encoding='utf-8') as handle:
+                    payload = json.load(handle)
+                if not isinstance(payload, dict):
+                    payload = {}
+                payload['quantization'] = entry['quantization'] or None
+                await MetadataManager.save_metadata(metadata_path, payload)
+
+            self.bump_cache_version()
+            return True
+        except Exception as exc:
+            logger.warning("Failed to update quantization for %s: %s", file_path, exc)
             return False
 
     @staticmethod
