@@ -253,3 +253,130 @@ describe("extension graph configure hook", () => {
     expect(dtypeWidget(node).value).toBe("fp8_e4m3fn");
   });
 });
+
+describe("model widget value migration", () => {
+  function modelWidget(node, name) {
+    return node.widgets.find((widget) => widget.name === name);
+  }
+
+  async function loadGraphWith(nodes) {
+    const extension = state.registerExtension.mock.calls.map(
+      (call) => call[0]
+    )[0];
+    await extension.setup();
+
+    state.graph.nodes = nodes;
+    for (const node of nodes) {
+      const nodeType = { comfyClass: node.comfyClass, prototype: {} };
+      extension.beforeRegisterNodeDef(nodeType, {});
+      nodeType.prototype.onAdded?.call({ graph: state.graph });
+    }
+
+    state.graph.onConfigure({});
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  beforeEach(() => {
+    state.fetchApi.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          { name: "aaa/first.safetensors", base_model: "Any" },
+          { name: "dir/model.safetensors", base_model: "Any" },
+        ],
+      }),
+    });
+  });
+
+  it("migrates a backslash-spelled value instead of resetting to the first model", async () => {
+    const node = makeCheckpointNode();
+    modelWidget(node, "ckpt_name").value = "dir\\model.safetensors";
+
+    await loadGraphWith([node]);
+
+    expect(modelWidget(node, "ckpt_name").value).toBe("dir/model.safetensors");
+  });
+
+  it("still resets to the first model when the normalized value is unknown", async () => {
+    const node = makeCheckpointNode();
+    modelWidget(node, "ckpt_name").value = "dir\\unknown.safetensors";
+
+    await loadGraphWith([node]);
+
+    expect(modelWidget(node, "ckpt_name").value).toBe("aaa/first.safetensors");
+  });
+
+  it("migrates wired widgets without touching their option list", async () => {
+    const node = makeCheckpointNode();
+    node.inputs = [{ widget: { name: "ckpt_name" }, link: 1 }];
+    const widget = modelWidget(node, "ckpt_name");
+    widget.value = "dir\\model.safetensors";
+    widget.options.values = ["model.safetensors"];
+
+    await loadGraphWith([node]);
+
+    expect(widget.value).toBe("dir/model.safetensors");
+    expect(widget.options.values).toEqual(["model.safetensors"]);
+  });
+
+  it("leaves an already-valid forward-slash value untouched", async () => {
+    const node = makeCheckpointNode();
+    modelWidget(node, "ckpt_name").value = "dir/model.safetensors";
+
+    await loadGraphWith([node]);
+
+    expect(modelWidget(node, "ckpt_name").value).toBe("dir/model.safetensors");
+  });
+
+  it("migrates nodes nested inside subgraphs", async () => {
+    const inner = makeCheckpointNode();
+    modelWidget(inner, "ckpt_name").value = "dir\\model.safetensors";
+    const subgraphNode = {
+      comfyClass: "MySubgraph",
+      widgets: [],
+      subgraph: { nodes: [inner] },
+    };
+    // A root-level loader node installs the graph configure hook.
+    const root = makeCheckpointNode();
+
+    await loadGraphWith([root, subgraphNode]);
+
+    expect(modelWidget(inner, "ckpt_name").value).toBe("dir/model.safetensors");
+  });
+
+  it("fires onWidgetChanged so the frontend clears the stale error flag", async () => {
+    const node = makeCheckpointNode();
+    const widget = modelWidget(node, "ckpt_name");
+    widget.value = "dir\\model.safetensors";
+    node.onWidgetChanged = vi.fn();
+
+    await loadGraphWith([node]);
+
+    expect(node.onWidgetChanged).toHaveBeenCalledWith(
+      "ckpt_name",
+      "dir/model.safetensors",
+      "dir\\model.safetensors",
+      widget
+    );
+  });
+
+  it("migrates values restored through node.onConfigure (paste)", async () => {
+    const extension = state.registerExtension.mock.calls.map(
+      (call) => call[0]
+    )[0];
+    await extension.setup();
+
+    const nodeType = {
+      comfyClass: "Checkpoint Loader (LoraManager)",
+      prototype: {},
+    };
+    extension.beforeRegisterNodeDef(nodeType, {});
+
+    const node = makeCheckpointNode();
+    modelWidget(node, "ckpt_name").value = "dir\\model.safetensors";
+
+    nodeType.prototype.onConfigure.call(node, {});
+
+    expect(modelWidget(node, "ckpt_name").value).toBe("dir/model.safetensors");
+  });
+});
